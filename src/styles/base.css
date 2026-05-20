@@ -1,0 +1,54 @@
+:root {
+  --pink:        #E8529A;
+  --pink-light:  #F07BBB;
+  --pink-dim:    rgba(232, 82, 154, 0.18);
+  --blue:        #3CB4E6;
+  --blue-light:  #6BCBF0;
+  --blue-dim:    rgba(60, 180, 230, 0.18);
+  --bg:          #060614;
+  --surface:     rgba(255, 255, 255, 0.03);
+  --border:      rgba(255, 255, 255, 0.07);
+  --border-h:    rgba(255, 255, 255, 0.16);
+  --text:        #f0f0ff;
+  --muted:       rgba(240, 240, 255, 0.38);
+
+  --shadow-md:   0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-lg:   0 20px 60px rgba(0, 0, 0, 0.65);
+
+  --grad:        linear-gradient(135deg, var(--pink), var(--blue));
+  --grad-border: linear-gradient(135deg, rgba(232,82,154,0.5), rgba(60,180,230,0.5));
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: var(--bg);
+  /* subtle dot grid */
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 30px 30px;
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* Ambient glow blobs */
+body::before {
+  content: '';
+  position: fixed; top: -30%; left: -15%;
+  width: 55%; height: 55%;
+  background: radial-gradient(circle, rgba(232, 82, 154, 0.18) 0%, transparent 65%);
+  pointer-events: none; z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed; bottom: -30%; right: -15%;
+  width: 55%; height: 55%;
+  background: radial-gradient(circle, rgba(60, 180, 230, 0.18) 0%, transparent 65%);
+  pointer-events: none; z-index: 0;
+}
+
+.view { display: none; position: relative; z-index: 1; }
+.view.active { display: flex; }
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }

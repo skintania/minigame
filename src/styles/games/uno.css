@@ -1,0 +1,100 @@
+.uno-card {
+  width: 72px;
+  height: 104px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  border: 2px solid rgba(255,255,255,0.12);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Center oval decoration */
+.uno-card::before {
+  content: '';
+  position: absolute;
+  inset: 8px 5px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.18);
+  transform: rotate(-20deg);
+  pointer-events: none;
+}
+
+.uno-card .cv {
+  font-size: 28px;
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  line-height: 1;
+  position: relative; z-index: 1;
+}
+.uno-card .cl {
+  font-size: 8px;
+  color: rgba(255,255,255,0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+  position: relative; z-index: 1;
+}
+
+.uno-card.playable {
+  border-color: rgba(255,255,255,0.7);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.45), 0 6px 20px rgba(0,0,0,0.5);
+}
+.uno-card.playable:hover {
+  transform: translateY(-12px) scale(1.04);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.6), 0 18px 32px rgba(0,0,0,0.55);
+}
+.uno-card.not-playable { opacity: 0.38; cursor: default; }
+
+/* Colors */
+.uno-card.red    { background: linear-gradient(155deg, #ff5465 0%, #a01e28 100%); }
+.uno-card.blue   { background: linear-gradient(155deg, #3AABDE 0%, #1460a0 100%); }
+.uno-card.green  { background: linear-gradient(155deg, #2ed573 0%, #14663a 100%); }
+.uno-card.yellow { background: linear-gradient(155deg, #ffe234 0%, #b08800 100%); }
+.uno-card.yellow .cv { color: #2a1a00; text-shadow: none; }
+.uno-card.yellow .cl { color: rgba(0,0,0,0.5); }
+
+/* Wild — conic gradient quadrants */
+.uno-card.wild {
+  background: conic-gradient(#ff5465 0 25%, #ffe234 25% 50%, #2ed573 50% 75%, #3AABDE 75%);
+}
+.uno-card.wild::before { border-color: rgba(255,255,255,0.3); }
+
+/* Face-down back */
+.uno-card.back {
+  background: linear-gradient(135deg, var(--pink), var(--blue));
+  cursor: default;
+}
+.uno-card.back::before { border-color: rgba(255,255,255,0.25); }
+
+/* ── Player hand layout ── */
+.hand-row {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+/* Opponent mini back-cards */
+.mini-card {
+  width: 26px;
+  height: 38px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, var(--pink), var(--blue));
+  flex-shrink: 0;
+  margin-right: -10px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+@media (max-width: 480px) {
+  .uno-card { width: 58px; height: 86px; }
+  .uno-card .cv { font-size: 22px; }
+}
