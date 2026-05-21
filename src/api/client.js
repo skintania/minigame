@@ -22,9 +22,10 @@ export const api = {
   join:           (sid, gid)       => request('POST', '/lobby/join', { sessionId: sid, gameId: gid }),
 
   // Private rooms
-  createRoom:     (sid, gid)       => request('POST', '/rooms/create', { sessionId: sid, gameId: gid }),
-  joinRoom:       (sid, roomCode)  => request('POST', '/rooms/join',   { sessionId: sid, roomCode }),
-  getRoomStatus:  (roomCode)       => request('GET',  `/rooms/${roomCode}`),
+  createRoom:     (sid, gid, opts = {}) => request('POST', '/rooms/create', { sessionId: sid, gameId: gid, ...opts }),
+  joinRoom:       (sid, roomCode)       => request('POST', '/rooms/join',   { sessionId: sid, roomCode }),
+  getRoomStatus:  (roomCode)            => request('GET',  `/rooms/${roomCode}`),
+  patchSettings:  (code, sid, settings) => request('PATCH', `/rooms/${code}/settings`, { sessionId: sid, ...settings }),
 
   // Game
   move:           (gid, sid, mid, action) =>

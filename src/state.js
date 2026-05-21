@@ -4,6 +4,7 @@ export const state = {
   matchId:     null,
   gameId:      null,
   roomCode:    null,
+  isHost:      false,
   gameState:   null,
   poll:        null,
   waiting:     false,
@@ -20,8 +21,8 @@ export const cfg = {
 const SESSION_KEY = 'sk_session'
 
 export function saveSession() {
-  const { sessionId, username, matchId, gameId, roomCode, gameState } = state
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId, username, matchId, gameId, roomCode, gameState }))
+  const { sessionId, username, matchId, gameId, roomCode, isHost, gameState } = state
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId, username, matchId, gameId, roomCode, isHost, gameState }))
 }
 
 export function loadSession() {

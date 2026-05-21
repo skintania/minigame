@@ -14,6 +14,9 @@ export function initGame() {
     handResultTimer = null
     goLobby()
   })
+  document.getElementById('btn-end-game').addEventListener('click', () => {
+    if (confirm('End the game for everyone and return to lobby?')) goLobby()
+  })
 
   document.addEventListener('game:move', async e => {
     try {
@@ -32,6 +35,10 @@ export function enterGame() {
   document.getElementById('g-name').textContent        = gameId === 'poker' ? 'Poker' : 'UNO'
   document.getElementById('poker-board').style.display = gameId === 'poker' ? 'flex' : 'none'
   document.getElementById('uno-board').style.display   = gameId === 'uno'   ? 'flex' : 'none'
+
+  // Show End Game button for host in a private room
+  const endBtn = document.getElementById('btn-end-game')
+  endBtn.style.display = (state.roomCode && state.isHost) ? 'inline-flex' : 'none'
 
   render()
 
@@ -85,11 +92,8 @@ async function handleMoveResult(res) {
 }
 
 function onHandEnd(meta) {
-  if (state.gameId === 'poker') {
-    showHandResult(meta)
-  } else {
-    showWinner(meta.winner)
-  }
+  if (state.gameId === 'poker') showHandResult(meta)
+  else showWinner(meta.winner)
 }
 
 async function showHandResult(meta) {
@@ -97,7 +101,7 @@ async function showHandResult(meta) {
   const chips  = meta.chips || {}
   const won    = meta.winner === state.sessionId
 
-  // Give the player 2 seconds to see the revealed cards before the panel appears
+  // Give players 2 seconds to see revealed cards before the panel appears
   await sleep(2000)
 
   document.getElementById('hr-emoji').textContent     = won ? '🏆' : '😔'
@@ -112,6 +116,7 @@ async function showHandResult(meta) {
 
   const statusEl = document.getElementById('hr-status')
 
+  // Check if someone is eliminated
   const busted = myChips === 0 || oppChips === 0
   if (busted) {
     statusEl.textContent = myChips === 0
@@ -121,7 +126,27 @@ async function showHandResult(meta) {
     return
   }
 
-  // Countdown then auto-start next hand
+  // Private room, non-host: wait for host to start the next hand
+  const isPrivateRoom = !!state.roomCode
+  if (isPrivateRoom && !state.isHost) {
+    statusEl.textContent = 'Waiting for host to start next hand…'
+    document.getElementById('hand-result-overlay').classList.add('open')
+    // Poll until the new hand begins (winner clears)
+    state.poll = setInterval(async () => {
+      try {
+        const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+        if (!gs?.metadata?.winner && gs?.metadata?.phase !== 'showdown') {
+          stopPoll()
+          document.getElementById('hand-result-overlay').classList.remove('open')
+          state.gameState = gs
+          enterGame()
+        }
+      } catch { /* keep polling */ }
+    }, 2200)
+    return
+  }
+
+  // Host in private room OR public match: 5-second countdown then auto-start
   let secs = 5
   statusEl.textContent = `Next hand in ${secs}s…`
   document.getElementById('hand-result-overlay').classList.add('open')
@@ -143,7 +168,7 @@ async function startNextHand() {
   try {
     await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
   } catch (e) {
-    // Other player may have already started the next hand — that's fine
+    // Other player may have already started, or non-creator tried — both are fine
     console.log('[game] next hand start:', e.message)
   }
   enterGame()

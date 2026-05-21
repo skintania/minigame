@@ -67,13 +67,33 @@
       </div>
     </div>
 
-    <!-- Room code display -->
+    <!-- Room code display (host only) -->
     <div id="room-created" class="room-created-panel">
       <div class="room-code-box glass">
         <div class="rc-label">Share this code with your friend</div>
         <div class="rc-code" id="rc-code">——————</div>
         <button class="btn btn-ghost rc-copy-btn" id="rc-copy-btn">Copy Code</button>
       </div>
+    </div>
+
+    <!-- Host controls: settings + start button -->
+    <div id="host-controls" class="host-controls-panel">
+      <div class="host-settings glass">
+        <div class="host-settings-title">Room Settings</div>
+        <div class="host-setting-row">
+          <span class="host-setting-lbl">Max Players</span>
+          <div class="host-stepper">
+            <button class="btn btn-ghost stepper-btn" id="btn-max-minus">−</button>
+            <span id="disp-max-players">8</span>
+            <button class="btn btn-ghost stepper-btn" id="btn-max-plus">+</button>
+          </div>
+        </div>
+        <div class="host-setting-row" id="chips-row">
+          <span class="host-setting-lbl">Starting Chips</span>
+          <input type="number" id="inp-chips" class="bet-field" value="1000" min="100" max="1000000" style="width:110px;text-align:right">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-start-game" disabled style="margin-top:4px">Waiting for players…</button>
     </div>
 
     <!-- Waiting box -->
