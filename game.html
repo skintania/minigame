@@ -26,38 +26,52 @@
 
     <!-- Poker Board -->
     <div id="poker-board" class="game-board">
-      <div class="g-section glass">
-        <div class="section-label">Pot &amp; Bets</div>
-        <div class="stats-row">
-          <div class="stat"><div class="stat-lbl">Pot</div><div class="stat-val" id="pk-pot">0</div></div>
-          <div class="stat"><div class="stat-lbl">Current Bet</div><div class="stat-val" id="pk-cbet">0</div></div>
-          <div class="stat"><div class="stat-lbl">Your Bet</div><div class="stat-val" id="pk-mbet">0</div></div>
-        </div>
-      </div>
 
-      <div class="g-section glass">
-        <div class="section-label">Opponent</div>
+      <!-- Opponent -->
+      <div class="pk-opp-zone">
+        <div class="pk-player-badge" id="pk-opp-badge">
+          <span class="pk-badge-label">Opponent</span>
+          <span class="pk-chip-count">&#9885; <span id="pk-opp-chips">—</span></span>
+        </div>
         <div class="cards-row" id="pk-opp-hand"></div>
       </div>
 
-      <div class="g-section glass">
-        <div class="section-label">Community Cards</div>
+      <!-- Felt table -->
+      <div class="pk-table">
         <div class="cards-row" id="pk-community"></div>
+        <div class="pk-table-center">
+          <div class="pk-tstat">
+            <span class="pk-tstat-lbl">Table Bet</span>
+            <span class="pk-tstat-val" id="pk-cbet">0</span>
+          </div>
+          <div class="pk-pot-display">
+            <div class="pk-pot-amount" id="pk-pot">0</div>
+            <div class="pk-pot-label">POT</div>
+          </div>
+          <div class="pk-tstat">
+            <span class="pk-tstat-lbl">Your Bet</span>
+            <span class="pk-tstat-val" id="pk-mbet">0</span>
+          </div>
+        </div>
       </div>
 
-      <div class="g-section glass">
-        <div class="section-label">Your Hand</div>
+      <!-- Player -->
+      <div class="pk-player-zone">
         <div class="cards-row" id="pk-hand"></div>
+        <div class="pk-player-badge mine" id="pk-my-badge">
+          <span class="pk-badge-label">You</span>
+          <span class="pk-chip-count">&#9885; <span id="pk-my-chips">—</span></span>
+        </div>
       </div>
 
-      <div class="g-section glass">
-        <div class="section-label">Actions</div>
+      <!-- Actions -->
+      <div class="pk-action-bar">
         <div class="action-row">
           <button class="btn btn-danger" id="btn-fold">Fold</button>
           <button class="btn btn-blue"   id="btn-check">Check</button>
           <div class="bet-wrap">
             <input type="number" id="bet-amt" class="bet-field" placeholder="Amount" min="1">
-            <button class="btn btn-pink" id="btn-bet">Bet</button>
+            <button class="btn btn-pink"  id="btn-bet">Bet</button>
           </div>
         </div>
         <div class="last-action" id="pk-last"></div>

@@ -7,14 +7,27 @@ const RED_SYMS     = new Set(['♥', '♦'])
 const CARD_BASE    = () => `${cfg.url}/assets/cards/standard-deck`
 
 export function renderBoard(meta, mine) {
-  document.getElementById('pk-pot').textContent   = meta.pot        ?? 0
-  document.getElementById('pk-cbet').textContent  = meta.currentBet ?? 0
-  document.getElementById('pk-mbet').textContent  = (meta.bets || {})[state.sessionId] ?? 0
-  document.getElementById('pk-last').textContent  = meta.lastAction || ''
+  const oppId = (state.gameState.players || []).find(p => p !== state.sessionId)
 
-  // Check vs Call
-  const myBet    = (meta.bets || {})[state.sessionId] || 0
-  const callAmt  = (meta.currentBet || 0) - myBet
+  // Stats
+  document.getElementById('pk-pot').textContent  = meta.pot        ?? 0
+  document.getElementById('pk-cbet').textContent = meta.currentBet ?? 0
+  document.getElementById('pk-mbet').textContent = (meta.bets || {})[state.sessionId] ?? 0
+  document.getElementById('pk-last').textContent = meta.lastAction || ''
+
+  // Chip counts
+  const chips = meta.chips || {}
+  document.getElementById('pk-my-chips').textContent  = chips[state.sessionId] ?? '—'
+  document.getElementById('pk-opp-chips').textContent = oppId ? (chips[oppId] ?? '—') : '—'
+
+  // Folded state on badges
+  const folded = meta.folded || {}
+  document.getElementById('pk-my-badge')?.classList.toggle('folded', !!folded[state.sessionId])
+  document.getElementById('pk-opp-badge')?.classList.toggle('folded', !!(oppId && folded[oppId]))
+
+  // Check vs Call label
+  const myBet   = (meta.bets || {})[state.sessionId] || 0
+  const callAmt = (meta.currentBet || 0) - myBet
   const checkBtn = document.getElementById('btn-check')
   if (callAmt > 0) {
     checkBtn.textContent    = `Call (${callAmt})`
@@ -35,7 +48,6 @@ export function renderBoard(meta, mine) {
   document.getElementById('pk-hand').innerHTML = myHand.map(cardHTML).join('')
 
   // Opponent hand — server sends ["hidden","hidden"] until showdown
-  const oppId   = (state.gameState.players || []).find(p => p !== state.sessionId)
   const oppHand = (meta.hands || {})[oppId]
   document.getElementById('pk-opp-hand').innerHTML = oppHand?.length
     ? oppHand.map(cardHTML).join('')
