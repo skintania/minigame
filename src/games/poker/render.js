@@ -50,8 +50,17 @@ function flyChip(fromEl, toEl) {
   chip.addEventListener('animationend', () => chip.remove(), { once: true })
 }
 
-function animateBetToPot(curBets, prev) {
-  const bettorId = Object.keys(curBets).find(id => (curBets[id] || 0) > (prev[id] || 0))
+function animateBetToPot(curBets, prev, lastAction) {
+  // Primary: find who's bet increased this render
+  let bettorId = Object.keys(curBets).find(id => (curBets[id] || 0) > (prev[id] || 0))
+
+  // Fallback: bets were reset to 0 after a round transition (e.g. call ends
+  // the street). Parse the lastAction string — server format: "<sessionId> bet N"
+  if (!bettorId && lastAction) {
+    const actor = lastAction.split(' ')[0]
+    if ((state.gameState?.players || []).includes(actor)) bettorId = actor
+  }
+
   if (!bettorId) return
   flyChip(
     document.getElementById(bettorId === state.sessionId ? 'pk-my-badge' : 'pk-opp-badge'),
@@ -182,7 +191,7 @@ export function renderBoard(meta, mine) {
     if (!prevWinner && curWinner) {
       animatePotToWinner(curWinner)
     } else if (!curWinner && curPot > prevPot) {
-      animateBetToPot(curBets, prevBets)
+      animateBetToPot(curBets, prevBets, meta.lastAction)
     }
   }
 

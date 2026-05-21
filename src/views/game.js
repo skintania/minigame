@@ -144,6 +144,7 @@ async function showHandResult(meta) {
           stopPoll()
           document.getElementById('hand-result-overlay').classList.remove('open')
           state.gameState = gs
+          handResultActive = false  // allow future hands to show result
           enterGame()
         }
       } catch { /* keep polling */ }
@@ -169,22 +170,26 @@ async function showHandResult(meta) {
 }
 
 async function startNextHand() {
-  handResultActive = false
+  // Keep handResultActive = true the whole time so the poll in enterGame()
+  // can't re-trigger onHandEnd while we're still waiting for a clean state.
   document.getElementById('hand-result-overlay').classList.remove('open')
   try {
     const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
     if (res?.state) state.gameState = res.state
   } catch (e) {
-    // Other player may have already started — poll until winner clears
     console.log('[game] next hand start:', e.message)
-    for (let i = 0; i < 8; i++) {
-      await sleep(400)
-      try {
-        const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
-        if (!gs?.metadata?.winner) { state.gameState = gs; break }
-      } catch { /* keep trying */ }
-    }
   }
+  // Always poll until the server confirms winner is gone — whether start
+  // succeeded, failed, or returned a still-stale showdown state.
+  for (let i = 0; i < 12; i++) {
+    if (!state.gameState?.metadata?.winner) break
+    await sleep(350)
+    try {
+      const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+      if (!gs?.metadata?.winner) { state.gameState = gs; break }
+    } catch { /* keep trying */ }
+  }
+  handResultActive = false  // safe to clear only after winner is gone
   enterGame()
 }
 
