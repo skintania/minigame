@@ -1,6 +1,7 @@
 import { state, cfg } from '../../state.js'
 
 const SUIT_SYMBOLS = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' }
+const SUIT_NAMES   = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs' }
 const RED_SUITS    = new Set(['hearts', 'diamonds'])
 const RED_SYMS     = new Set(['♥', '♦'])
 const CARD_BASE    = () => `${cfg.url}/assets/cards/standard-deck`
@@ -64,8 +65,11 @@ export function cardHTML(str) {
       onerror="this.outerHTML='<div class=\\"p-card black\\"><div class=\\"center\\">🃏</div></div>'">`
   }
 
-  // API format: "A-spades" → asset filename: "a_spades"
-  const [rank, suit] = str.split('-')
+  // API returns Unicode suit symbols ("6♦") or dash-separated ("6-diamonds")
+  const symMatch = str.match(/^(.+?)([♠♥♦♣])$/)
+  const [rank, suit] = symMatch
+    ? [symMatch[1], SUIT_NAMES[symMatch[2]]]
+    : str.split('-')
   const assetName = `${rank.toLowerCase()}_${suit}`
   const src = `${CARD_BASE()}/${assetName}.svg`
   return `<img class="p-card-img" src="${src}" alt="${str}"

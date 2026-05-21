@@ -29,8 +29,8 @@ export async function pkBet() {
   const amount = parseInt(document.getElementById('bet-amt').value)
   if (!amount || amount <= 0) { showToast('Enter a valid bet amount.'); return }
   try {
-    document.getElementById('bet-amt').value = ''
     await dispatch({ type: 'bet', amount })
+    document.getElementById('bet-amt').value = ''
   } catch (e) {
     console.error(`[poker] bet ${amount} failed:`, e)
     showToast(e.message)

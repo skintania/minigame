@@ -23,11 +23,18 @@ Check if the worker is running.
 
 ### `POST /auth`
 
-Create a new anonymous session. Call this once and store the returned `sessionId` — it is required for all game actions.
+Create a new session, or resume an existing one. Always store the returned `sessionId` (e.g. in `localStorage`) — it is required for all game actions.
 
-**Request**
+**Create — first visit**
 ```json
 { "username": "string" }
+```
+
+**Resume — returning after disconnect**
+
+Pass back the `sessionId` you stored. If valid, the same session and any active matches are returned. No `username` needed.
+```json
+{ "sessionId": "uuid" }
 ```
 
 **Response**
@@ -37,7 +44,29 @@ Create a new anonymous session. Call this once and store the returned `sessionId
     "sessionId": "uuid",
     "username": "string",
     "createdAt": "2026-05-20T10:00:00.000Z"
-  }
+  },
+  "activeMatches": [
+    { "matchId": "uuid", "gameId": "poker", "status": "active", "roomCode": "843921" }
+  ]
+}
+```
+
+`activeMatches` lists any matches still in `waiting` or `active` state. On a fresh session this is always `[]`. Use it to drop the player back into their game without asking them which match to rejoin.
+
+Errors: `"Session not found"` — the stored `sessionId` is unknown; discard it and call with `username` instead.
+
+---
+
+### `GET /sessions/:sessionId/matches`
+
+Returns all active matches for a session. Useful if you need to refresh the list without going through `POST /auth`.
+
+**Response**
+```json
+{
+  "matches": [
+    { "matchId": "uuid", "gameId": "poker", "status": "active", "roomCode": "843921" }
+  ]
 }
 ```
 
@@ -154,10 +183,8 @@ The path after `/assets/` maps directly to the R2 key. See `docs/r2-structure.md
 
 | Path | Description |
 |---|---|
-| `/assets/cards/standard-deck/{rank}_{suit}.svg` | Poker card face — e.g. `/assets/cards/standard-deck/a_spades.svg`, `k_hearts.svg`, `10_clubs.svg` |
+| `/assets/cards/standard-deck/{rank}-{suit}.svg` | Poker card face — e.g. `/assets/cards/standard-deck/A-spades.svg` |
 | `/assets/cards/standard-deck/back.svg` | Poker card back |
-| `/assets/cards/standard-deck/black_joker.svg` | Black joker |
-| `/assets/cards/standard-deck/red_joker.svg` | Red joker |
 | `/assets/cards/uno-deck/{color}_{value}.svg` | UNO card — e.g. `/assets/cards/uno-deck/red_7.svg` |
 | `/assets/cards/uno-deck/wild.svg` | UNO wild card |
 | `/assets/cards/uno-deck/back.svg` | UNO card back |
@@ -280,11 +307,6 @@ Submit a player action for the current turn.
 { "type": "check" }
 ```
 
-**Call** — match the current table bet
-```json
-{ "type": "call" }
-```
-
 **Bet**
 ```json
 { "type": "bet", "amount": 50 }
@@ -333,10 +355,14 @@ Submit a player action for the current turn.
   "players": ["sessionId1", "sessionId2"],
   "metadata": {
     "phase": "waiting | preflop | flop | turn | river | showdown",
-    "community": ["a-spades", "10-hearts", "3-clubs"],
-    "hands": { "sessionId1": ["k-diamonds", "q-spades"] },
+    "community": ["A♠", "10♥", "3♣"],
+    "hands": {
+      "sessionId1": ["K♦", "Q♠"],
+      "sessionId2": ["hidden", "hidden"]
+    },
     "pot": 150,
     "bets": { "sessionId1": 50, "sessionId2": 100 },
+    "chips": { "sessionId1": 900, "sessionId2": 850 },
     "folded": { "sessionId1": false, "sessionId2": false },
     "currentPlayer": "sessionId1",
     "currentBet": 100,
@@ -345,6 +371,12 @@ Submit a player action for the current turn.
   }
 }
 ```
+
+`chips` — each player's current chip stack. Starts at `1000`. Deducted on bet, awarded to the winner at the end of the hand.
+
+Opponent `hands` entries show `["hidden", "hidden"]` until `showdown`. Pass `sessionId` to `GET /games/poker/state` so the server knows which hand to reveal.
+
+Card strings use Unicode suit symbols: `♠` `♥` `♦` `♣` (e.g. `A♠`, `10♥`). To map to R2 asset keys, convert suit to its ASCII name (`♠→spades`, `♥→hearts`, `♦→diamonds`, `♣→clubs`) and join with `-`: `A♠ → cards/standard-deck/A-spades.svg`.
 
 ### UNO
 ```json
@@ -381,17 +413,23 @@ Submit a player action for the current turn.
 | `500` | Unexpected server error |
 
 Common `400` messages:
-- `"invalid session"` — sessionId does not exist, call `POST /auth` first
+- `"Session not found"` — stored `sessionId` is unknown; create a new session with `username`
+- `"invalid session"` — sessionId does not exist when submitting a move
 - `"match or player not found"` — matchId is wrong or you haven't joined this match
 - `"match not found"` — matchId does not exist
+- `"Cannot join a game that has already started."` — game is past the waiting phase
 - `"It is not your turn."` — another player must move first
 - `"At least 2 players are required to start poker."` — need more players
 - `"At least 2 players are required to start UNO."` — need more players
+- `"Cannot check — there is a bet to call."` — must bet to match `currentBet` first
+- `"Bet amount must be a positive number."` — invalid bet amount
+- `"Insufficient chips. You have N."` — bet exceeds your chip stack
 - `"Card is not in hand."` — UNO card not in your hand
 - `"Card is not playable on the current discard."` — UNO card doesn't match
 - `"A color must be chosen when playing a wild card."` — missing `color` field
-- `"Cannot check when bet amount is not matched."` — poker check not valid
-- `"Bet amount must be a positive number."` — invalid bet amount
+- `"Only the room creator can change settings"` — PATCH /rooms settings by non-creator
+- `"Only the room creator can kick players"` — DELETE /rooms player by non-creator
+- `"Room is full"` — room has reached `maxPlayers`
 
 ---
 
@@ -399,9 +437,9 @@ Common `400` messages:
 
 **Public matchmaking**
 ```
-1. POST /auth                       → get sessionId
+1. POST /auth { username }          → save sessionId
 2. POST /lobby/join                 → get matchId  (second player does the same)
-3. GET  /rooms/:code or state       → poll until playerCount >= 2
+3. poll GET /games/:id/state        → wait until 2+ players joined
 4. POST /games/:id/move { type: "start" }
 5. GET  /games/:id/state            → render board
 6. POST /games/:id/move             → take your turn
@@ -410,13 +448,22 @@ Common `400` messages:
 
 **Private room**
 ```
-1. POST /auth                       → get sessionId
+1. POST /auth { username }          → save sessionId
 2. POST /rooms/create               → get matchId + roomCode  (host only)
    share roomCode with friend
 3. POST /rooms/join { roomCode }    → friend gets matchId + gameId
-4. GET  /rooms/:code                → poll until playerCount >= 2
+4. poll GET /rooms/:code            → wait until playerCount >= 2
 5. POST /games/:id/move { type: "start" }
 6. GET  /games/:id/state            → render board
 7. POST /games/:id/move             → take your turn
 8. repeat 6–7 until status = "finished"
+```
+
+**Reconnection after disconnect**
+```
+1. POST /auth { sessionId }         → resume; response includes activeMatches
+   if "Session not found" → POST /auth { username } to create a new session
+2. pick the match from activeMatches (matchId + gameId)
+3. GET  /games/:id/state            → restore board from saved state
+4. resume from step 6 of the normal flow
 ```

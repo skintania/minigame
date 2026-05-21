@@ -158,7 +158,7 @@ async function pollRoom(roomCode) {
   if (!state.waiting) return
   try {
     const room = await api.getRoomStatus(roomCode)
-    el.waitMeta().textContent = `${room.playerCount}/2 players joined`
+    el.waitMeta().textContent = `${room.playerCount}/${room.maxPlayers} players joined`
     if (room.playerCount >= 2) {
       stopLobbyPoll()
       startStartPoll()
