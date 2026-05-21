@@ -16,6 +16,7 @@ async function request(method, path, body) {
 export const api = {
   // Auth
   auth:           username         => request('POST', '/auth', { username }),
+  resume:         sessionId        => request('POST', '/auth', { sessionId }),
 
   // Public matchmaking
   join:           (sid, gid)       => request('POST', '/lobby/join', { sessionId: sid, gameId: gid }),

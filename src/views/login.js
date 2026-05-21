@@ -1,18 +1,36 @@
 import { api } from '../api/client.js'
-import { cfg, state, saveSession } from '../state.js'
+import { cfg, state, loadSession, saveSession } from '../state.js'
 import { showToast } from '../ui/toast.js'
 
-export function initLogin() {
-  const urlInput = document.getElementById('worker-url')
-  const btn      = document.getElementById('login-btn')
+export async function initLogin() {
+  loadSession()
+
+  const urlInput      = document.getElementById('worker-url')
+  const btn           = document.getElementById('login-btn')
+  const usernameInput = document.getElementById('username-input')
 
   if (cfg.url) urlInput.value = cfg.url
+  if (state.username) usernameInput.value = state.username
 
   btn.addEventListener('click', doLogin)
-  document.getElementById('username-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') doLogin()
-  })
+  usernameInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin() })
   document.getElementById('config-link').addEventListener('click', toggleConfig)
+
+  if (state.sessionId) {
+    btn.disabled    = true
+    btn.textContent = 'Reconnecting…'
+    try {
+      const { session } = await api.resume(state.sessionId)
+      state.sessionId = session.sessionId
+      state.username  = session.username
+      saveSession()
+      window.location.href = 'lobby.html'
+    } catch {
+      state.sessionId = null
+      btn.disabled    = false
+      btn.textContent = 'Enter the Arena'
+    }
+  }
 }
 
 function toggleConfig() {
