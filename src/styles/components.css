@@ -180,6 +180,42 @@
 .color-btn.green  { background: linear-gradient(135deg, #2ed573, #1a7a40); }
 .color-btn.yellow { background: linear-gradient(135deg, #ffd32a, #c09200); color: #222; }
 
+/* ── Poker hand-result overlay (lighter blur — board stays visible) ── */
+#hand-result-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(5px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 300; opacity: 0; pointer-events: none; transition: opacity 0.35s;
+}
+#hand-result-overlay.open { opacity: 1; pointer-events: all; }
+
+.hr-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 12px 20px;
+  margin: 14px 0 18px;
+}
+.hr-chip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.hr-chip-lbl { font-size: 12px; color: var(--muted); }
+.hr-chip-val { font-size: 16px; font-weight: 800; color: #ffd700; }
+
+.hr-status {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  min-height: 18px;
+}
+
 /* ── Winner overlay ── */
 #winner-overlay {
   position: fixed; inset: 0;

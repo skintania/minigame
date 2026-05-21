@@ -123,7 +123,27 @@
     </div>
   </div>
 
-  <!-- Winner overlay -->
+  <!-- Poker hand result overlay (auto-restarts next hand) -->
+  <div id="hand-result-overlay">
+    <div class="winner-card">
+      <span class="winner-emoji" id="hr-emoji">🏆</span>
+      <div class="winner-title win" id="hr-title">You Win!</div>
+      <div class="hr-chips">
+        <div class="hr-chip-row">
+          <span class="hr-chip-lbl">Your chips</span>
+          <span class="hr-chip-val" id="hr-my-chips">—</span>
+        </div>
+        <div class="hr-chip-row">
+          <span class="hr-chip-lbl">Opponent</span>
+          <span class="hr-chip-val" id="hr-opp-chips">—</span>
+        </div>
+      </div>
+      <div class="hr-status" id="hr-status"></div>
+      <button class="btn btn-ghost" id="btn-leave-table" style="width:auto;padding:11px 30px;margin-top:6px">Leave Table</button>
+    </div>
+  </div>
+
+  <!-- UNO / generic winner overlay -->
   <div id="winner-overlay">
     <div class="winner-card">
       <span class="winner-emoji" id="w-emoji">🏆</span>
