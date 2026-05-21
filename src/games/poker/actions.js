@@ -16,6 +16,15 @@ export async function pkAction(type) {
   }
 }
 
+export async function pkCall() {
+  try {
+    await dispatch({ type: 'call' })
+  } catch (e) {
+    console.error('[poker] call failed:', e)
+    showToast(e.message)
+  }
+}
+
 export async function pkBet() {
   const amount = parseInt(document.getElementById('bet-amt').value)
   if (!amount || amount <= 0) { showToast('Enter a valid bet amount.'); return }

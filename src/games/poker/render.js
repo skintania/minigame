@@ -1,13 +1,26 @@
 import { state } from '../../state.js'
 
-const SUIT_SYMBOLS = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' }
-const RED_SUITS    = new Set(['hearts', 'diamonds'])
+const SUIT_SYMBOLS  = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' }
+const RED_SUITS     = new Set(['hearts', 'diamonds'])
+const RED_SYMS      = new Set(['♥', '♦'])
 
 export function renderBoard(meta, mine) {
   document.getElementById('pk-pot').textContent   = meta.pot        ?? 0
   document.getElementById('pk-cbet').textContent  = meta.currentBet ?? 0
   document.getElementById('pk-mbet').textContent  = (meta.bets || {})[state.sessionId] ?? 0
   document.getElementById('pk-last').textContent  = meta.lastAction || ''
+
+  // Check vs Call
+  const myBet   = (meta.bets || {})[state.sessionId] || 0
+  const callAmt = (meta.currentBet || 0) - myBet
+  const checkBtn = document.getElementById('btn-check')
+  if (callAmt > 0) {
+    checkBtn.textContent      = `Call (${callAmt})`
+    checkBtn.dataset.action   = 'call'
+  } else {
+    checkBtn.textContent      = 'Check'
+    checkBtn.dataset.action   = 'check'
+  }
 
   // Community cards — fill remaining slots with placeholders
   const comm   = meta.community || []
@@ -35,9 +48,22 @@ export function renderBoard(meta, mine) {
 }
 
 export function cardHTML(str) {
-  const [rank, suit] = str.split('-')
-  const colorClass   = RED_SUITS.has(suit) ? 'red' : 'black'
-  const sym          = SUIT_SYMBOLS[suit] || suit
+  let rank, sym, colorClass
+
+  // Format A: "K♠", "10♣" — symbol already embedded
+  const symMatch = str.match(/^(.+?)([♠♥♦♣])$/)
+  if (symMatch) {
+    rank       = symMatch[1]
+    sym        = symMatch[2]
+    colorClass = RED_SYMS.has(sym) ? 'red' : 'black'
+  } else {
+    // Format B: "K-spades", "10-hearts"
+    const [r, suit] = str.split('-')
+    rank       = r   || str
+    sym        = SUIT_SYMBOLS[suit] || suit || '?'
+    colorClass = RED_SUITS.has(suit) ? 'red' : 'black'
+  }
+
   return `<div class="p-card ${colorClass}">
     <div class="tl"><span class="r">${rank}</span><span class="s">${sym}</span></div>
     <div class="center">${sym}</div>
