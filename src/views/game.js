@@ -5,7 +5,8 @@ import registry from '../games/registry.js'
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
-let handResultTimer = null
+let handResultTimer  = null
+let handResultActive = false   // guard against double-invocation
 
 export function initGame() {
   document.getElementById('btn-play-again').addEventListener('click', goLobby)
@@ -97,6 +98,9 @@ function onHandEnd(meta) {
 }
 
 async function showHandResult(meta) {
+  if (handResultActive) return
+  handResultActive = true
+
   const oppId  = (state.gameState.players || []).find(p => p !== state.sessionId)
   const chips  = meta.chips || {}
   const won    = meta.winner === state.sessionId
@@ -123,6 +127,7 @@ async function showHandResult(meta) {
       ? "You're out of chips — game over!"
       : 'Opponent is out of chips — you win the table!'
     document.getElementById('hand-result-overlay').classList.add('open')
+    handResultActive = false  // game over; no next hand
     return
   }
 
@@ -164,12 +169,21 @@ async function showHandResult(meta) {
 }
 
 async function startNextHand() {
+  handResultActive = false
   document.getElementById('hand-result-overlay').classList.remove('open')
   try {
-    await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
+    const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
+    if (res?.state) state.gameState = res.state
   } catch (e) {
-    // Other player may have already started, or non-creator tried — both are fine
+    // Other player may have already started — poll until winner clears
     console.log('[game] next hand start:', e.message)
+    for (let i = 0; i < 8; i++) {
+      await sleep(400)
+      try {
+        const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+        if (!gs?.metadata?.winner) { state.gameState = gs; break }
+      } catch { /* keep trying */ }
+    }
   }
   enterGame()
 }

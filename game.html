@@ -33,8 +33,11 @@
       <!-- Opponent -->
       <div class="pk-opp-zone">
         <div class="pk-player-badge" id="pk-opp-badge">
-          <span class="pk-badge-label">Opponent</span>
-          <span class="pk-chip-count">&#9885; <span id="pk-opp-chips">—</span></span>
+          <div class="pk-avatar" id="pk-opp-avatar">?</div>
+          <div class="pk-badge-info">
+            <span class="pk-badge-label">Opponent</span>
+            <span class="pk-chip-count">&#9885; <span id="pk-opp-chips">—</span></span>
+          </div>
         </div>
         <div class="cards-row" id="pk-opp-hand"></div>
       </div>
@@ -47,7 +50,7 @@
             <span class="pk-tstat-lbl">Table Bet</span>
             <span class="pk-tstat-val" id="pk-cbet">0</span>
           </div>
-          <div class="pk-pot-display">
+          <div class="pk-pot-display" id="pk-pot-display">
             <div class="pk-pot-amount" id="pk-pot">0</div>
             <div class="pk-pot-label">POT</div>
           </div>
@@ -62,8 +65,11 @@
       <div class="pk-player-zone">
         <div class="cards-row" id="pk-hand"></div>
         <div class="pk-player-badge mine" id="pk-my-badge">
-          <span class="pk-badge-label">You</span>
-          <span class="pk-chip-count">&#9885; <span id="pk-my-chips">—</span></span>
+          <div class="pk-avatar mine" id="pk-my-avatar">Y</div>
+          <div class="pk-badge-info">
+            <span class="pk-badge-label">You</span>
+            <span class="pk-chip-count">&#9885; <span id="pk-my-chips">—</span></span>
+          </div>
         </div>
       </div>
 

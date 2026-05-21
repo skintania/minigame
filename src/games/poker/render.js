@@ -5,9 +5,103 @@ const SUIT_NAMES   = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣
 const RED_SUITS    = new Set(['hearts', 'diamonds'])
 const RED_SYMS     = new Set(['♥', '♦'])
 const CARD_BASE    = () => `${cfg.url}/assets/cards/standard-deck`
+const CHIP_URL     = () => `${cfg.url}/assets/cards/chips/chip-100.svg`
+const AVATAR_URL   = sid => `${cfg.url}/assets/avatars/${sid}.svg`
+
+// ── Animation state ───────────────────────────────────────
+let prevPot    = -1
+let prevBets   = {}
+let prevWinner = null
+let prevFolded = {}
+let prevPhase  = null
+
+const avatarsLoaded = new Set()
+
+function maybeSetAvatar(el, sessionId, fallback) {
+  if (!el || !sessionId || avatarsLoaded.has(sessionId)) return
+  avatarsLoaded.add(sessionId)
+  el.textContent = fallback
+  const img = new Image()
+  img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%'
+  img.onload  = () => { el.style.color = 'transparent'; el.appendChild(img) }
+  img.src = AVATAR_URL(sessionId)
+}
+
+function flyChip(fromEl, toEl) {
+  if (!fromEl || !toEl) return
+  const fr   = fromEl.getBoundingClientRect()
+  const tr   = toEl.getBoundingClientRect()
+  const SIZE = 36
+
+  const chip = document.createElement('div')
+  chip.className = 'flying-chip'
+  chip.style.left = `${fr.left + fr.width  / 2 - SIZE / 2}px`
+  chip.style.top  = `${fr.top  + fr.height / 2 - SIZE / 2}px`
+  chip.style.setProperty('--tx', `${tr.left + tr.width  / 2 - (fr.left + fr.width  / 2)}px`)
+  chip.style.setProperty('--ty', `${tr.top  + tr.height / 2 - (fr.top  + fr.height / 2)}px`)
+
+  const img = document.createElement('img')
+  img.src    = CHIP_URL()
+  img.width  = SIZE
+  img.height = SIZE
+  img.onerror = () => { const dot = document.createElement('div'); dot.className = 'chip-dot'; img.replaceWith(dot) }
+  chip.appendChild(img)
+  document.body.appendChild(chip)
+  chip.addEventListener('animationend', () => chip.remove(), { once: true })
+}
+
+function animateBetToPot(curBets, prev) {
+  const bettorId = Object.keys(curBets).find(id => (curBets[id] || 0) > (prev[id] || 0))
+  if (!bettorId) return
+  flyChip(
+    document.getElementById(bettorId === state.sessionId ? 'pk-my-badge' : 'pk-opp-badge'),
+    document.getElementById('pk-pot-display')
+  )
+}
+
+function animatePotToWinner(winnerId) {
+  const fromEl = document.getElementById('pk-pot-display')
+  const toEl   = document.getElementById(winnerId === state.sessionId ? 'pk-my-badge' : 'pk-opp-badge')
+  for (let i = 0; i < 5; i++) setTimeout(() => flyChip(fromEl, toEl), i * 110)
+}
+
+function animateFoldCards(containerId) {
+  const container = document.getElementById(containerId)
+  if (!container) return
+  const cards = [...container.querySelectorAll('.p-card-img, .p-card:not(.placeholder)')]
+  cards.forEach((card, i) => {
+    const rect  = card.getBoundingClientRect()
+    const clone = card.cloneNode(true)
+    clone.style.cssText = [
+      'position:fixed',
+      `left:${rect.left}px`,
+      `top:${rect.top}px`,
+      `width:${rect.width}px`,
+      `height:${rect.height}px`,
+      'z-index:9998',
+      'pointer-events:none',
+      `animation:card-fold-out 0.45s ${i * 80}ms cubic-bezier(0.4,0,1,1) forwards`,
+    ].join(';')
+    document.body.appendChild(clone)
+    clone.addEventListener('animationend', () => clone.remove(), { once: true })
+  })
+}
+
+function animateReveal(containerId) {
+  const container = document.getElementById(containerId)
+  if (!container) return
+  const cards = [...container.querySelectorAll('.p-card-img, .p-card:not(.placeholder):not(.back)')]
+  cards.forEach((card, i) => {
+    card.style.animation = `card-reveal 0.45s ${i * 150}ms cubic-bezier(0.34,1.56,0.64,1) both`
+  })
+}
 
 export function renderBoard(meta, mine) {
   const oppId = (state.gameState.players || []).find(p => p !== state.sessionId)
+
+  // Avatars (attempted once per sessionId)
+  maybeSetAvatar(document.getElementById('pk-my-avatar'),  state.sessionId, (state.username || 'Y')[0].toUpperCase())
+  maybeSetAvatar(document.getElementById('pk-opp-avatar'), oppId, '?')
 
   // Stats
   document.getElementById('pk-pot').textContent  = meta.pot        ?? 0
@@ -20,10 +114,21 @@ export function renderBoard(meta, mine) {
   document.getElementById('pk-my-chips').textContent  = chips[state.sessionId] ?? '—'
   document.getElementById('pk-opp-chips').textContent = oppId ? (chips[oppId] ?? '—') : '—'
 
-  // Folded state on badges
-  const folded = meta.folded || {}
-  document.getElementById('pk-my-badge')?.classList.toggle('folded', !!folded[state.sessionId])
-  document.getElementById('pk-opp-badge')?.classList.toggle('folded', !!(oppId && folded[oppId]))
+  // Resolve fold / phase state for this render
+  const curFolded  = meta.folded || {}
+  const curPhase   = meta.phase  || ''
+  const myFolded   = !!curFolded[state.sessionId]
+  const oppFolded  = !!(oppId && curFolded[oppId])
+
+  // Detect NEW folds — capture card positions BEFORE clearing innerHTML
+  if (prevPot >= 0) {
+    if (!prevFolded[state.sessionId] && myFolded)   animateFoldCards('pk-hand')
+    if (oppId && !prevFolded[oppId]  && oppFolded)  animateFoldCards('pk-opp-hand')
+  }
+
+  // Folded badge
+  document.getElementById('pk-my-badge')?.classList.toggle('folded', myFolded)
+  document.getElementById('pk-opp-badge')?.classList.toggle('folded', oppFolded)
 
   // Check vs Call label
   const myBet   = (meta.bets || {})[state.sessionId] || 0
@@ -44,20 +149,48 @@ export function renderBoard(meta, mine) {
     comm.map(cardHTML).join('') +
     Array(5 - comm.length).fill('<div class="p-card placeholder"></div>').join('')
 
-  // My hand
+  // My hand (hidden if folded)
   const myHand = (meta.hands || {})[state.sessionId] || []
-  document.getElementById('pk-hand').innerHTML = myHand.map(cardHTML).join('')
+  document.getElementById('pk-hand').innerHTML =
+    myFolded ? '' : myHand.map(cardHTML).join('')
 
-  // Opponent hand — server sends ["hidden","hidden"] until showdown
+  // Opponent hand (hidden if folded; back cards until showdown)
   const oppHand = (meta.hands || {})[oppId]
-  document.getElementById('pk-opp-hand').innerHTML = oppHand?.length
-    ? oppHand.map(cardHTML).join('')
-    : '<div class="p-card back"></div><div class="p-card back"></div>'
+  document.getElementById('pk-opp-hand').innerHTML = oppFolded ? '' :
+    (oppHand?.length
+      ? oppHand.map(cardHTML).join('')
+      : '<div class="p-card back"></div><div class="p-card back"></div>')
+
+  // Showdown reveal — animate opponent cards AFTER rendering the real faces
+  if (prevPot >= 0 && prevPhase !== 'showdown' && curPhase === 'showdown') {
+    animateReveal('pk-opp-hand')
+    // Also reveal our own cards with a slight delay for drama
+    animateReveal('pk-hand')
+  }
 
   ;['btn-fold', 'btn-check', 'btn-bet'].forEach(id => {
     document.getElementById(id).disabled = !mine
   })
   document.getElementById('bet-amt').disabled = !mine
+
+  // Chip / pot animations
+  const curPot    = meta.pot    ?? 0
+  const curBets   = meta.bets   || {}
+  const curWinner = meta.winner ?? null
+
+  if (prevPot >= 0) {
+    if (!prevWinner && curWinner) {
+      animatePotToWinner(curWinner)
+    } else if (!curWinner && curPot > prevPot) {
+      animateBetToPot(curBets, prevBets)
+    }
+  }
+
+  prevPot    = curPot
+  prevBets   = { ...curBets }
+  prevWinner = curWinner
+  prevFolded = { ...curFolded }
+  prevPhase  = curPhase
 }
 
 export function cardHTML(str) {
