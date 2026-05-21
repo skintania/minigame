@@ -30,8 +30,9 @@ export function renderBoard(meta, mine) {
   const callAmt = (meta.currentBet || 0) - myBet
   const checkBtn = document.getElementById('btn-check')
   if (callAmt > 0) {
-    checkBtn.textContent    = `Call (${callAmt})`
-    checkBtn.dataset.action = 'call'
+    checkBtn.textContent      = `Call (${callAmt})`
+    checkBtn.dataset.action   = 'call'
+    checkBtn.dataset.callAmt  = callAmt
   } else {
     checkBtn.textContent    = 'Check'
     checkBtn.dataset.action = 'check'

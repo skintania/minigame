@@ -17,10 +17,11 @@ export async function pkAction(type) {
 }
 
 export async function pkCall() {
+  const amount = parseInt(document.getElementById('btn-check').dataset.callAmt, 10)
   try {
-    await dispatch({ type: 'call' })
+    await dispatch({ type: 'bet', amount })
   } catch (e) {
-    console.error('[poker] call failed:', e)
+    console.error(`[poker] call ${amount} failed:`, e)
     showToast(e.message)
   }
 }
