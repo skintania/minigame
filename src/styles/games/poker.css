@@ -76,3 +76,19 @@
   .p-card .s { font-size: 10px; }
   .p-card .center { font-size: 24px; }
 }
+
+/* ── Image-based cards ── */
+.p-card-img {
+  width: 68px;
+  height: 100px;
+  border-radius: 10px;
+  object-fit: contain;
+  flex-shrink: 0;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.3);
+  transition: transform 0.15s;
+  display: block;
+}
+
+@media (max-width: 480px) {
+  .p-card-img { width: 56px; height: 82px; }
+}

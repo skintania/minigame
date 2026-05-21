@@ -198,7 +198,7 @@ async function tryStart() {
 async function enterGame(initialState) {
   state.waiting   = false
   stopLobbyPoll()
-  state.gameState = initialState || await api.getState(state.gameId, state.matchId)
+  state.gameState = initialState || await api.getState(state.gameId, state.matchId, state.sessionId)
   const { enterGame: goToGame } = await import('./game.js')
   goToGame()
 }

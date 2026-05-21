@@ -28,5 +28,5 @@ export const api = {
   // Game
   move:           (gid, sid, mid, action) =>
     request('POST', `/games/${gid}/move`, { sessionId: sid, matchId: mid, action }),
-  getState:       (gid, mid)       => request('GET', `/games/${gid}/state?matchId=${mid}`),
+  getState:       (gid, mid, sid)  => request('GET', `/games/${gid}/state?matchId=${mid}&sessionId=${sid}`),
 }

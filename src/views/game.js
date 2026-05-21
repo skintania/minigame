@@ -34,7 +34,7 @@ export function enterGame() {
     if (fetching) return
     fetching = true
     try {
-      state.gameState = await api.getState(state.gameId, state.matchId)
+      state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
       render()
       if (state.gameState?.metadata?.winner) { stopPoll(); showWinner(state.gameState.metadata.winner) }
     } catch (e) {
@@ -62,7 +62,7 @@ export function render() {
 
 async function handleMoveResult(res) {
   if (res.state) state.gameState = res.state
-  else state.gameState = await api.getState(state.gameId, state.matchId)
+  else state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
   render()
   if (res.status === 'finished' || state.gameState?.metadata?.winner) {
     stopPoll()

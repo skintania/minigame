@@ -98,3 +98,30 @@
   .uno-card { width: 58px; height: 86px; }
   .uno-card .cv { font-size: 22px; }
 }
+
+/* ── Image-based UNO cards ── */
+.uno-card-img {
+  width: 72px;
+  height: 104px;
+  border-radius: 12px;
+  object-fit: contain;
+  flex-shrink: 0;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  transition: transform 0.15s, box-shadow 0.15s;
+  display: block;
+  cursor: default;
+}
+.uno-card-img.playable {
+  cursor: pointer;
+  outline: 2px solid rgba(255,255,255,0.7);
+  outline-offset: 2px;
+}
+.uno-card-img.playable:hover {
+  transform: translateY(-12px) scale(1.04);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.6), 0 18px 32px rgba(0,0,0,0.55);
+}
+.uno-card-img.not-playable { opacity: 0.38; }
+
+@media (max-width: 480px) {
+  .uno-card-img { width: 58px; height: 86px; }
+}
