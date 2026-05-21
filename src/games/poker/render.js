@@ -49,8 +49,10 @@ export function renderBoard(meta, mine) {
 export function cardHTML(str) {
   if (!str || str === 'hidden') return '<div class="p-card back"></div>'
 
-  // Try image first — falls back to CSS card on error
-  const src = `${CARD_BASE()}/${str}.svg`
+  // API format: "A-spades" → asset filename: "a_spade"
+  const [rank, suit] = str.split('-')
+  const assetName = `${rank.toLowerCase()}_${suit.replace(/s$/, '')}`
+  const src = `${CARD_BASE()}/${assetName}.svg`
   return `<img class="p-card-img" src="${src}" alt="${str}"
     onerror="this.outerHTML='${cssCard(str).replace(/'/g, "&#39;")}'">`
 }
