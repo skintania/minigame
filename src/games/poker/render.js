@@ -70,7 +70,7 @@ export function cardHTML(str) {
   const [rank, suit] = symMatch
     ? [symMatch[1], SUIT_NAMES[symMatch[2]]]
     : str.split('-')
-  const assetName = `${rank}-${suit}`
+  const assetName = `${rank.toLowerCase()}-${suit}`
   const src = `${CARD_BASE()}/${assetName}.svg`
   return `<img class="p-card-img" src="${src}" alt="${str}"
     onerror="this.outerHTML='${cssCard(str).replace(/'/g, "&#39;")}'">`
