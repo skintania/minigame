@@ -181,19 +181,26 @@ async function tryStart() {
   try {
     const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
     if (res.status !== 'waiting') {
-      state.waiting   = false
-      stopLobbyPoll()
-      state.gameState = res.state || await api.getState(state.gameId, state.matchId)
-      const { enterGame } = await import('./game.js')
-      enterGame()
+      await enterGame(res.state)
     }
   } catch (e) {
     if (e.message.includes('invalid session')) {
       handleSessionExpired()
+    } else if (e.message.includes('not your turn')) {
+      // Other player already started — fetch state and enter
+      await enterGame(null)
     } else if (!e.message.includes('At least 2 players')) {
       console.error('[lobby] unexpected error in tryStart:', e)
     }
   }
+}
+
+async function enterGame(initialState) {
+  state.waiting   = false
+  stopLobbyPoll()
+  state.gameState = initialState || await api.getState(state.gameId, state.matchId)
+  const { enterGame: goToGame } = await import('./game.js')
+  goToGame()
 }
 
 // ── Shared helpers ────────────────────────────────────────
