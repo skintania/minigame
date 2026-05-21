@@ -32,6 +32,7 @@ export function enterGame() {
     fetching = true
     try {
       state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
+      saveSession()
       render()
       if (state.gameState?.metadata?.winner) { stopPoll(); showWinner(state.gameState.metadata.winner) }
     } catch (e) {

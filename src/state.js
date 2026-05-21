@@ -21,12 +21,12 @@ const SESSION_KEY = 'sk_session'
 
 export function saveSession() {
   const { sessionId, username, matchId, gameId, roomCode, gameState } = state
-  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId, username, matchId, gameId, roomCode, gameState }))
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId, username, matchId, gameId, roomCode, gameState }))
 }
 
 export function loadSession() {
   try {
-    const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || '{}')
+    const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || '{}')
     Object.assign(state, saved)
   } catch {}
 }

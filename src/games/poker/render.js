@@ -49,9 +49,24 @@ export function renderBoard(meta, mine) {
 export function cardHTML(str) {
   if (!str || str === 'hidden') return '<div class="p-card back"></div>'
 
-  // API format: "A-spades" → asset filename: "a_spade"
+  // Back of card
+  if (str === 'back') {
+    const src = `${CARD_BASE()}/back.svg`
+    return `<img class="p-card-img" src="${src}" alt="back"
+      onerror="this.outerHTML='<div class=\\"p-card back\\"></div>'">`
+  }
+
+  // Joker cards
+  if (str.toLowerCase().includes('joker')) {
+    const assetName = str.toLowerCase().includes('red') ? 'red_joker' : 'black_joker'
+    const src = `${CARD_BASE()}/${assetName}.svg`
+    return `<img class="p-card-img" src="${src}" alt="${str}"
+      onerror="this.outerHTML='<div class=\\"p-card black\\"><div class=\\"center\\">🃏</div></div>'">`
+  }
+
+  // API format: "A-spades" → asset filename: "a_spades"
   const [rank, suit] = str.split('-')
-  const assetName = `${rank.toLowerCase()}_${suit.replace(/s$/, '')}`
+  const assetName = `${rank.toLowerCase()}_${suit}`
   const src = `${CARD_BASE()}/${assetName}.svg`
   return `<img class="p-card-img" src="${src}" alt="${str}"
     onerror="this.outerHTML='${cssCard(str).replace(/'/g, "&#39;")}'">`
