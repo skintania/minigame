@@ -1,6 +1,5 @@
 import { api } from '../api/client.js'
-import { state } from '../state.js'
-import { showView } from '../router.js'
+import { state, saveSession } from '../state.js'
 import { showToast } from '../ui/toast.js'
 
 // Lobby sub-states for back-button routing
@@ -51,8 +50,7 @@ function handleBack() {
 
 function setScreen(screen) {
   currentScreen = screen
-  const backBtn = el.backBtn()
-  backBtn.classList.toggle('visible', screen !== SCREEN.GRID)
+  el.backBtn().classList.toggle('visible', screen !== SCREEN.GRID)
 }
 
 // ── Game select → mode select ─────────────────────────────
@@ -113,11 +111,13 @@ async function createRoom() {
 
 function copyRoomCode() {
   const code = el.rcCode().textContent
-  navigator.clipboard.writeText(code).then(() => {
-    const btn = document.getElementById('rc-copy-btn')
-    btn.textContent = 'Copied!'
-    setTimeout(() => { btn.textContent = 'Copy Code' }, 2000)
-  }).catch(() => showToast('Copy failed — share the code manually.'))
+  navigator.clipboard.writeText(code)
+    .then(() => {
+      const btn = document.getElementById('rc-copy-btn')
+      btn.textContent = 'Copied!'
+      setTimeout(() => { btn.textContent = 'Copy Code' }, 2000)
+    })
+    .catch(() => showToast('Copy failed — share the code manually.'))
 }
 
 // ── Join Room ─────────────────────────────────────────────
@@ -181,26 +181,26 @@ async function tryStart() {
   try {
     const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
     if (res.status !== 'waiting') {
-      await enterGame(res.state)
+      await goToGame(res.state)
     }
   } catch (e) {
     if (e.message.includes('invalid session')) {
       handleSessionExpired()
     } else if (e.message.includes('not your turn')) {
-      // Other player already started — fetch state and enter
-      await enterGame(null)
+      // Other player already started — fetch state and go
+      await goToGame(null)
     } else if (!e.message.includes('At least 2 players')) {
       console.error('[lobby] unexpected error in tryStart:', e)
     }
   }
 }
 
-async function enterGame(initialState) {
+async function goToGame(initialState) {
   state.waiting   = false
   stopLobbyPoll()
   state.gameState = initialState || await api.getState(state.gameId, state.matchId, state.sessionId)
-  const { enterGame: goToGame } = await import('./game.js')
-  goToGame()
+  saveSession()
+  window.location.href = 'game.html'
 }
 
 // ── Shared helpers ────────────────────────────────────────
@@ -219,8 +219,7 @@ function handleSessionExpired() {
   showToast('Session expired — please log in again.')
   state.waiting = false
   stopLobbyPoll()
-  resetLobby()
-  showView('view-login')
+  window.location.href = 'index.html'
 }
 
 export function cancelWait() {

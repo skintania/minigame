@@ -1,14 +1,11 @@
 import { api } from '../api/client.js'
-import { state } from '../state.js'
-import { showView } from '../router.js'
+import { state, saveSession, clearGameState } from '../state.js'
 import { showToast } from '../ui/toast.js'
-import { resetLobby } from './lobby.js'
 import registry from '../games/registry.js'
 
 export function initGame() {
   document.getElementById('btn-play-again').addEventListener('click', goLobby)
 
-  // Game modules dispatch this event after every API move
   document.addEventListener('game:move', async e => {
     try {
       await handleMoveResult(e.detail)
@@ -21,11 +18,11 @@ export function initGame() {
 
 export function enterGame() {
   stopPoll()
-  showView('view-game')
 
-  document.getElementById('g-name').textContent         = state.gameId === 'poker' ? 'Poker' : 'UNO'
-  document.getElementById('poker-board').style.display  = state.gameId === 'poker' ? 'flex' : 'none'
-  document.getElementById('uno-board').style.display    = state.gameId === 'uno'   ? 'flex' : 'none'
+  const gameId = state.gameId
+  document.getElementById('g-name').textContent        = gameId === 'poker' ? 'Poker' : 'UNO'
+  document.getElementById('poker-board').style.display = gameId === 'poker' ? 'flex' : 'none'
+  document.getElementById('uno-board').style.display   = gameId === 'uno'   ? 'flex' : 'none'
 
   render()
 
@@ -39,7 +36,11 @@ export function enterGame() {
       if (state.gameState?.metadata?.winner) { stopPoll(); showWinner(state.gameState.metadata.winner) }
     } catch (e) {
       console.error('[game] state poll error:', e)
-      if (e.message.includes('invalid session')) { stopPoll(); showToast('Session expired'); showView('view-login') }
+      if (e.message.includes('invalid session')) {
+        stopPoll()
+        showToast('Session expired')
+        window.location.href = 'index.html'
+      }
     } finally {
       fetching = false
     }
@@ -77,21 +78,15 @@ export function stopPoll() {
 
 function showWinner(winnerId) {
   const won = winnerId === state.sessionId
-  document.getElementById('w-emoji').textContent  = won ? '🏆' : '😔'
-  document.getElementById('w-title').textContent  = won ? 'You Win!' : 'You Lose'
-  document.getElementById('w-title').className    = 'winner-title ' + (won ? 'win' : 'lose')
-  document.getElementById('w-sub').textContent    = won ? 'Congratulations! 🎊' : 'Better luck next time.'
+  document.getElementById('w-emoji').textContent = won ? '🏆' : '😔'
+  document.getElementById('w-title').textContent = won ? 'You Win!' : 'You Lose'
+  document.getElementById('w-title').className   = 'winner-title ' + (won ? 'win' : 'lose')
+  document.getElementById('w-sub').textContent   = won ? 'Congratulations!' : 'Better luck next time.'
   document.getElementById('winner-overlay').classList.add('open')
 }
 
 function goLobby() {
   stopPoll()
-  document.getElementById('winner-overlay').classList.remove('open')
-  state.matchId     = null
-  state.gameId      = null
-  state.gameState   = null
-  state.waiting     = false
-  state.pendingWild = null
-  resetLobby()
-  showView('view-lobby')
+  clearGameState()
+  window.location.href = 'lobby.html'
 }

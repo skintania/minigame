@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skintania — Lobby</title>
+  <link rel="icon" href="/sk-cu.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/base.css">
+  <link rel="stylesheet" href="/src/styles/components.css">
+  <link rel="stylesheet" href="/src/styles/layout.css">
+</head>
+<body>
+  <div id="toast"></div>
+
+  <div class="view active" id="view-lobby">
+    <button class="lobby-back-arrow" id="lobby-back-btn" aria-label="Go back">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M13 4L7 10L13 16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back
+    </button>
+
+    <img src="/sk-cu.png" class="lobby-logo" alt="Skintania">
+    <div class="lobby-title">Welcome, <span id="lobby-name">Player</span>!</div>
+    <div class="lobby-sub">Choose a game to find a match</div>
+
+    <!-- Step 1: Game selection -->
+    <div class="game-grid" id="game-grid">
+      <div class="game-tile glass poker" data-game="poker">
+        <span class="tile-icon">🃏</span>
+        <div class="tile-name">Poker</div>
+        <div class="tile-desc">Texas Hold'em. Bluff, bet, and claim the pot.</div>
+      </div>
+      <div class="game-tile glass uno" data-game="uno">
+        <span class="tile-icon">🎴</span>
+        <div class="tile-name">UNO</div>
+        <div class="tile-desc">First to empty your hand wins.</div>
+      </div>
+    </div>
+
+    <!-- Join with code -->
+    <div class="join-section" id="join-section">
+      <div class="join-divider"><span>or join a private room</span></div>
+      <div class="join-code-row glass">
+        <span class="join-code-icon">🔑</span>
+        <input type="text" id="room-code-input" class="input-field join-code-input"
+          placeholder="6-digit room code" maxlength="6" inputmode="numeric" autocomplete="off" spellcheck="false">
+        <button class="btn btn-pink" id="btn-join-room" style="width:auto">Join Room</button>
+      </div>
+    </div>
+
+    <!-- Step 2: Mode selection -->
+    <div id="mode-select" class="mode-panel">
+      <div class="mode-game-label" id="mode-game-label">POKER</div>
+      <div class="mode-cards">
+        <div class="mode-card glass" id="btn-quick-match">
+          <div class="mode-card-icon">⚡</div>
+          <div class="mode-card-name">Quick Match</div>
+          <div class="mode-card-desc">Auto-match with the next available player</div>
+        </div>
+        <div class="mode-card glass" id="btn-create-room">
+          <div class="mode-card-icon">🏠</div>
+          <div class="mode-card-name">Create Room</div>
+          <div class="mode-card-desc">Get a 6-digit code to share with a friend</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Room code display -->
+    <div id="room-created" class="room-created-panel">
+      <div class="room-code-box glass">
+        <div class="rc-label">Share this code with your friend</div>
+        <div class="rc-code" id="rc-code">——————</div>
+        <button class="btn btn-ghost rc-copy-btn" id="rc-copy-btn">Copy Code</button>
+      </div>
+    </div>
+
+    <!-- Waiting box -->
+    <div class="waiting-box glass" id="waiting-box">
+      <div class="spinner"></div>
+      <div>
+        <div class="waiting-text" id="waiting-label">Waiting for opponent…</div>
+        <div class="waiting-meta" id="waiting-meta">Searching for a match</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/pages/lobby.js"></script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skintania — Game</title>
+  <link rel="icon" href="/sk-cu.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles/base.css">
+  <link rel="stylesheet" href="/src/styles/components.css">
+  <link rel="stylesheet" href="/src/styles/layout.css">
+  <link rel="stylesheet" href="/src/styles/games/poker.css">
+  <link rel="stylesheet" href="/src/styles/games/uno.css">
+</head>
+<body>
+  <div id="toast"></div>
+
+  <div class="view active" id="view-game">
+    <div class="g-header glass">
+      <div class="g-header-left">
+        <div class="g-game-name" id="g-name">Poker</div>
+        <div class="phase-badge" id="g-phase">—</div>
+      </div>
+      <div class="turn-pill mine" id="turn-pill">Your Turn</div>
+    </div>
+
+    <!-- Poker Board -->
+    <div id="poker-board" class="game-board">
+      <div class="g-section glass">
+        <div class="section-label">Pot &amp; Bets</div>
+        <div class="stats-row">
+          <div class="stat"><div class="stat-lbl">Pot</div><div class="stat-val" id="pk-pot">0</div></div>
+          <div class="stat"><div class="stat-lbl">Current Bet</div><div class="stat-val" id="pk-cbet">0</div></div>
+          <div class="stat"><div class="stat-lbl">Your Bet</div><div class="stat-val" id="pk-mbet">0</div></div>
+        </div>
+      </div>
+
+      <div class="g-section glass">
+        <div class="section-label">Opponent</div>
+        <div class="cards-row" id="pk-opp-hand"></div>
+      </div>
+
+      <div class="g-section glass">
+        <div class="section-label">Community Cards</div>
+        <div class="cards-row" id="pk-community"></div>
+      </div>
+
+      <div class="g-section glass">
+        <div class="section-label">Your Hand</div>
+        <div class="cards-row" id="pk-hand"></div>
+      </div>
+
+      <div class="g-section glass">
+        <div class="section-label">Actions</div>
+        <div class="action-row">
+          <button class="btn btn-danger" id="btn-fold">Fold</button>
+          <button class="btn btn-blue"   id="btn-check">Check</button>
+          <div class="bet-wrap">
+            <input type="number" id="bet-amt" class="bet-field" placeholder="Amount" min="1">
+            <button class="btn btn-pink" id="btn-bet">Bet</button>
+          </div>
+        </div>
+        <div class="last-action" id="pk-last"></div>
+      </div>
+    </div>
+
+    <!-- UNO Board -->
+    <div id="uno-board" class="game-board">
+      <div class="g-section glass">
+        <div class="section-label">Opponent</div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="font-size:13px;color:var(--muted)"><span id="uno-opp-cnt">0</span> cards</div>
+          <div id="uno-opp-mini" style="display:flex"></div>
+        </div>
+      </div>
+
+      <div class="g-section glass" style="text-align:center">
+        <div class="section-label">Discard Pile</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+          <div id="uno-discard"></div>
+          <div>
+            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Current Color</div>
+            <div id="uno-color-lbl" style="font-size:16px;font-weight:800;margin-top:3px">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="g-section glass">
+        <div class="section-label">Your Hand</div>
+        <div class="hand-row" id="uno-hand"></div>
+        <div style="margin-top:14px">
+          <button class="btn btn-blue" id="btn-draw" style="width:auto">Draw Card</button>
+        </div>
+        <div class="last-action" id="uno-last"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Color picker modal -->
+  <div class="overlay" id="color-modal">
+    <div class="modal-box">
+      <div class="modal-title">Choose a Color</div>
+      <div class="color-grid">
+        <button class="color-btn red"    id="color-red">Red</button>
+        <button class="color-btn blue"   id="color-blue">Blue</button>
+        <button class="color-btn green"  id="color-green">Green</button>
+        <button class="color-btn yellow" id="color-yellow">Yellow</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Winner overlay -->
+  <div id="winner-overlay">
+    <div class="winner-card">
+      <span class="winner-emoji" id="w-emoji">🏆</span>
+      <div class="winner-title win" id="w-title">You Win!</div>
+      <div class="winner-sub" id="w-sub">Congratulations!</div>
+      <button class="btn btn-primary" id="btn-play-again" style="width:auto;padding:13px 36px">Play Again</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/pages/game.js"></script>
+</body>
+</html>

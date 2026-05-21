@@ -16,3 +16,27 @@ export const cfg = {
   get url() { return localStorage.getItem('sk_url') || DEFAULT_URL },
   set url(v) { localStorage.setItem('sk_url', v.replace(/\/$/, '')) },
 }
+
+const SESSION_KEY = 'sk_session'
+
+export function saveSession() {
+  const { sessionId, username, matchId, gameId, roomCode, gameState } = state
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ sessionId, username, matchId, gameId, roomCode, gameState }))
+}
+
+export function loadSession() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || '{}')
+    Object.assign(state, saved)
+  } catch {}
+}
+
+export function clearGameState() {
+  state.matchId     = null
+  state.gameId      = null
+  state.roomCode    = null
+  state.gameState   = null
+  state.waiting     = false
+  state.pendingWild = null
+  saveSession()
+}

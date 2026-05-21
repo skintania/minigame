@@ -1,11 +1,10 @@
 import { api } from '../api/client.js'
-import { cfg, state } from '../state.js'
-import { showView } from '../router.js'
+import { cfg, state, saveSession } from '../state.js'
 import { showToast } from '../ui/toast.js'
 
 export function initLogin() {
-  const urlInput  = document.getElementById('worker-url')
-  const btn       = document.getElementById('login-btn')
+  const urlInput = document.getElementById('worker-url')
+  const btn      = document.getElementById('login-btn')
 
   if (cfg.url) urlInput.value = cfg.url
 
@@ -22,7 +21,7 @@ function toggleConfig() {
 }
 
 async function doLogin() {
-  const urlVal  = document.getElementById('worker-url').value.trim()
+  const urlVal = document.getElementById('worker-url').value.trim()
   if (urlVal) cfg.url = urlVal
 
   if (!cfg.url) {
@@ -42,12 +41,11 @@ async function doLogin() {
     const { session } = await api.auth(username)
     state.sessionId = session.sessionId
     state.username  = session.username
-    document.getElementById('lobby-name').textContent = state.username
-    showView('view-lobby')
+    saveSession()
+    window.location.href = 'lobby.html'
   } catch (e) {
     console.error('[login] auth failed:', e)
     showToast(e.message)
-  } finally {
     btn.disabled    = false
     btn.textContent = 'Enter the Arena'
   }

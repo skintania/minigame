@@ -53,8 +53,14 @@ Create a private room and get the code to share.
 
 **Request**
 ```json
-{ "sessionId": "uuid", "gameId": "poker" | "uno" }
+{
+  "sessionId": "uuid",
+  "gameId": "poker" | "uno",
+  "maxPlayers": 8
+}
 ```
+
+`maxPlayers` is optional (default `8`, min `2`, max `16`).
 
 **Response**
 ```json
@@ -77,13 +83,13 @@ Join a private room using its 6-digit code.
 { "matchId": "uuid", "gameId": "poker" }
 ```
 
-Errors: `"Room not found"` — invalid code. `"Room is no longer open"` — game already started.
+Errors: `"Room not found"`, `"Room is no longer open"`, `"Room is full"`.
 
 ---
 
 ### `GET /rooms/:code`
 
-Poll this while waiting for players to join. Returns current player count.
+Poll this while waiting for players to join.
 
 **Response**
 ```json
@@ -92,9 +98,76 @@ Poll this while waiting for players to join. Returns current player count.
   "matchId": "uuid",
   "gameId": "poker",
   "status": "waiting",
-  "playerCount": 1
+  "creatorId": "uuid",
+  "maxPlayers": 8,
+  "playerCount": 2
 }
 ```
+
+---
+
+### `PATCH /rooms/:code/settings`
+
+Change room settings. Only the room creator can call this. Room must still be in `waiting` status.
+
+**Request**
+```json
+{ "sessionId": "uuid", "maxPlayers": 4 }
+```
+
+**Response**
+```json
+{ "roomCode": "843921", "maxPlayers": 4 }
+```
+
+Errors: `"Only the room creator can change settings"`, `"Cannot change settings after the game has started"`, `"Cannot set max_players below current player count (n)"`.
+
+---
+
+### `DELETE /rooms/:code/players/:targetId`
+
+Kick a player from the room. Only the creator can call this, only while `waiting`.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response**
+```json
+{ "kicked": "uuid" }
+```
+
+Errors: `"Only the room creator can kick players"`, `"Cannot kick players after the game has started"`, `"Cannot kick yourself"`.
+
+---
+
+## Assets
+
+### `GET /assets/*`
+
+Fetch a card image or any other static asset from R2 storage. No auth required.
+
+The path after `/assets/` maps directly to the R2 key. See `docs/r2-structure.md` for the full key layout.
+
+**Common paths**
+
+| Path | Description |
+|---|---|
+| `/assets/cards/standard-deck/{rank}-{suit}.svg` | Poker card face — e.g. `/assets/cards/standard-deck/A-spades.svg` |
+| `/assets/cards/standard-deck/back.svg` | Poker card back |
+| `/assets/cards/uno-deck/{color}_{value}.svg` | UNO card — e.g. `/assets/cards/uno-deck/red_7.svg` |
+| `/assets/cards/uno-deck/wild.svg` | UNO wild card |
+| `/assets/cards/uno-deck/back.svg` | UNO card back |
+| `/assets/cards/chips/{value}.svg` | Chip art — e.g. `/assets/cards/chips/100.svg` |
+| `/assets/games/{gameId}/icon.svg` | Game lobby icon |
+| `/assets/avatars/{sessionId}.svg` | Player avatar |
+
+**Response** — raw file bytes with appropriate `Content-Type` (`image/svg+xml`, `image/png`, etc.)
+
+Cached for 1 year (`Cache-Control: public, max-age=31536000, immutable`).
+
+Errors: `404` if the key doesn't exist in R2.
 
 ---
 
@@ -150,6 +223,9 @@ Get the current game state for a match.
 | Param | Type | Description |
 |---|---|---|
 | `matchId` | string | The match to fetch state for |
+| `sessionId` | string | Your session ID — opponent hole cards are hidden unless it's showdown |
+
+In poker, opponent `hands` entries are replaced with `["hidden", "hidden"]` until the `showdown` phase. At showdown all hands are revealed. Pass your `sessionId` so the server knows which hand is yours.
 
 **Response** — full game state object (see state shapes below)
 
