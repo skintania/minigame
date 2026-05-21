@@ -85,11 +85,12 @@ Create a private room and get the code to share.
 {
   "sessionId": "uuid",
   "gameId": "poker" | "uno",
-  "maxPlayers": 8
+  "maxPlayers": 8,
+  "startingChips": 1000
 }
 ```
 
-`maxPlayers` is optional (default `8`, min `2`, max `16`).
+Both fields are optional. Defaults: `maxPlayers = 8` (min `2`, max `16`), `startingChips = 1000` (min `100`, max `1,000,000`). `startingChips` is poker-only.
 
 **Response**
 ```json
@@ -129,6 +130,7 @@ Poll this while waiting for players to join.
   "status": "waiting",
   "creatorId": "uuid",
   "maxPlayers": 8,
+  "startingChips": 1000,
   "playerCount": 2
 }
 ```
@@ -139,17 +141,19 @@ Poll this while waiting for players to join.
 
 Change room settings. Only the room creator can call this. Room must still be in `waiting` status.
 
+Send only the fields you want to change — at least one is required.
+
 **Request**
 ```json
-{ "sessionId": "uuid", "maxPlayers": 4 }
+{ "sessionId": "uuid", "maxPlayers": 4, "startingChips": 500 }
 ```
 
-**Response**
+**Response** — echoes back the fields that were updated
 ```json
-{ "roomCode": "843921", "maxPlayers": 4 }
+{ "roomCode": "843921", "maxPlayers": 4, "startingChips": 500 }
 ```
 
-Errors: `"Only the room creator can change settings"`, `"Cannot change settings after the game has started"`, `"Cannot set max_players below current player count (n)"`.
+Errors: `"Only the room creator can change settings"`, `"Cannot change settings after the game has started"`, `"Cannot set max_players below current player count (n)"`, `"At least one setting (maxPlayers or startingChips) is required"`.
 
 ---
 
@@ -188,7 +192,7 @@ The path after `/assets/` maps directly to the R2 key. See `docs/r2-structure.md
 | `/assets/cards/uno-deck/{color}_{value}.svg` | UNO card — e.g. `/assets/cards/uno-deck/red_7.svg` |
 | `/assets/cards/uno-deck/wild.svg` | UNO wild card |
 | `/assets/cards/uno-deck/back.svg` | UNO card back |
-| `/assets/cards/chips/{value}.svg` | Chip art — e.g. `/assets/cards/chips/100.svg` |
+| `/assets/cards/chips/chip-{value}.svg` | Chip art — e.g. `/assets/cards/chips/chip-100.svg` |
 | `/assets/games/{gameId}/icon.svg` | Game lobby icon |
 | `/assets/avatars/{sessionId}.svg` | Player avatar |
 
@@ -292,7 +296,7 @@ Submit a player action for the current turn.
 
 ### Poker (`gameId = "poker"`)
 
-**Start the game** — requires at least 2 players to have joined
+**Start the game** — requires at least 2 players; in a private room only the creator can send this
 ```json
 { "type": "start" }
 ```
@@ -318,7 +322,7 @@ Submit a player action for the current turn.
 
 ### UNO (`gameId = "uno"`)
 
-**Start the game** — requires at least 2 players to have joined
+**Start the game** — requires at least 2 players; in a private room only the creator can send this
 ```json
 { "type": "start" }
 ```
@@ -417,6 +421,7 @@ Common `400` messages:
 - `"invalid session"` — sessionId does not exist when submitting a move
 - `"match or player not found"` — matchId is wrong or you haven't joined this match
 - `"match not found"` — matchId does not exist
+- `"Only the room creator can start the game"` — start action sent by a non-creator
 - `"Cannot join a game that has already started."` — game is past the waiting phase
 - `"It is not your turn."` — another player must move first
 - `"At least 2 players are required to start poker."` — need more players
