@@ -66,7 +66,7 @@ export function cardHTML(str) {
   if (str === 'back') {
     const src = `${CARD_BASE()}/back.svg`
     return `<img class="p-card-img" src="${src}" alt="back"
-      onerror="this.outerHTML='<div class=\\"p-card back\\"></div>'">`
+      onerror="this.outerHTML='<div class=&quot;p-card back&quot;></div>'">`
   }
 
   // Joker cards
@@ -74,7 +74,7 @@ export function cardHTML(str) {
     const assetName = str.toLowerCase().includes('red') ? 'red_joker' : 'black_joker'
     const src = `${CARD_BASE()}/${assetName}.svg`
     return `<img class="p-card-img" src="${src}" alt="${str}"
-      onerror="this.outerHTML='<div class=\\"p-card black\\"><div class=\\"center\\">🃏</div></div>'">`
+      onerror="this.outerHTML='<div class=&quot;p-card black&quot;><div class=&quot;center&quot;>🃏</div></div>'">`
   }
 
   // API returns Unicode suit symbols ("6♦") or dash-separated ("6-diamonds")
@@ -84,8 +84,9 @@ export function cardHTML(str) {
     : str.split('-')
   const assetName = `${rank.toLowerCase()}-${suit}`
   const src = `${CARD_BASE()}/${assetName}.svg`
+  const safe = cssCard(str).replace(/'/g, '&#39;').replace(/"/g, '&quot;')
   return `<img class="p-card-img" src="${src}" alt="${str}"
-    onerror="this.outerHTML='${cssCard(str).replace(/'/g, "&#39;")}'">`
+    onerror="this.outerHTML='${safe}'">`
 }
 
 function cssCard(str) {
