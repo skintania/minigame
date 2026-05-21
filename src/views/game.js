@@ -20,6 +20,7 @@ export function initGame() {
 }
 
 export function enterGame() {
+  stopPoll()
   showView('view-game')
 
   document.getElementById('g-name').textContent         = state.gameId === 'poker' ? 'Poker' : 'UNO'
@@ -28,7 +29,10 @@ export function enterGame() {
 
   render()
 
+  let fetching = false
   state.poll = setInterval(async () => {
+    if (fetching) return
+    fetching = true
     try {
       state.gameState = await api.getState(state.gameId, state.matchId)
       render()
@@ -36,6 +40,8 @@ export function enterGame() {
     } catch (e) {
       console.error('[game] state poll error:', e)
       if (e.message.includes('invalid session')) { stopPoll(); showToast('Session expired'); showView('view-login') }
+    } finally {
+      fetching = false
     }
   }, 2200)
 }
@@ -43,6 +49,7 @@ export function enterGame() {
 export function render() {
   if (!state.gameState) return
   const meta = state.gameState.metadata
+  if (!meta) return
   const mine = meta.currentPlayer === state.sessionId
 
   const pill = document.getElementById('turn-pill')
@@ -80,10 +87,11 @@ function showWinner(winnerId) {
 function goLobby() {
   stopPoll()
   document.getElementById('winner-overlay').classList.remove('open')
-  state.matchId   = null
-  state.gameId    = null
-  state.gameState = null
-  state.waiting   = false
+  state.matchId     = null
+  state.gameId      = null
+  state.gameState   = null
+  state.waiting     = false
+  state.pendingWild = null
   resetLobby()
   showView('view-lobby')
 }

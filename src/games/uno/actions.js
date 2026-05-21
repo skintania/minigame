@@ -4,7 +4,7 @@ import { showToast } from '../../ui/toast.js'
 import { openModal, closeModal } from '../../ui/modal.js'
 
 async function dispatch(action) {
-  const res = await api.move('uno', state.sessionId, state.matchId, action)
+  const res = await api.move(state.gameId, state.sessionId, state.matchId, action)
   document.dispatchEvent(new CustomEvent('game:move', { detail: res }))
 }
 

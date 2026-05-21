@@ -23,7 +23,7 @@ export function renderBoard(meta, mine) {
   // Opponent hand — revealed by server at showdown
   const oppId   = (state.gameState.players || []).find(p => p !== state.sessionId)
   const oppHand = (meta.hands || {})[oppId]
-  document.getElementById('pk-opp-hand').innerHTML = oppHand
+  document.getElementById('pk-opp-hand').innerHTML = oppHand?.length
     ? oppHand.map(cardHTML).join('')
     : '<div class="p-card back"></div><div class="p-card back"></div>'
 

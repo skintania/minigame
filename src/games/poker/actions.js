@@ -3,7 +3,7 @@ import { state } from '../../state.js'
 import { showToast } from '../../ui/toast.js'
 
 async function dispatch(action) {
-  const res = await api.move('poker', state.sessionId, state.matchId, action)
+  const res = await api.move(state.gameId, state.sessionId, state.matchId, action)
   document.dispatchEvent(new CustomEvent('game:move', { detail: res }))
 }
 

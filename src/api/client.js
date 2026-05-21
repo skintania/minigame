@@ -4,7 +4,8 @@ async function request(method, path, body) {
   const opts = { method, headers: { 'Content-Type': 'application/json' } }
   if (body) opts.body = JSON.stringify(body)
   const r = await fetch(cfg.url + path, opts)
-  const d = await r.json()
+  let d
+  try { d = await r.json() } catch { d = {} }
   if (!r.ok) {
     console.error(`[api] ${method} ${path} → ${r.status}`, d)
     throw new Error(d.error || 'Server error')
