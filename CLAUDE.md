@@ -5,53 +5,77 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm install        # Install dev dependencies (only vite)
-npm run dev        # Start dev server
-npm run build      # Build for production (outputs to dist/)
-npm run preview    # Preview the production build locally
+npm install       # install dependencies (vite only)
+npm run dev       # local dev server at http://localhost:5173/minigame/
+npm run build     # production build → dist/
+npm run preview   # preview production build locally
 ```
 
-Deployment is automated via GitHub Actions on push to main: it runs `npm install && npm run build` and publishes `dist/` to GitHub Pages.
+No test suite configured. Deploys automatically to GitHub Pages on push to `main`. The base path is `/minigame/` (set in `vite.config.js`).
 
 ## Architecture
 
-**Skintania Games** is a turn-based multiplayer minigame platform (Poker, UNO) — a multi-page frontend SPA backed by a Cloudflare Workers REST API.
+Vanilla JS ES modules, no framework. Three separate HTML entry points built by Vite:
 
-### Multi-Page Setup
+```
+index.html  → src/pages/login.js    Auth screen
+lobby.html  → src/pages/lobby.js    Game select, matchmaking, room creation
+game.html   → src/pages/game.js     Active game board
+```
 
-Three HTML entry points (`index.html` → login, `lobby.html` → matchmaking, `game.html` → active game), each bundled separately by Vite. The Vite config in [vite.config.js](vite.config.js) defines all three as rollup inputs.
+Each page script calls `loadSession()`, redirects if unauthenticated, then mounts its view.
 
-### State Management
+### Navigation
 
-[src/state.js](src/state.js) is the single source of truth for all runtime data: `sessionId`, `username`, `matchId`, `gameId`, `roomCode`, `gameState`, and the polling interval handle. State is persisted to and reloaded from `localStorage` on every update, so sessions survive page refreshes.
+Transitions are `window.location.href` assignments — no client-side router. `src/router.js`'s `showView()` only toggles CSS classes within a single page and is largely unused now.
 
-### API Client
+### State (`src/state.js`)
 
-All HTTP calls go through [src/api/client.js](src/api/client.js). The base URL is read from `localStorage` key `sk_url`, defaulting to the production Cloudflare Worker URL. Read [api.md](api.md) before working with any backend endpoints — it is the authoritative API spec.
+Single global `state` object persisted to `localStorage` (`sk_session`) via `saveSession()` / `loadSession()`. Key fields: `sessionId`, `username`, `matchId`, `gameId`, `roomCode`, `isHost`, `gameState`, `poll` (the active `setInterval` handle).
 
-### Game Loop (Polling)
+`cfg.url` holds the Worker base URL — configurable from the login screen, defaults to the production worker.
 
-[src/views/game.js](src/views/game.js) starts a 2.2-second polling interval on page load that calls `GET /games/:gameId/state`, updates `state.gameState`, and calls the active game's `render(meta, mine)` function. The loop stops when `metadata.winner` is set.
+### API client (`src/api/client.js`)
 
-### Game Registry Pattern
+Thin fetch wrapper. All calls go through `request(method, path, body)` which throws `Error(d.error)` on non-2xx. Named methods on the `api` object map 1:1 to backend endpoints. See `api.md` for the full spec.
 
-Each game (poker, uno) is a module under [src/games/](src/games/) with three files:
-- `index.js` — calls `init()` to bind UI event listeners once on page load
-- `actions.js` — functions that POST moves to the API, then dispatch `document.dispatchEvent(new CustomEvent('game:move', { detail: res }))` to hand off results
-- `render.js` — `render(meta, mine)` redraws the entire board from the latest state snapshot
+### Game system (`src/games/`)
 
-[src/games/registry.js](src/games/registry.js) maps `gameId` strings (`"poker"`, `"uno"`) to their modules. Add new games here.
+Each game implements:
 
-### Adding a New Game
+```js
+export default {
+  init()              // bind action buttons once on page load
+  render(meta, mine)  // redraw board from state metadata; mine = it's your turn
+}
+```
 
-1. Create `src/games/<name>/{index,actions,render}.js` following the poker/uno structure.
-2. Register it in `src/games/registry.js`.
-3. Add game-specific CSS in `src/styles/games/<name>.css` and import it.
+Registered by `gameId` string in `src/games/registry.js`. Each game lives in `src/games/{name}/` with three files: `index.js`, `actions.js`, `render.js`.
 
-### CSS Architecture
+Actions call `api.move(...)` then dispatch `new CustomEvent('game:move', { detail: res })` on `document`. `game.js` listens for this and calls `handleMoveResult`.
 
-Styles are split into [src/styles/base.css](src/styles/base.css) (design tokens and CSS variables — pink/blue gradient, dark glass theme), [src/styles/components.css](src/styles/components.css) (buttons, inputs), [src/styles/layout.css](src/styles/layout.css) (page grids and panels), and per-game files in [src/styles/games/](src/styles/games/). Modify tokens in `base.css` to retheme the whole app.
+### Lobby polling
 
-### Card Assets
+`state.poll` holds the active `setInterval`. Always clear via `stopLobbyPoll()` before navigating away. Two modes:
 
-Card SVG images are served from the Cloudflare R2 bucket at `{apiUrl}/assets/cards/<filename>` where filenames follow the pattern `a_spade.svg`, `k_heart.svg`, etc. The API returns card codes like `A-spades`; convert using the helper in [src/games/poker/render.js](src/games/poker/render.js). The client falls back to CSS-drawn cards if the asset returns a 4xx.
+- **Room poll** — `GET /rooms/:code` every 2.2s until `playerCount >= 2`, then switches to start poll.
+- **Start poll** — POSTs `{ type: "start" }` every 2.2s. The host succeeds and redirects. Non-creators get `"Only the room creator can start the game"` — handled by polling `getState` until `phase !== 'waiting'` then redirecting.
+
+### Poker card format
+
+API returns cards as `"K-spades"`, `"10-hearts"` (rank `-` suit name). R2 asset filenames use **lowercase rank**: `k-spades.svg`, `a-hearts.svg`. The renderer in `src/games/poker/render.js` calls `rank.toLowerCase()` before building the asset URL.
+
+`"hidden"` cards (opponent hands before showdown) render as `.p-card.back`. Every `<img>` has an `onerror` fallback that renders a CSS card if the R2 asset is missing.
+
+### CSS
+
+`src/styles/base.css` — design tokens (dark theme, pink/blue gradient, CSS variables). Retheme here.
+`src/styles/components.css` — buttons, inputs, pills.
+`src/styles/layout.css` — page grids and panels.
+`src/styles/games/` — per-game overrides.
+
+`.glass` class applies the glassmorphism card effect used throughout.
+
+## Backend
+
+API source is in a separate repo (`minigame.skintania-api`, Cloudflare Worker + D1). `api.md` in this folder is a copy of the API reference. The production URL is `https://minigame-skintania-api.skintania143.workers.dev`.
