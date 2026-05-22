@@ -220,12 +220,12 @@ export function cardHTML(str) {
       onerror="this.outerHTML='<div class=&quot;p-card black&quot;><div class=&quot;center&quot;>🃏</div></div>'">`
   }
 
-  // API returns Unicode suit symbols ("6♦") or dash-separated ("6-diamonds")
+  // API returns "K-spades" format matching R2 filenames; handle legacy "K♠" too
   const symMatch = str.match(/^(.+?)([♠♥♦♣])$/)
   const [rank, suit] = symMatch
     ? [symMatch[1], SUIT_NAMES[symMatch[2]]]
     : str.split('-')
-  const assetName = `${rank.toLowerCase()}-${suit}`
+  const assetName = `${rank}-${suit}`
   const src = `${CARD_BASE()}/${assetName}.svg`
   const safe = cssCard(str).replace(/'/g, '&#39;').replace(/"/g, '&quot;')
   return `<img class="p-card-img" src="${src}" alt="${str}"
