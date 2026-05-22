@@ -260,6 +260,12 @@ async function tryStart() {
       handleSessionExpired()
     } else if (e.message.includes('not your turn') || e.message.includes('already started')) {
       await goToGame(null)
+    } else if (e.message.includes('Only the room creator')) {
+      // Not the host — poll state until host starts the game
+      try {
+        const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+        if (gs?.metadata?.phase && gs.metadata.phase !== 'waiting') await goToGame(gs)
+      } catch { /* keep polling */ }
     } else if (!e.message.includes('At least 2 players')) {
       console.error('[lobby] unexpected error in tryStart:', e)
     }
