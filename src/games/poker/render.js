@@ -8,12 +8,13 @@ const CARD_BASE    = () => `${cfg.url}/assets/cards/standard-deck`
 const CHIP_URL     = () => `${cfg.url}/assets/cards/chips/chip-100.svg`
 const AVATAR_URL   = sid => `${cfg.url}/assets/avatars/${sid}.svg`
 
-// ── Animation state ───────────────────────────────────────
-let prevPot    = -1
-let prevBets   = {}
-let prevWinner = null
-let prevFolded = {}
-let prevPhase  = null
+// ── Animation / render state ──────────────────────────────
+let prevPot     = -1
+let prevBets    = {}
+let prevWinner  = null
+let prevFolded  = {}
+let prevPhase   = null
+let builtOppIds = []   // tracks which opponent slots are in the DOM
 
 const avatarsLoaded = new Set()
 
@@ -25,6 +26,40 @@ function maybeSetAvatar(el, sessionId, fallback) {
   img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%'
   img.onload  = () => { el.style.color = 'transparent'; el.appendChild(img) }
   img.src = AVATAR_URL(sessionId)
+}
+
+// Short display label — API doesn't expose opponent usernames
+function oppLabel(oppId, idx, total) {
+  return total === 1 ? 'Opponent' : `Player ${idx + 2}`
+}
+
+// Build or update opponent badge+hand slots inside #pk-opponents
+function syncOpponentSlots(oppIds) {
+  const container = document.getElementById('pk-opponents')
+  if (!container) return
+
+  // Rebuild DOM only when the player list changes
+  if (oppIds.join(',') === builtOppIds.join(',')) return
+  builtOppIds = [...oppIds]
+
+  container.innerHTML = oppIds.map((id, idx) => {
+    const name = oppLabel(id, idx, oppIds.length)
+    return `<div class="pk-opp-slot" data-id="${id}">
+      <div class="pk-player-badge" id="pk-opp-badge-${id}">
+        <div class="pk-avatar" id="pk-opp-avatar-${id}">${name[0]}</div>
+        <div class="pk-badge-info">
+          <span class="pk-badge-label">${name}</span>
+          <span class="pk-chip-count">&#9885; <span id="pk-opp-chips-${id}">—</span></span>
+        </div>
+      </div>
+      <div class="cards-row" id="pk-opp-hand-${id}"></div>
+    </div>`
+  }).join('')
+
+  oppIds.forEach((id, idx) => {
+    const name = oppLabel(id, idx, oppIds.length)
+    maybeSetAvatar(document.getElementById(`pk-opp-avatar-${id}`), id, name[0].toUpperCase())
+  })
 }
 
 function flyChip(fromEl, toEl) {
@@ -62,15 +97,17 @@ function animateBetToPot(curBets, prev, lastAction) {
   }
 
   if (!bettorId) return
-  flyChip(
-    document.getElementById(bettorId === state.sessionId ? 'pk-my-badge' : 'pk-opp-badge'),
-    document.getElementById('pk-pot-display')
-  )
+  const fromEl = bettorId === state.sessionId
+    ? document.getElementById('pk-my-badge')
+    : document.getElementById(`pk-opp-badge-${bettorId}`)
+  flyChip(fromEl, document.getElementById('pk-pot-display'))
 }
 
 function animatePotToWinner(winnerId) {
   const fromEl = document.getElementById('pk-pot-display')
-  const toEl   = document.getElementById(winnerId === state.sessionId ? 'pk-my-badge' : 'pk-opp-badge')
+  const toEl   = winnerId === state.sessionId
+    ? document.getElementById('pk-my-badge')
+    : document.getElementById(`pk-opp-badge-${winnerId}`)
   for (let i = 0; i < 5; i++) setTimeout(() => flyChip(fromEl, toEl), i * 110)
 }
 
@@ -106,11 +143,18 @@ function animateReveal(containerId) {
 }
 
 export function renderBoard(meta, mine) {
-  const oppId = (state.gameState.players || []).find(p => p !== state.sessionId)
+  const players   = state.gameState.players || []
+  const opponents = players.filter(p => p !== state.sessionId)
 
-  // Avatars (attempted once per sessionId)
-  maybeSetAvatar(document.getElementById('pk-my-avatar'),  state.sessionId, (state.username || 'Y')[0].toUpperCase())
-  maybeSetAvatar(document.getElementById('pk-opp-avatar'), oppId, '?')
+  // My avatar (once)
+  maybeSetAvatar(
+    document.getElementById('pk-my-avatar'),
+    state.sessionId,
+    (state.username || 'Y')[0].toUpperCase()
+  )
+
+  // Build/update each opponent's badge + hand slot
+  syncOpponentSlots(opponents)
 
   // Stats
   document.getElementById('pk-pot').textContent  = meta.pot        ?? 0
@@ -118,35 +162,43 @@ export function renderBoard(meta, mine) {
   document.getElementById('pk-mbet').textContent = (meta.bets || {})[state.sessionId] ?? 0
   document.getElementById('pk-last').textContent = meta.lastAction || ''
 
-  // Chip counts
+  // My chip count
   const chips = meta.chips || {}
-  document.getElementById('pk-my-chips').textContent  = chips[state.sessionId] ?? '—'
-  document.getElementById('pk-opp-chips').textContent = oppId ? (chips[oppId] ?? '—') : '—'
+  document.getElementById('pk-my-chips').textContent = chips[state.sessionId] ?? '—'
 
-  // Resolve fold / phase state for this render
-  const curFolded  = meta.folded || {}
-  const curPhase   = meta.phase  || ''
-  const myFolded   = !!curFolded[state.sessionId]
-  const oppFolded  = !!(oppId && curFolded[oppId])
+  // Opponent chip counts
+  opponents.forEach(id => {
+    const el = document.getElementById(`pk-opp-chips-${id}`)
+    if (el) el.textContent = chips[id] ?? '—'
+  })
 
-  // Detect NEW folds — capture card positions BEFORE clearing innerHTML
+  // Fold / phase for this render
+  const curFolded = meta.folded || {}
+  const curPhase  = meta.phase  || ''
+  const myFolded  = !!curFolded[state.sessionId]
+
+  // Detect NEW folds — capture positions BEFORE clearing innerHTML
   if (prevPot >= 0) {
-    if (!prevFolded[state.sessionId] && myFolded)   animateFoldCards('pk-hand')
-    if (oppId && !prevFolded[oppId]  && oppFolded)  animateFoldCards('pk-opp-hand')
+    if (!prevFolded[state.sessionId] && myFolded) animateFoldCards('pk-hand')
+    opponents.forEach(id => {
+      if (!prevFolded[id] && curFolded[id]) animateFoldCards(`pk-opp-hand-${id}`)
+    })
   }
 
-  // Folded badge
+  // Folded badges
   document.getElementById('pk-my-badge')?.classList.toggle('folded', myFolded)
-  document.getElementById('pk-opp-badge')?.classList.toggle('folded', oppFolded)
+  opponents.forEach(id => {
+    document.getElementById(`pk-opp-badge-${id}`)?.classList.toggle('folded', !!curFolded[id])
+  })
 
   // Check vs Call label
   const myBet   = (meta.bets || {})[state.sessionId] || 0
   const callAmt = (meta.currentBet || 0) - myBet
   const checkBtn = document.getElementById('btn-check')
   if (callAmt > 0) {
-    checkBtn.textContent      = `Call (${callAmt})`
-    checkBtn.dataset.action   = 'call'
-    checkBtn.dataset.callAmt  = callAmt
+    checkBtn.textContent     = `Call (${callAmt})`
+    checkBtn.dataset.action  = 'call'
+    checkBtn.dataset.callAmt = callAmt
   } else {
     checkBtn.textContent    = 'Check'
     checkBtn.dataset.action = 'check'
@@ -158,22 +210,25 @@ export function renderBoard(meta, mine) {
     comm.map(cardHTML).join('') +
     Array(5 - comm.length).fill('<div class="p-card placeholder"></div>').join('')
 
-  // My hand (hidden if folded)
+  // My hand
   const myHand = (meta.hands || {})[state.sessionId] || []
   document.getElementById('pk-hand').innerHTML =
     myFolded ? '' : myHand.map(cardHTML).join('')
 
-  // Opponent hand (hidden if folded; back cards until showdown)
-  const oppHand = (meta.hands || {})[oppId]
-  document.getElementById('pk-opp-hand').innerHTML = oppFolded ? '' :
-    (oppHand?.length
-      ? oppHand.map(cardHTML).join('')
-      : '<div class="p-card back"></div><div class="p-card back"></div>')
+  // Each opponent's hand
+  opponents.forEach(id => {
+    const handEl = document.getElementById(`pk-opp-hand-${id}`)
+    if (!handEl) return
+    if (curFolded[id]) { handEl.innerHTML = ''; return }
+    const hand = (meta.hands || {})[id]
+    handEl.innerHTML = hand?.length
+      ? hand.map(cardHTML).join('')
+      : '<div class="p-card back"></div><div class="p-card back"></div>'
+  })
 
-  // Showdown reveal — animate opponent cards AFTER rendering the real faces
+  // Showdown reveal — after real card faces are in the DOM
   if (prevPot >= 0 && prevPhase !== 'showdown' && curPhase === 'showdown') {
-    animateReveal('pk-opp-hand')
-    // Also reveal our own cards with a slight delay for drama
+    opponents.forEach(id => { if (!curFolded[id]) animateReveal(`pk-opp-hand-${id}`) })
     animateReveal('pk-hand')
   }
 
@@ -181,6 +236,9 @@ export function renderBoard(meta, mine) {
     document.getElementById(id).disabled = !mine
   })
   document.getElementById('bet-amt').disabled = !mine
+
+  // Turn brightness indicator
+  document.getElementById('poker-board')?.classList.toggle('turn-mine', mine)
 
   // Chip / pot animations
   const curPot    = meta.pot    ?? 0

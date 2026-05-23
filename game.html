@@ -30,17 +30,8 @@
     <!-- Poker Board -->
     <div id="poker-board" class="game-board">
 
-      <!-- Opponent -->
-      <div class="pk-opp-zone">
-        <div class="pk-player-badge" id="pk-opp-badge">
-          <div class="pk-avatar" id="pk-opp-avatar">?</div>
-          <div class="pk-badge-info">
-            <span class="pk-badge-label">Opponent</span>
-            <span class="pk-chip-count">&#9885; <span id="pk-opp-chips">—</span></span>
-          </div>
-        </div>
-        <div class="cards-row" id="pk-opp-hand"></div>
-      </div>
+      <!-- Opponents (built dynamically by render.js) -->
+      <div id="pk-opponents" class="pk-opponents-row"></div>
 
       <!-- Felt table -->
       <div class="pk-table">
