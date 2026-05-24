@@ -86,7 +86,9 @@ async function handleMoveResult(res) {
   if (res.state) state.gameState = res.state
   else state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
   render()
-  if (res.status === 'finished' || state.gameState?.metadata?.handWinner || state.gameState?.metadata?.winner) {
+  if (res.status === 'round-complete') {
+    if (res.message) showToast(res.message)
+  } else if (res.status === 'finished' || state.gameState?.metadata?.handWinner || state.gameState?.metadata?.winner) {
     stopPoll()
     onHandEnd(state.gameState.metadata)
   }

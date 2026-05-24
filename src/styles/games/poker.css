@@ -282,6 +282,13 @@
   gap: 10px;
 }
 
+.min-raise-hint {
+  font-size: 11px;
+  color: var(--muted);
+  padding-left: 2px;
+  min-height: 14px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 480px) {
   .pk-table {

@@ -162,17 +162,32 @@ export function renderBoard(meta, mine) {
   document.getElementById('pk-mbet').textContent = (meta.bets || {})[state.sessionId] ?? 0
   document.getElementById('pk-last').textContent = meta.lastAction || ''
 
-  // My chip count
+  // SB/BB roles
+  const sbId = players[meta.sbIndex]
+  const bbId = players[meta.bbIndex]
+  const blindTag = id => id === sbId ? ' (SB)' : id === bbId ? ' (BB)' : ''
+
+  // My chip count + my label with SB/BB
   const chips = meta.chips || {}
   document.getElementById('pk-my-chips').textContent = chips[state.sessionId] ?? '—'
+  const myLabelEl = document.querySelector('#pk-my-badge .pk-badge-label')
+  if (myLabelEl) myLabelEl.textContent = `You${blindTag(state.sessionId)}`
 
-  // Opponent chip counts + name labels
+  // Opponent chip counts + name labels with SB/BB
   opponents.forEach((id, idx) => {
     const chipsEl = document.getElementById(`pk-opp-chips-${id}`)
     if (chipsEl) chipsEl.textContent = chips[id] ?? '—'
     const labelEl = document.querySelector(`#pk-opp-badge-${id} .pk-badge-label`)
-    if (labelEl) labelEl.textContent = oppLabel(id, idx, opponents.length)
+    if (labelEl) labelEl.textContent = oppLabel(id, idx, opponents.length) + blindTag(id)
   })
+
+  // Min raise hint
+  const minRaiseEl = document.getElementById('pk-min-raise')
+  if (minRaiseEl) {
+    minRaiseEl.textContent = mine && meta.lastRaiseAmount > 0
+      ? `Min raise: ${meta.lastRaiseAmount}`
+      : ''
+  }
 
   // Fold / phase for this render
   const curFolded = meta.folded || {}
