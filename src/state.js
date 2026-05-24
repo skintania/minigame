@@ -5,7 +5,8 @@ export const state = {
   gameId:      null,
   roomCode:    null,
   isHost:      false,
-  role:        'player',
+  role:        'spectator',
+  hostId:      null,      // not persisted — refreshed from room polls
   gameState:   null,
   poll:        null,
   waiting:     false,

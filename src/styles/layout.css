@@ -53,7 +53,46 @@
 }
 .config-link:hover { color: var(--text); }
 
-/* ════ LOBBY ════ */
+/* ════ HOME / CREATE ROOM ════ */
+#view-home,
+#view-create {
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  text-align: center;
+  position: relative;
+}
+
+.home-options {
+  display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+  margin-bottom: 20px;
+}
+
+.create-form {
+  width: 100%; max-width: 420px;
+  padding: 28px 28px 24px;
+  border-radius: 20px;
+  display: flex; flex-direction: column; gap: 14px;
+  text-align: left;
+}
+
+.cr-select {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 10px 13px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.cr-select:focus { border-color: var(--pink); }
+
+/* ════ LOBBY (old — kept for .lobby-logo etc used on create screen) ════ */
 #view-lobby {
   min-height: 100vh;
   flex-direction: column;
@@ -453,10 +492,107 @@
   margin-top: 12px; min-height: 32px; border-left: 2px solid rgba(255,255,255,0.08);
 }
 
+/* ════ ROOM LOBBY ════ */
+#view-room {
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 40px;
+  gap: 14px;
+}
+
+.rm-header {
+  display: flex; justify-content: space-between; align-items: center;
+  width: 100%; max-width: 500px;
+  padding: 16px 20px; border-radius: 18px;
+  flex-shrink: 0;
+}
+.rm-header-right { display: flex; align-items: center; gap: 10px; }
+.rm-code-label {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .12em; margin-bottom: 4px;
+}
+.rm-code {
+  font-size: 32px; font-weight: 900;
+  font-family: 'Courier New', monospace;
+  letter-spacing: .22em;
+  background: var(--grad);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.rm-counts {
+  display: flex; align-items: center; gap: 8px;
+}
+.rm-count-box {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 20px; border-radius: 14px; gap: 2px;
+}
+.rm-count-spec { margin-left: 12px; }
+.rm-count-val { font-size: 26px; font-weight: 800; line-height: 1; }
+.rm-count-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+.rm-count-sep { font-size: 22px; color: var(--muted); font-weight: 300; }
+
+.rm-player-list {
+  width: 100%; max-width: 500px;
+  padding: 18px 20px; border-radius: 16px;
+}
+.rm-list-title {
+  font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .12em; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.rm-list-title::before {
+  content: ''; display: block; width: 3px; height: 12px;
+  border-radius: 2px; background: var(--grad); flex-shrink: 0;
+}
+.rm-player-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.rm-player-row:last-child { border-bottom: none; }
+.rm-player-name { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.rm-empty { font-size: 13px; color: var(--muted); padding: 8px 0; }
+
+.rm-badge {
+  padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.rm-you-badge  { background: rgba(232,82,154,0.15); color: var(--pink-light); border: 1px solid rgba(232,82,154,0.3); }
+.rm-host-badge { background: rgba(255,215,0,0.12);  color: #ffd700;           border: 1px solid rgba(255,215,0,0.3); }
+
+.rm-kick-btn {
+  background: rgba(231,76,60,0.12); border: 1px solid rgba(231,76,60,0.3);
+  border-radius: 8px; color: #ff6b6b; font-size: 11px; font-weight: 700;
+  padding: 4px 10px; cursor: pointer; font-family: inherit;
+  transition: background 0.15s;
+}
+.rm-kick-btn:hover { background: rgba(231,76,60,0.25); }
+
+.rm-role-row { display: flex; justify-content: center; }
+.rm-role-badge {
+  padding: 7px 18px; border-radius: 20px; font-size: 13px; font-weight: 700;
+  letter-spacing: .03em;
+}
+.rm-role-player   { background: rgba(232,82,154,0.16); color: var(--pink-light); border: 1px solid rgba(232,82,154,0.35); }
+.rm-role-spectator { background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid transparent; }
+
+.rm-actions {
+  display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; max-width: 340px;
+}
+
+.rm-settings {
+  width: 100%; max-width: 500px;
+  padding: 18px 20px; border-radius: 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
 /* ════ RESPONSIVE ════ */
 @media (max-width: 480px) {
   .game-grid { flex-direction: column; align-items: center; }
   .game-tile { width: 100%; max-width: 280px; }
   .login-card { padding: 36px 26px; }
   .brand { font-size: 30px; }
+  .rm-code { font-size: 26px; }
+  .home-options { flex-direction: column; align-items: center; }
 }

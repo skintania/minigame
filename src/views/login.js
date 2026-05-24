@@ -1,6 +1,9 @@
 import { api } from '../api/client.js'
 import { cfg, state, loadSession, saveSession } from '../state.js'
 import { showToast } from '../ui/toast.js'
+import { showView } from '../router.js'
+
+let createMaxPlayers = 8
 
 export async function initLogin() {
   loadSession()
@@ -16,6 +19,28 @@ export async function initLogin() {
   usernameInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin() })
   document.getElementById('config-link').addEventListener('click', toggleConfig)
 
+  // Home screen buttons
+  document.getElementById('btn-go-create').addEventListener('click', () => showView('view-create'))
+  document.getElementById('btn-go-join').addEventListener('click', toggleJoinInput)
+  document.getElementById('btn-join-submit').addEventListener('click', doJoinRoom)
+  document.getElementById('home-code-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doJoinRoom()
+  })
+
+  // Create Room screen
+  document.getElementById('create-back-btn').addEventListener('click', () => {
+    showView('view-home')
+  })
+  document.getElementById('cr-game').addEventListener('change', updateCreateForm)
+  document.getElementById('cr-max-minus').addEventListener('click', () => {
+    if (createMaxPlayers > 2) { createMaxPlayers--; document.getElementById('cr-max-val').textContent = createMaxPlayers }
+  })
+  document.getElementById('cr-max-plus').addEventListener('click', () => {
+    if (createMaxPlayers < 16) { createMaxPlayers++; document.getElementById('cr-max-val').textContent = createMaxPlayers }
+  })
+  document.getElementById('btn-create-submit').addEventListener('click', doCreateRoom)
+
+  // Auto-reconnect
   if (state.sessionId) {
     btn.disabled    = true
     btn.textContent = 'Reconnecting…'
@@ -23,14 +48,18 @@ export async function initLogin() {
       const { session, activeMatches } = await api.resume(state.sessionId)
       state.sessionId = session.sessionId
       state.username  = session.username
-      const activeGame = (activeMatches || []).find(m => m.status === 'active')
-      if (activeGame) {
-        state.matchId = activeGame.matchId
-        state.gameId  = activeGame.gameId
-        state.roomCode = activeGame.roomCode || null
-      }
       saveSession()
-      window.location.href = activeGame ? 'game.html' : 'lobby.html'
+
+      const active = (activeMatches || []).find(m => m.status === 'active' || m.roomCode)
+      if (active) {
+        state.matchId  = active.matchId
+        state.gameId   = active.gameId
+        state.roomCode = active.roomCode || null
+        saveSession()
+        window.location.href = active.status === 'active' ? 'game.html' : 'lobby.html'
+        return
+      }
+      goHome()
     } catch {
       state.sessionId = null
       btn.disabled    = false
@@ -42,6 +71,11 @@ export async function initLogin() {
 function toggleConfig() {
   const row = document.getElementById('config-row')
   row.style.display = row.style.display === 'none' ? 'block' : 'none'
+}
+
+function goHome() {
+  document.getElementById('home-username').textContent = state.username || 'Player'
+  showView('view-home')
 }
 
 async function doLogin() {
@@ -66,11 +100,80 @@ async function doLogin() {
     state.sessionId = session.sessionId
     state.username  = session.username
     saveSession()
-    window.location.href = 'lobby.html'
+    goHome()
   } catch (e) {
     console.error('[login] auth failed:', e)
     showToast(e.message)
     btn.disabled    = false
     btn.textContent = 'Enter the Arena'
+  }
+}
+
+function toggleJoinInput() {
+  const row = document.getElementById('join-input-row')
+  const isHidden = row.style.display === 'none'
+  row.style.display = isHidden ? 'flex' : 'none'
+  if (isHidden) document.getElementById('home-code-input').focus()
+}
+
+async function doJoinRoom() {
+  const code = document.getElementById('home-code-input').value.trim()
+  if (!code) { showToast('Please enter a room code.'); return }
+  if (code.length !== 6 || !/^\d+$/.test(code)) { showToast('Room code must be 6 digits.'); return }
+
+  const btn = document.getElementById('btn-join-submit')
+  btn.disabled    = true
+  btn.textContent = 'Joining…'
+
+  try {
+    const { matchId, gameId } = await api.joinRoom(state.sessionId, code, 'spectator')
+    state.matchId  = matchId
+    state.gameId   = gameId
+    state.roomCode = code
+    state.role     = 'spectator'
+    saveSession()
+    window.location.href = 'lobby.html'
+  } catch (e) {
+    console.error('[login] join room failed:', e)
+    showToast(e.message)
+    btn.disabled    = false
+    btn.textContent = 'Join'
+  }
+}
+
+function updateCreateForm() {
+  const isPoker = document.getElementById('cr-game').value === 'poker'
+  document.getElementById('cr-poker-fields').style.display = isPoker ? '' : 'none'
+}
+
+async function doCreateRoom() {
+  const gameId = document.getElementById('cr-game').value
+  const chips  = parseInt(document.getElementById('cr-chips').value, 10)  || 1000
+  const timer  = parseInt(document.getElementById('cr-timer').value, 10)  || 0
+  const rounds = parseInt(document.getElementById('cr-rounds').value, 10) || 0
+  const isPoker = gameId === 'poker'
+
+  const btn = document.getElementById('btn-create-submit')
+  btn.disabled    = true
+  btn.textContent = 'Creating…'
+
+  try {
+    const opts = {
+      maxPlayers:     createMaxPlayers,
+      ...(isPoker && { startingChips: chips, turnTimeLimit: timer, roundLimit: rounds }),
+    }
+    const { matchId, roomCode } = await api.createRoom(state.sessionId, gameId, opts)
+    state.matchId  = matchId
+    state.gameId   = gameId
+    state.roomCode = roomCode
+    state.isHost   = true
+    state.role     = 'spectator'
+    saveSession()
+    window.location.href = 'lobby.html'
+  } catch (e) {
+    console.error('[login] create room failed:', e)
+    showToast(e.message)
+    btn.disabled    = false
+    btn.textContent = 'Create Room'
   }
 }

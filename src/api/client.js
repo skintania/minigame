@@ -27,6 +27,8 @@ export const api = {
   getRoomStatus:  (roomCode, sid)       => request('GET',  `/rooms/${roomCode}${sid ? `?sessionId=${encodeURIComponent(sid)}` : ''}`),
   switchRole:     (code, sid, role)     => request('PATCH', `/rooms/${code}/role`, { sessionId: sid, role }),
   patchSettings:  (code, sid, settings) => request('PATCH', `/rooms/${code}/settings`, { sessionId: sid, ...settings }),
+  leaveRoom:      (code, sid)           => request('DELETE', `/rooms/${code}/leave`, { sessionId: sid }),
+  kickPlayer:     (code, sid, target)   => request('DELETE', `/rooms/${code}/players/${target}`, { sessionId: sid }),
 
   // Game
   move:           (gid, sid, mid, action) =>

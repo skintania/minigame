@@ -108,27 +108,27 @@ All fields are optional. Defaults: `maxPlayers = 8` (min `2`, max `16`), `starti
 
 ### `POST /rooms/join`
 
-Join a private room using its 6-digit code.
+Join a private room using its 6-digit code. You always join as a **spectator** first. To sit at the table and play, call `PATCH /rooms/:code/role` after joining.
+
+Joining works whether the room is `waiting` or `active` — you can drop into an ongoing game to watch at any time.
 
 **Request**
 ```json
-{ "sessionId": "uuid", "roomCode": "843921", "role": "player" | "spectator" }
+{ "sessionId": "uuid", "roomCode": "843921" }
 ```
-
-`role` defaults to `"player"`. Spectators can join rooms that are already `active` (to watch); players can only join `waiting` rooms. Spectators are not added to the game and do not count against `maxPlayers`.
 
 **Response**
 ```json
 { "matchId": "uuid", "gameId": "poker" }
 ```
 
-Errors: `"Room not found"`, `"Room is no longer open"`, `"Room is full"`, `"Room is no longer open. Join as spectator to watch."`.
+Errors: `"Room not found"`, `"Room is no longer open"` (room is `finished`).
 
 ---
 
 ### `GET /rooms/:code`
 
-Poll this while waiting for players to join. Pass `?sessionId=<uuid>` to update your activity timestamp and trigger inactive-player cleanup when `playerTimeoutSec` is set.
+Poll this to get room state and keep your session alive. **Frontend must call this every 15–20 seconds with `?sessionId=` attached** — this is the heartbeat. If the host stops sending heartbeats for 60 seconds, host is automatically transferred to a random player at the table (preferring active players over spectators).
 
 **Response**
 ```json
@@ -137,7 +137,7 @@ Poll this while waiting for players to join. Pass `?sessionId=<uuid>` to update 
   "matchId": "uuid",
   "gameId": "poker",
   "status": "waiting",
-  "creatorId": "uuid",
+  "hostId": "uuid",
   "maxPlayers": 8,
   "startingChips": 1000,
   "turnTimeLimit": 30,
@@ -147,6 +147,8 @@ Poll this while waiting for players to join. Pass `?sessionId=<uuid>` to update 
   "spectatorCount": 1
 }
 ```
+
+`hostId` is the current host session ID. The host can start rounds, change settings (before game starts), and kick players. If the host leaves the room, host is automatically transferred to a random player at the table (or a spectator if the table is empty).
 
 ---
 
@@ -190,10 +192,17 @@ Errors: `"Only the room creator can kick players"`, `"Cannot kick players after 
 
 ### `PATCH /rooms/:code/role`
 
-Switch your own role between player and spectator. Only valid during the `between-rounds` phase (when `betweenRoundsSec > 0`).
+Switch your own role between spectator and player. This is the "Join Table" / "Leave Table" action.
 
-- Switching to **player**: adds you to the next hand with `startingChips` (if your chip count is 0 or you've never played).
-- Switching to **spectator**: removes you from the next hand. Any chips you hold are forfeited.
+Valid timing:
+- **Before game starts** (`status = waiting`): join or leave the table freely at any time.
+- **During a game** (`status = active`): only allowed while in the `between-rounds` phase — the countdown window between hands.
+
+Role change effects:
+- Switching to **player**: seats you at the table. During an active game, you receive `startingChips` if your chip count is 0.
+- Switching to **spectator**: removes you from the next hand. Chips are kept in your stack if you return.
+
+The `maxPlayers` limit applies when switching to player. Spectators never count against it.
 
 **Request**
 ```json
@@ -205,7 +214,29 @@ Switch your own role between player and spectator. Only valid during the `betwee
 { "roomCode": "843921", "role": "spectator" }
 ```
 
-Errors: `"Room not found"`, `"Can only change role while the game is active"`, `"Can only change role between rounds"`, `"You are not in this room"`.
+Errors: `"Room not found"`, `"Can only change role before the game starts or between rounds"`, `"Table is full"`, `"You are not in this room"`.
+
+---
+
+### `DELETE /rooms/:code/leave`
+
+Fully leave a room. Removes you from both the spectator list and the active player list.
+
+Valid timing: only during `waiting` or `between-rounds` (same as role changes). Mid-hand, use `PATCH /rooms/:code/role` to step back to spectator instead — you'll be removed from the next hand safely.
+
+The room creator cannot leave while other members are present. If you are the last person in the room, the room is deleted.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response**
+```json
+{ "left": true }
+```
+
+Errors: `"Room not found"`, `"Can only leave before the game starts or between rounds"`, `"Room creator cannot leave while others are present"`, `"You are not in this room"`.
 
 ---
 
@@ -338,12 +369,12 @@ Submit a player action for the current turn.
 
 ### Poker (`gameId = "poker"`)
 
-**Start the game** — requires at least 2 players; in a private room only the creator can send this
+**Start first round** — requires at least 2 players seated at the table; only the host can send this
 ```json
 { "type": "start" }
 ```
 
-**Start next round early** — only valid during the `between-rounds` phase; creator can use this to skip the remaining countdown
+**Start next round** — only valid during the `between-rounds` phase; only the host can send this; requires at least 2 players at the table
 ```json
 { "type": "next-round" }
 ```
@@ -374,7 +405,11 @@ Submit a player action for the current turn.
 
 **Poker game phases:** `waiting → preflop → flop → turn → river → showdown → between-rounds → preflop → …`
 
-When `betweenRoundsSec > 0`, after each hand the game enters `between-rounds`. During this window, players may call `PATCH /rooms/:code/role` to switch between spectator and player. The next hand starts automatically when `betweenRoundsUntil` is reached, or earlier if the creator sends `{ "type": "next-round" }`.
+After each hand the game always enters `between-rounds`. During this window, players may call `PATCH /rooms/:code/role` to join or leave the table. Players who ended the hand with 0 chips are automatically moved to spectator — they can rejoin the table and receive `startingChips` when the next round begins. The host starts the next hand by sending `{ "type": "next-round" }`.
+
+**Eliminated players:** when a hand ends with a player at 0 chips, they are automatically moved to spectator. They can click "Join Table" (`PATCH /rooms/:code/role { role: "player" }`) during `between-rounds` to rejoin with `startingChips`.
+
+**Game end:** only when `roundLimit > 0` and all rounds have been played. With `roundLimit = 0` (infinite), the room runs indefinitely. The winner is the player with the most chips when the game ends.
 
 ---
 
@@ -511,7 +546,7 @@ Common `400` messages:
 - `"invalid session"` — sessionId does not exist when submitting a move
 - `"match or player not found"` — matchId is wrong or you haven't joined this match
 - `"match not found"` — matchId does not exist
-- `"Only the room creator can start the game"` — start action sent by a non-creator
+- `"Only the room host can start the round"` — start or next-round action sent by a non-host
 - `"Cannot join a game that has already started."` — game is past the waiting phase
 - `"It is not your turn."` — another player must move first
 - `"At least 2 players are required to start poker."` — need more players
@@ -525,7 +560,9 @@ Common `400` messages:
 - `"A color must be chosen when playing a wild card."` — missing `color` field
 - `"Only the room creator can change settings"` — PATCH /rooms settings by non-creator
 - `"Only the room creator can kick players"` — DELETE /rooms player by non-creator
-- `"Room is full"` — room has reached `maxPlayers`
+- `"Table is full"` — room has reached `maxPlayers` when trying to join as player
+- `"Can only change role before the game starts or between rounds"` — role/leave action outside permitted phase
+- `"Room creator cannot leave while others are present"` — creator must be last to leave
 
 ---
 
@@ -545,14 +582,30 @@ Common `400` messages:
 **Private room**
 ```
 1. POST /auth { username }          → save sessionId
-2. POST /rooms/create               → get matchId + roomCode  (host only)
-   share roomCode with friend
-3. POST /rooms/join { roomCode }    → friend gets matchId + gameId
-4. poll GET /rooms/:code            → wait until playerCount >= 2
-5. POST /games/:id/move { type: "start" }
-6. GET  /games/:id/state            → render board
-7. POST /games/:id/move             → take your turn
-8. repeat 6–7 until status = "finished"
+2. POST /rooms/create               → get matchId + roomCode (host)
+   share roomCode with friends
+3. POST /rooms/join { roomCode }    → everyone joins as spectator
+4. PATCH /rooms/:code/role { role: "player" } → sit at the table
+5. poll GET /rooms/:code            → wait until playerCount >= 2
+6. POST /games/:id/move { type: "start" }  (host only)
+7. GET  /games/:id/state            → render board, players take turns
+8. POST /games/:id/move             → take your turn
+   … hand ends, game enters between-rounds …
+9. (players join/leave the table)
+   PATCH /rooms/:code/role          → switch spectator ↔ player
+10. POST /games/:id/move { type: "next-round" } (host only) → start next hand
+11. repeat 7–10 until status = "finished" (roundLimit reached)
+```
+
+**Spectator joining mid-game / switching roles**
+```
+1. POST /rooms/join { roomCode }    → join as spectator anytime
+2. GET  /games/:id/state            → watch the game
+3. (during between-rounds)
+   PATCH /rooms/:code/role { role: "player" } → join the next hand
+4. (during between-rounds)
+   PATCH /rooms/:code/role { role: "spectator" } → leave the table
+5. DELETE /rooms/:code/leave        → leave the room entirely
 ```
 
 **Reconnection after disconnect**

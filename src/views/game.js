@@ -9,30 +9,30 @@ let handResultTimer       = null
 let handResultActive      = false
 let turnTimerInterval     = null
 let betweenRoundsInterval = null
+let roomHeartbeatInterval = null
 
+// ── Init (bind static buttons once) ──────────────────────
 export function initGame() {
-  document.getElementById('btn-play-again').addEventListener('click', goLobby)
-  document.getElementById('btn-leave-table').addEventListener('click', () => {
-    clearInterval(handResultTimer)
-    handResultTimer = null
-    goLobby()
-  })
+  document.getElementById('btn-back-to-room').addEventListener('click', goLobby)
+  document.getElementById('btn-leave-room-hr').addEventListener('click', () => leaveRoom())
+  document.getElementById('btn-back-to-room-win').addEventListener('click', goLobby)
+  document.getElementById('btn-leave-room-win').addEventListener('click', () => leaveRoom())
+  document.getElementById('btn-leave-room-br').addEventListener('click', () => leaveRoom())
   document.getElementById('btn-end-game').addEventListener('click', () => {
-    if (confirm('End the game for everyone and return to lobby?')) goLobby()
+    if (confirm('End the game for everyone and return to lobby?')) leaveRoom()
   })
   document.getElementById('btn-next-round').addEventListener('click', hostNextRound)
   document.getElementById('btn-switch-role').addEventListener('click', switchRole)
 
   document.addEventListener('game:move', async e => {
-    try {
-      await handleMoveResult(e.detail)
-    } catch (err) {
+    try { await handleMoveResult(e.detail) } catch (err) {
       console.error('[game] move result error:', err)
       showToast(err.message)
     }
   })
 }
 
+// ── Enter game (called after navigation) ─────────────────
 export function enterGame() {
   stopPoll()
 
@@ -41,16 +41,23 @@ export function enterGame() {
   document.getElementById('poker-board').style.display = gameId === 'poker' ? 'flex' : 'none'
   document.getElementById('uno-board').style.display   = gameId === 'uno'   ? 'flex' : 'none'
 
-  // Show End Game button for host in a private room
-  const endBtn = document.getElementById('btn-end-game')
-  endBtn.style.display = (state.roomCode && state.isHost) ? 'inline-flex' : 'none'
+  // End Game button: only for room host
+  document.getElementById('btn-end-game').style.display =
+    (state.roomCode && state.isHost) ? 'inline-flex' : 'none'
 
-  // Spectator: hide poker action controls
+  // Spectator: hide poker action bar
   const actionBar = document.querySelector('.pk-action-bar')
   if (actionBar) actionBar.style.display = state.role === 'spectator' ? 'none' : ''
 
   render()
 
+  // ── Room heartbeat (15s) — keeps session alive, detects new host ──
+  if (state.roomCode) {
+    pollRoomHeartbeat()
+    roomHeartbeatInterval = setInterval(pollRoomHeartbeat, 15000)
+  }
+
+  // ── Game state poll (2.2s) ──
   let fetching = false
   state.poll = setInterval(async () => {
     if (fetching) return
@@ -58,6 +65,7 @@ export function enterGame() {
     try {
       state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
       saveSession()
+      detectElimination()
       render()
       if (state.gameState?.metadata?.handWinner ?? state.gameState?.metadata?.winner) {
         stopPoll()
@@ -76,6 +84,45 @@ export function enterGame() {
   }, 2200)
 }
 
+// ── Room heartbeat ────────────────────────────────────────
+async function pollRoomHeartbeat() {
+  if (!state.roomCode) return
+  try {
+    const room = await api.getRoomStatus(state.roomCode, state.sessionId)
+    // Track host changes
+    if (room.hostId && room.hostId !== state.hostId) {
+      state.hostId  = room.hostId
+      state.isHost  = room.hostId === state.sessionId
+      saveSession()
+      document.getElementById('btn-end-game').style.display =
+        (state.roomCode && state.isHost) ? 'inline-flex' : 'none'
+      // Update between-rounds host button if overlay is open
+      const nextBtn = document.getElementById('btn-next-round')
+      if (nextBtn) nextBtn.style.display = state.isHost ? '' : 'none'
+    }
+  } catch (e) {
+    if (e.message.includes('not found') || e.message.includes('invalid session')) {
+      stopPoll()
+      showToast('You were removed from the room.')
+      window.location.href = 'index.html'
+    }
+  }
+}
+
+// ── Eliminated player detection ───────────────────────────
+function detectElimination() {
+  if (state.role !== 'player') return
+  const players = state.gameState?.players || []
+  if (players.length > 0 && !players.includes(state.sessionId)) {
+    state.role = 'spectator'
+    saveSession()
+    const actionBar = document.querySelector('.pk-action-bar')
+    if (actionBar) actionBar.style.display = 'none'
+    showToast('You were eliminated — now spectating.')
+  }
+}
+
+// ── Render ────────────────────────────────────────────────
 export function render() {
   if (!state.gameState) return
   const meta = state.gameState.metadata
@@ -100,7 +147,6 @@ export function render() {
   }
   document.getElementById('g-phase').textContent = meta.phase || ''
 
-  // Round progress
   const roundEl = document.getElementById('g-round-progress')
   if (meta.roundLimit && meta.currentRound) {
     roundEl.textContent  = `${meta.currentRound}/${meta.roundLimit}`
@@ -109,12 +155,11 @@ export function render() {
     roundEl.style.display = 'none'
   }
 
-  // Turn timer
   updateTurnTimer(meta, mine)
-
   registry[state.gameId].render(meta, mine)
 }
 
+// ── Move result handler ───────────────────────────────────
 async function handleMoveResult(res) {
   if (res.state) state.gameState = res.state
   else state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
@@ -132,6 +177,7 @@ function onHandEnd(meta) {
   else showWinner(meta.winner)
 }
 
+// ── Poker hand result overlay ─────────────────────────────
 async function showHandResult(meta) {
   if (handResultActive) return
   handResultActive = true
@@ -140,12 +186,11 @@ async function showHandResult(meta) {
   const chips  = meta.chips || {}
   const won    = (meta.handWinner ?? meta.winner) === state.sessionId
 
-  // Give players 2 seconds to see revealed cards before the panel appears
   await sleep(2000)
 
-  const handWinnerId   = meta.handWinner ?? meta.winner
-  const playerNames    = state.gameState?.playerNames || {}
-  const winnerName     = playerNames[handWinnerId] || (won ? 'You' : 'Opponent')
+  const handWinnerId = meta.handWinner ?? meta.winner
+  const playerNames  = state.gameState?.playerNames || {}
+  const winnerName   = playerNames[handWinnerId] || (won ? 'You' : 'Opponent')
 
   document.getElementById('hr-emoji').textContent = won ? '🏆' : '😔'
   const titleEl = document.getElementById('hr-title')
@@ -158,24 +203,21 @@ async function showHandResult(meta) {
   document.getElementById('hr-opp-chips').textContent = oppChips
 
   const statusEl = document.getElementById('hr-status')
+  const busted   = myChips === 0 || oppChips === 0
 
-  // Check if someone is eliminated
-  const busted = myChips === 0 || oppChips === 0
   if (busted) {
     statusEl.textContent = myChips === 0
       ? "You're out of chips — game over!"
       : 'Opponent is out of chips — you win the table!'
     document.getElementById('hand-result-overlay').classList.add('open')
-    handResultActive = false  // game over; no next hand
+    handResultActive = false
     return
   }
 
-  // Private room, non-host: wait for host to start the next hand
   const isPrivateRoom = !!state.roomCode
   if (isPrivateRoom && !state.isHost) {
     statusEl.textContent = 'Waiting for host to start next hand…'
     document.getElementById('hand-result-overlay').classList.add('open')
-    // Poll until the new hand begins (winner clears)
     state.poll = setInterval(async () => {
       try {
         const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
@@ -183,7 +225,7 @@ async function showHandResult(meta) {
           stopPoll()
           document.getElementById('hand-result-overlay').classList.remove('open')
           state.gameState = gs
-          handResultActive = false  // allow future hands to show result
+          handResultActive = false
           enterGame()
         }
       } catch { /* keep polling */ }
@@ -191,11 +233,9 @@ async function showHandResult(meta) {
     return
   }
 
-  // Host in private room OR public match: 5-second countdown then auto-start
   let secs = 5
   statusEl.textContent = `Next hand in ${secs}s…`
   document.getElementById('hand-result-overlay').classList.add('open')
-
   handResultTimer = setInterval(() => {
     secs--
     if (secs > 0) {
@@ -209,8 +249,6 @@ async function showHandResult(meta) {
 }
 
 async function startNextHand() {
-  // Keep handResultActive = true the whole time so the poll in enterGame()
-  // can't re-trigger onHandEnd while we're still waiting for a clean state.
   document.getElementById('hand-result-overlay').classList.remove('open')
   try {
     const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
@@ -218,8 +256,6 @@ async function startNextHand() {
   } catch (e) {
     console.log('[game] next hand start:', e.message)
   }
-  // Always poll until the server confirms winner is gone — whether start
-  // succeeded, failed, or returned a still-stale showdown state.
   for (let i = 0; i < 12; i++) {
     if (!state.gameState?.metadata?.handWinner && !state.gameState?.metadata?.winner) break
     await sleep(350)
@@ -228,7 +264,7 @@ async function startNextHand() {
       if (!gs?.metadata?.handWinner && !gs?.metadata?.winner) { state.gameState = gs; break }
     } catch { /* keep trying */ }
   }
-  handResultActive = false  // safe to clear only after winner is gone
+  handResultActive = false
   enterGame()
 }
 
@@ -266,16 +302,30 @@ function showBetweenRounds(meta) {
   if (!overlay) return
 
   const roundInfo = document.getElementById('br-round-info')
-  if (meta.roundLimit && meta.currentRound) {
+  const won       = meta.handWinner === state.sessionId
+  const names     = state.gameState?.playerNames || {}
+  const winnerName = names[meta.handWinner] || (won ? 'You' : 'Opponent')
+
+  if (meta.winner) {
+    roundInfo.textContent = `Game Over — ${names[meta.winner] || 'Someone'} wins the table!`
+  } else if (meta.handWinner) {
+    roundInfo.textContent = `${won ? 'You won' : `${winnerName} won`} the hand!`
+  } else if (meta.roundLimit && meta.currentRound) {
     roundInfo.textContent = `Round ${meta.currentRound} of ${meta.roundLimit} complete`
   } else {
     roundInfo.textContent = 'Hand complete'
   }
 
-  document.getElementById('btn-next-round').style.display =
-    (state.isHost && state.role !== 'spectator') ? '' : 'none'
-  document.getElementById('btn-switch-role').style.display =
-    (state.roomCode && state.role === 'spectator') ? '' : 'none'
+  // Switch-role button: Join/Leave Table depending on current role
+  const switchBtn = document.getElementById('btn-switch-role')
+  if (state.roomCode) {
+    switchBtn.style.display  = ''
+    switchBtn.textContent    = state.role === 'spectator' ? 'Join Table' : 'Leave Table'
+  } else {
+    switchBtn.style.display  = 'none'
+  }
+
+  document.getElementById('btn-next-round').style.display = state.isHost ? '' : 'none'
 
   overlay.classList.add('open')
 
@@ -294,8 +344,7 @@ function tickBetweenRounds(meta) {
 }
 
 function hideBetweenRounds() {
-  const overlay = document.getElementById('between-rounds-overlay')
-  if (overlay) overlay.classList.remove('open')
+  document.getElementById('between-rounds-overlay')?.classList.remove('open')
   clearInterval(betweenRoundsInterval)
   betweenRoundsInterval = null
 }
@@ -317,15 +366,16 @@ async function hostNextRound() {
 
 async function switchRole() {
   const newRole = state.role === 'spectator' ? 'player' : 'spectator'
-  const btn = document.getElementById('btn-switch-role')
-  btn.disabled = true
+  const btn     = document.getElementById('btn-switch-role')
+  btn.disabled  = true
   try {
     await api.switchRole(state.roomCode, state.sessionId, newRole)
     state.role = newRole
-    btn.textContent = newRole === 'spectator' ? 'Switch to Player' : 'Switch to Spectator'
+    saveSession()
+    btn.textContent = newRole === 'spectator' ? 'Join Table' : 'Leave Table'
     const actionBar = document.querySelector('.pk-action-bar')
     if (actionBar) actionBar.style.display = newRole === 'spectator' ? 'none' : ''
-    showToast(newRole === 'player' ? 'You are now a player.' : 'You are now spectating.')
+    showToast(newRole === 'player' ? 'You joined the table!' : 'You left the table.')
   } catch (e) {
     showToast(e.message)
   } finally {
@@ -333,15 +383,17 @@ async function switchRole() {
   }
 }
 
-export function stopPoll() {
-  clearInterval(state.poll)
-  state.poll = null
-  clearInterval(turnTimerInterval)
-  turnTimerInterval = null
-  clearInterval(betweenRoundsInterval)
-  betweenRoundsInterval = null
+// ── Leave Room ────────────────────────────────────────────
+async function leaveRoom() {
+  stopPoll()
+  if (state.roomCode) {
+    try { await api.leaveRoom(state.roomCode, state.sessionId) } catch { /* ignore */ }
+  }
+  clearGameState()
+  window.location.href = 'index.html'
 }
 
+// ── UNO winner overlay ────────────────────────────────────
 function showWinner(winnerId) {
   const won = winnerId === state.sessionId
   document.getElementById('w-emoji').textContent = won ? '🏆' : '😔'
@@ -351,8 +403,21 @@ function showWinner(winnerId) {
   document.getElementById('winner-overlay').classList.add('open')
 }
 
+// ── Shared ────────────────────────────────────────────────
+export function stopPoll() {
+  clearInterval(state.poll)
+  state.poll = null
+  clearInterval(handResultTimer)
+  handResultTimer = null
+  clearInterval(turnTimerInterval)
+  turnTimerInterval = null
+  clearInterval(betweenRoundsInterval)
+  betweenRoundsInterval = null
+  clearInterval(roomHeartbeatInterval)
+  roomHeartbeatInterval = null
+}
+
 function goLobby() {
   stopPoll()
-  clearGameState()
   window.location.href = 'lobby.html'
 }

@@ -146,7 +146,8 @@
         </div>
       </div>
       <div class="hr-status" id="hr-status"></div>
-      <button class="btn btn-ghost" id="btn-leave-table" style="width:auto;padding:11px 30px;margin-top:6px">Leave Table</button>
+      <button class="btn btn-ghost" id="btn-back-to-room" style="width:auto;padding:11px 30px;margin-top:6px">Back to Room</button>
+      <button class="btn btn-danger" id="btn-leave-room-hr" style="width:auto;padding:11px 30px;margin-top:4px;font-size:12px">Leave Room</button>
     </div>
   </div>
 
@@ -156,7 +157,8 @@
       <span class="winner-emoji" id="w-emoji">🏆</span>
       <div class="winner-title win" id="w-title">You Win!</div>
       <div class="winner-sub" id="w-sub">Congratulations!</div>
-      <button class="btn btn-primary" id="btn-play-again" style="width:auto;padding:13px 36px">Play Again</button>
+      <button class="btn btn-primary" id="btn-back-to-room-win" style="width:auto;padding:13px 36px">Back to Room</button>
+      <button class="btn btn-ghost" id="btn-leave-room-win" style="width:auto;padding:11px 30px;margin-top:8px;font-size:12px;color:var(--muted)">Leave Room</button>
     </div>
   </div>
 
@@ -167,9 +169,10 @@
       <div class="br-countdown-label">Next round in</div>
       <div class="br-countdown" id="br-countdown">—</div>
       <div class="br-actions">
-        <button class="btn btn-ghost" id="btn-switch-role" style="display:none;width:auto;padding:11px 24px">Switch to Player</button>
-        <button class="btn btn-primary" id="btn-next-round" style="display:none;width:auto;padding:11px 24px">Start Next Round</button>
+        <button class="btn btn-pink"    id="btn-switch-role" style="display:none;width:auto;padding:11px 24px">Join Table</button>
+        <button class="btn btn-primary" id="btn-next-round"  style="display:none;width:auto;padding:11px 24px">Start Next Round</button>
       </div>
+      <button class="btn btn-ghost" id="btn-leave-room-br" style="width:auto;padding:9px 20px;margin-top:10px;font-size:12px;color:var(--muted)">Leave Room</button>
     </div>
   </div>
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Skintania — Lobby</title>
+  <title>Skintania — Room Lobby</title>
   <link rel="icon" href="/sk-cu.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/styles/base.css">
@@ -13,98 +13,85 @@
 <body>
   <div id="toast"></div>
 
-  <div class="view active" id="view-lobby">
-    <button class="lobby-back-arrow" id="lobby-back-btn" aria-label="Go back">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-        <path d="M13 4L7 10L13 16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      Back
-    </button>
+  <div class="view active" id="view-room">
 
-    <img src="/sk-cu.png" class="lobby-logo" alt="Skintania">
-    <div class="lobby-title">Welcome, <span id="lobby-name">Player</span>!</div>
-    <div class="lobby-sub">Choose a game to find a match</div>
-
-    <!-- Step 1: Game selection -->
-    <div class="game-grid" id="game-grid">
-      <div class="game-tile glass poker" data-game="poker">
-        <span class="tile-icon">🃏</span>
-        <div class="tile-name">Poker</div>
-        <div class="tile-desc">Texas Hold'em. Bluff, bet, and claim the pot.</div>
-      </div>
-      <div class="game-tile glass uno" data-game="uno">
-        <span class="tile-icon">🎴</span>
-        <div class="tile-name">UNO</div>
-        <div class="tile-desc">First to empty your hand wins.</div>
-      </div>
-    </div>
-
-    <!-- Join with code -->
-    <div class="join-section" id="join-section">
-      <div class="join-divider"><span>or join a private room</span></div>
-      <div class="join-code-row glass">
-        <span class="join-code-icon">🔑</span>
-        <input type="text" id="room-code-input" class="input-field join-code-input"
-          placeholder="6-digit room code" maxlength="6" inputmode="numeric" autocomplete="off" spellcheck="false">
-        <button class="btn btn-pink"  id="btn-join-room"  style="width:auto">Join Room</button>
-        <button class="btn btn-ghost" id="btn-watch-room" style="width:auto">Watch</button>
-      </div>
-    </div>
-
-    <!-- Step 2: Mode selection -->
-    <div id="mode-select" class="mode-panel">
-      <div class="mode-game-label" id="mode-game-label">POKER</div>
-      <div class="mode-cards">
-        <div class="mode-card glass" id="btn-quick-match">
-          <div class="mode-card-icon">⚡</div>
-          <div class="mode-card-name">Quick Match</div>
-          <div class="mode-card-desc">Auto-match with the next available player</div>
-        </div>
-        <div class="mode-card glass" id="btn-create-room">
-          <div class="mode-card-icon">🏠</div>
-          <div class="mode-card-name">Create Room</div>
-          <div class="mode-card-desc">Get a 6-digit code to share with a friend</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Room code display (host only) -->
-    <div id="room-created" class="room-created-panel">
-      <div class="room-code-box glass">
-        <div class="rc-label">Share this code with your friend</div>
-        <div class="rc-code" id="rc-code">——————</div>
-        <button class="btn btn-ghost rc-copy-btn" id="rc-copy-btn">Copy Code</button>
-      </div>
-    </div>
-
-    <!-- Host controls: settings + start button -->
-    <div id="host-controls" class="host-controls-panel">
-      <div class="host-settings glass">
-        <div class="host-settings-title">Room Settings</div>
-        <div class="host-setting-row">
-          <span class="host-setting-lbl">Max Players</span>
-          <div class="host-stepper">
-            <button class="btn btn-ghost stepper-btn" id="btn-max-minus">−</button>
-            <span id="disp-max-players">8</span>
-            <button class="btn btn-ghost stepper-btn" id="btn-max-plus">+</button>
-          </div>
-        </div>
-        <div class="host-setting-row" id="chips-row">
-          <span class="host-setting-lbl">Starting Chips</span>
-          <input type="number" id="inp-chips" class="bet-field" value="1000" min="100" max="1000000" style="width:110px;text-align:right">
-        </div>
-      </div>
-      <button class="btn btn-primary" id="btn-start-game" disabled style="margin-top:4px">Waiting for players…</button>
-    </div>
-
-    <!-- Waiting box -->
-    <div class="waiting-box glass" id="waiting-box">
-      <div class="spinner"></div>
+    <!-- Room header: code + game badge + copy -->
+    <div class="rm-header glass">
       <div>
-        <div class="waiting-text" id="waiting-label">Waiting for opponent…</div>
-        <div class="waiting-meta" id="waiting-meta">Searching for a match</div>
+        <div class="rm-code-label">Room Code</div>
+        <div class="rm-code" id="rm-code">——</div>
+      </div>
+      <div class="rm-header-right">
+        <span class="phase-badge" id="rm-game-badge">—</span>
+        <button class="btn btn-ghost" id="rm-copy-btn" style="width:auto;padding:7px 14px;font-size:12px">Copy Code</button>
       </div>
     </div>
+
+    <!-- Table counts row -->
+    <div class="rm-counts">
+      <div class="rm-count-box glass">
+        <span class="rm-count-val" id="rm-player-count">—</span>
+        <span class="rm-count-lbl">at table</span>
+      </div>
+      <span class="rm-count-sep">/</span>
+      <div class="rm-count-box glass">
+        <span class="rm-count-val" id="rm-max-display">—</span>
+        <span class="rm-count-lbl">max</span>
+      </div>
+      <div class="rm-count-box glass rm-count-spec">
+        <span class="rm-count-val" id="rm-spec-count">—</span>
+        <span class="rm-count-lbl">watching</span>
+      </div>
+    </div>
+
+    <!-- Player list (from game state) -->
+    <div class="rm-player-list glass" id="rm-player-list">
+      <div class="rm-list-title">At the Table</div>
+      <div id="rm-players-inner">
+        <div class="rm-empty">No players at the table yet</div>
+      </div>
+    </div>
+
+    <!-- Your role badge -->
+    <div class="rm-role-row">
+      <div class="rm-role-badge rm-role-spectator" id="rm-role-badge">👁 Spectating</div>
+    </div>
+
+    <!-- Primary action buttons -->
+    <div class="rm-actions">
+      <button class="btn btn-pink"    id="btn-join-table"  style="display:none">Join Table</button>
+      <button class="btn btn-ghost"   id="btn-leave-table" style="display:none">Leave Table</button>
+      <button class="btn btn-primary" id="btn-start-round" style="display:none" disabled>Waiting for players…</button>
+    </div>
+
+    <!-- Secondary: leave room -->
+    <button class="btn btn-ghost" id="btn-leave-room" style="width:auto;padding:10px 24px;font-size:13px;color:var(--muted)">Leave Room</button>
+
+    <!-- Host settings (waiting status only) -->
+    <div id="rm-settings" class="rm-settings glass" style="display:none">
+      <div class="host-settings-title">Room Settings</div>
+      <div class="host-setting-row">
+        <span class="host-setting-lbl">Max Players</span>
+        <div class="host-stepper">
+          <button class="btn btn-ghost stepper-btn" id="rm-max-minus">−</button>
+          <span id="rm-max-val">8</span>
+          <button class="btn btn-ghost stepper-btn" id="rm-max-plus">+</button>
+        </div>
+      </div>
+      <div class="host-setting-row" id="rm-chips-row" style="display:none">
+        <span class="host-setting-lbl">Starting Chips</span>
+        <input type="number" id="rm-chips" class="bet-field" value="1000" min="100" max="1000000" style="width:110px;text-align:right">
+      </div>
+      <div class="host-setting-row" id="rm-timer-row" style="display:none">
+        <span class="host-setting-lbl">Turn Limit (s, 0=off)</span>
+        <input type="number" id="rm-timer" class="bet-field" value="0" min="0" max="300" style="width:80px;text-align:right">
+      </div>
+      <div class="host-setting-row" id="rm-rounds-row" style="display:none">
+        <span class="host-setting-lbl">Round Limit (0=∞)</span>
+        <input type="number" id="rm-rounds" class="bet-field" value="0" min="0" max="1000" style="width:80px;text-align:right">
+      </div>
+    </div>
+
   </div>
 
   <script type="module" src="/src/pages/lobby.js"></script>
