@@ -187,8 +187,10 @@ The path after `/assets/` maps directly to the R2 key. See `docs/r2-structure.md
 
 | Path | Description |
 |---|---|
-| `/assets/cards/standard-deck/{rank}-{suit}.svg` | Poker card face — e.g. `/assets/cards/standard-deck/A-spades.svg` |
+| `/assets/cards/standard-deck/{rank}_{suit}.svg` | Poker card face — rank is lowercase, e.g. `a_spades.svg`, `k_hearts.svg`, `10_clubs.svg` |
 | `/assets/cards/standard-deck/back.svg` | Poker card back |
+| `/assets/cards/standard-deck/black_joker.svg` | Black joker |
+| `/assets/cards/standard-deck/red_joker.svg` | Red joker |
 | `/assets/cards/uno-deck/{color}_{value}.svg` | UNO card — e.g. `/assets/cards/uno-deck/red_7.svg` |
 | `/assets/cards/uno-deck/wild.svg` | UNO wild card |
 | `/assets/cards/uno-deck/back.svg` | UNO card back |
@@ -309,6 +311,11 @@ Submit a player action for the current turn.
 **Check** — only valid when your current bet matches the table bet
 ```json
 { "type": "check" }
+```
+
+**Call** — match the current table bet
+```json
+{ "type": "call" }
 ```
 
 **Bet**
