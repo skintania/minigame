@@ -170,8 +170,20 @@ export function renderBoard(meta, mine) {
   // Stats
   document.getElementById('pk-pot').textContent  = meta.pot        ?? 0
   document.getElementById('pk-cbet').textContent = meta.currentBet ?? 0
-  document.getElementById('pk-mbet').textContent = (meta.bets || {})[state.sessionId] ?? 0
   document.getElementById('pk-last').textContent = localizeAction(meta.lastAction)
+
+  // Blind info shown under pot during preflop so players know where those chips came from
+  const blindInfoEl = document.getElementById('pk-blind-info')
+  if (blindInfoEl) {
+    if (meta.phase === 'preflop' && (meta.sbIndex != null || meta.bbIndex != null)) {
+      const totalBets = meta.totalBets || {}
+      const sbAmt     = totalBets[players[meta.sbIndex]] ?? 0
+      const bbAmt     = totalBets[players[meta.bbIndex]] ?? 0
+      blindInfoEl.textContent = sbAmt || bbAmt ? `SB ${sbAmt} · BB ${bbAmt}` : ''
+    } else {
+      blindInfoEl.textContent = ''
+    }
+  }
 
   // SB/BB roles
   const sbId = players[meta.sbIndex]
@@ -220,8 +232,14 @@ export function renderBoard(meta, mine) {
   })
 
   // Check vs Call label
-  const myBet   = (meta.bets || {})[state.sessionId] || 0
-  const callAmt = (meta.currentBet || 0) - myBet
+  // In preflop, blind amounts live in totalBets even if bets is empty.
+  // Use max(bets, totalBets) so the BB isn't charged their blind twice.
+  const streetBet = (meta.bets || {})[state.sessionId] || 0
+  const myBet     = meta.phase === 'preflop'
+    ? Math.max(streetBet, (meta.totalBets || {})[state.sessionId] || 0)
+    : streetBet
+  const callAmt = Math.max(0, (meta.currentBet || 0) - myBet)
+  document.getElementById('pk-mbet').textContent = myBet
   const checkBtn = document.getElementById('btn-check')
   if (callAmt > 0) {
     checkBtn.textContent     = `Call (${callAmt})`

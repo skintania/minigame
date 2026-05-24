@@ -293,6 +293,15 @@
   gap: 10px;
 }
 
+.pk-blind-info {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 2px;
+  min-height: 13px;
+  letter-spacing: .03em;
+}
+
 .min-raise-hint {
   font-size: 11px;
   color: var(--muted);
