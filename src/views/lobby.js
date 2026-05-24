@@ -40,7 +40,8 @@ export function initLobby() {
   document.getElementById('lobby-back-btn').addEventListener('click', handleBack)
   document.getElementById('btn-quick-match').addEventListener('click', quickMatch)
   document.getElementById('btn-create-room').addEventListener('click', createRoom)
-  document.getElementById('btn-join-room').addEventListener('click', joinRoom)
+  document.getElementById('btn-join-room').addEventListener('click', () => joinRoom('player'))
+  document.getElementById('btn-watch-room').addEventListener('click', () => joinRoom('spectator'))
   document.getElementById('rc-copy-btn').addEventListener('click', copyRoomCode)
 
   document.getElementById('room-code-input').addEventListener('keydown', e => {
@@ -180,21 +181,24 @@ async function hostStartGame() {
 }
 
 // ── Join Room ─────────────────────────────────────────────
-async function joinRoom() {
+async function joinRoom(role = 'player') {
   const code = el.codeInput().value.trim()
   if (!code) { showToast('Please enter a room code.'); return }
   if (code.length !== 6 || !/^\d+$/.test(code)) { showToast('Room code must be 6 digits.'); return }
 
   showWaiting('Joining room…', '')
   state.isHost = false
+  state.role = role
   try {
-    const { matchId, gameId } = await api.joinRoom(state.sessionId, code)
+    const { matchId, gameId } = await api.joinRoom(state.sessionId, code, role)
     state.matchId  = matchId
     state.gameId   = gameId
     state.roomCode = code
 
-    el.waitLabel().textContent = 'Joined!'
-    el.waitMeta().textContent  = `Playing ${gameId.toUpperCase()} — waiting for host to start`
+    el.waitLabel().textContent = role === 'spectator' ? 'Watching!' : 'Joined!'
+    el.waitMeta().textContent  = role === 'spectator'
+      ? `Spectating ${gameId.toUpperCase()} — waiting for game to start`
+      : `Playing ${gameId.toUpperCase()} — waiting for host to start`
 
     startRoomPoll(code)
   } catch (e) {
@@ -214,7 +218,7 @@ function startRoomPoll(roomCode) {
 async function pollRoom(roomCode) {
   if (!state.waiting) return
   try {
-    const room = await api.getRoomStatus(roomCode)
+    const room = await api.getRoomStatus(roomCode, state.sessionId)
     el.waitMeta().textContent = `${room.playerCount}/${room.maxPlayers} players joined`
 
     if (state.isHost) {

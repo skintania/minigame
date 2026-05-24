@@ -243,3 +243,43 @@
 }
 .winner-title.lose { color: var(--muted); }
 .winner-sub { color: var(--muted); font-size: 16px; margin-bottom: 30px; }
+
+/* ── Spectator turn pill ── */
+.turn-pill.spectator {
+  background: rgba(255,255,255,0.05); color: var(--muted);
+  border: 1px solid transparent;
+}
+
+/* ── Round progress badge ── */
+.round-badge {
+  background: rgba(60,180,230,0.12);
+  color: #3cb4e6;
+  border-color: rgba(60,180,230,0.3);
+}
+
+/* ── Between-rounds overlay ── */
+#between-rounds-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 300; opacity: 0; pointer-events: none; transition: opacity 0.35s;
+}
+#between-rounds-overlay.open { opacity: 1; pointer-events: all; }
+
+.br-round-info {
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .1em; margin-bottom: 18px;
+}
+
+.br-countdown-label {
+  font-size: 13px; color: var(--muted); margin-bottom: 6px;
+}
+
+.br-countdown {
+  font-size: 64px; font-weight: 900; line-height: 1; margin-bottom: 28px;
+  background: var(--grad);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.br-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }

@@ -20,6 +20,7 @@
       <div class="g-header-left">
         <div class="g-game-name" id="g-name">Poker</div>
         <div class="phase-badge" id="g-phase">—</div>
+        <div class="phase-badge round-badge" id="g-round-progress" style="display:none"></div>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <button class="btn btn-danger" id="btn-end-game" style="display:none;width:auto;padding:7px 14px;font-size:12px">End Game</button>
@@ -67,6 +68,10 @@
 
       <!-- Actions -->
       <div class="pk-action-bar">
+        <div id="turn-timer-bar" style="display:none">
+          <div id="turn-timer-fill"></div>
+          <span id="turn-timer-secs"></span>
+        </div>
         <div class="action-row">
           <button class="btn btn-danger" id="btn-fold">Fold</button>
           <button class="btn btn-blue"   id="btn-check">Check</button>
@@ -152,6 +157,19 @@
       <div class="winner-title win" id="w-title">You Win!</div>
       <div class="winner-sub" id="w-sub">Congratulations!</div>
       <button class="btn btn-primary" id="btn-play-again" style="width:auto;padding:13px 36px">Play Again</button>
+    </div>
+  </div>
+
+  <!-- Between-rounds overlay -->
+  <div id="between-rounds-overlay">
+    <div class="winner-card">
+      <div class="br-round-info" id="br-round-info">Hand complete</div>
+      <div class="br-countdown-label">Next round in</div>
+      <div class="br-countdown" id="br-countdown">—</div>
+      <div class="br-actions">
+        <button class="btn btn-ghost" id="btn-switch-role" style="display:none;width:auto;padding:11px 24px">Switch to Player</button>
+        <button class="btn btn-primary" id="btn-next-round" style="display:none;width:auto;padding:11px 24px">Start Next Round</button>
+      </div>
     </div>
   </div>
 

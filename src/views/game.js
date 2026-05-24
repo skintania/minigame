@@ -5,8 +5,10 @@ import registry from '../games/registry.js'
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
-let handResultTimer  = null
-let handResultActive = false   // guard against double-invocation
+let handResultTimer       = null
+let handResultActive      = false
+let turnTimerInterval     = null
+let betweenRoundsInterval = null
 
 export function initGame() {
   document.getElementById('btn-play-again').addEventListener('click', goLobby)
@@ -18,6 +20,8 @@ export function initGame() {
   document.getElementById('btn-end-game').addEventListener('click', () => {
     if (confirm('End the game for everyone and return to lobby?')) goLobby()
   })
+  document.getElementById('btn-next-round').addEventListener('click', hostNextRound)
+  document.getElementById('btn-switch-role').addEventListener('click', switchRole)
 
   document.addEventListener('game:move', async e => {
     try {
@@ -40,6 +44,10 @@ export function enterGame() {
   // Show End Game button for host in a private room
   const endBtn = document.getElementById('btn-end-game')
   endBtn.style.display = (state.roomCode && state.isHost) ? 'inline-flex' : 'none'
+
+  // Spectator: hide poker action controls
+  const actionBar = document.querySelector('.pk-action-bar')
+  if (actionBar) actionBar.style.display = state.role === 'spectator' ? 'none' : ''
 
   render()
 
@@ -72,12 +80,37 @@ export function render() {
   if (!state.gameState) return
   const meta = state.gameState.metadata
   if (!meta) return
-  const mine = meta.currentPlayer === state.sessionId
+
+  if (meta.phase === 'between-rounds') {
+    showBetweenRounds(meta)
+    return
+  }
+  hideBetweenRounds()
+
+  const isSpectator = state.role === 'spectator'
+  const mine = !isSpectator && meta.currentPlayer === state.sessionId
 
   const pill = document.getElementById('turn-pill')
-  pill.textContent = mine ? 'Your Turn' : "Opponent's Turn"
-  pill.className   = 'turn-pill ' + (mine ? 'mine' : 'theirs')
+  if (isSpectator) {
+    pill.textContent = 'Spectating'
+    pill.className   = 'turn-pill spectator'
+  } else {
+    pill.textContent = mine ? 'Your Turn' : "Opponent's Turn"
+    pill.className   = 'turn-pill ' + (mine ? 'mine' : 'theirs')
+  }
   document.getElementById('g-phase').textContent = meta.phase || ''
+
+  // Round progress
+  const roundEl = document.getElementById('g-round-progress')
+  if (meta.roundLimit && meta.currentRound) {
+    roundEl.textContent  = `${meta.currentRound}/${meta.roundLimit}`
+    roundEl.style.display = ''
+  } else {
+    roundEl.style.display = 'none'
+  }
+
+  // Turn timer
+  updateTurnTimer(meta, mine)
 
   registry[state.gameId].render(meta, mine)
 }
@@ -199,9 +232,114 @@ async function startNextHand() {
   enterGame()
 }
 
+// ── Turn timer ────────────────────────────────────────────
+function updateTurnTimer(meta, mine) {
+  const bar = document.getElementById('turn-timer-bar')
+  if (!bar) return
+  if (!mine || !meta.turnTimeLimit || !meta.turnStartedAt) {
+    bar.style.display = 'none'
+    clearInterval(turnTimerInterval)
+    turnTimerInterval = null
+    return
+  }
+  bar.style.display = ''
+  tickTurnTimer(meta)
+  if (!turnTimerInterval) {
+    turnTimerInterval = setInterval(() => tickTurnTimer(meta), 1000)
+  }
+}
+
+function tickTurnTimer(meta) {
+  const elapsed = (Date.now() - new Date(meta.turnStartedAt)) / 1000
+  const left    = Math.max(0, meta.turnTimeLimit - elapsed)
+  const pct     = (left / meta.turnTimeLimit) * 100
+  const fill    = document.getElementById('turn-timer-fill')
+  const secs    = document.getElementById('turn-timer-secs')
+  if (fill) fill.style.width = pct + '%'
+  if (secs) secs.textContent = Math.ceil(left) + 's'
+  if (left <= 0) { clearInterval(turnTimerInterval); turnTimerInterval = null }
+}
+
+// ── Between-rounds overlay ────────────────────────────────
+function showBetweenRounds(meta) {
+  const overlay = document.getElementById('between-rounds-overlay')
+  if (!overlay) return
+
+  const roundInfo = document.getElementById('br-round-info')
+  if (meta.roundLimit && meta.currentRound) {
+    roundInfo.textContent = `Round ${meta.currentRound} of ${meta.roundLimit} complete`
+  } else {
+    roundInfo.textContent = 'Hand complete'
+  }
+
+  document.getElementById('btn-next-round').style.display =
+    (state.isHost && state.role !== 'spectator') ? '' : 'none'
+  document.getElementById('btn-switch-role').style.display =
+    (state.roomCode && state.role === 'spectator') ? '' : 'none'
+
+  overlay.classList.add('open')
+
+  if (!betweenRoundsInterval && meta.betweenRoundsUntil) {
+    tickBetweenRounds(meta)
+    betweenRoundsInterval = setInterval(() => tickBetweenRounds(meta), 1000)
+  }
+}
+
+function tickBetweenRounds(meta) {
+  if (!meta.betweenRoundsUntil) return
+  const left = Math.ceil((new Date(meta.betweenRoundsUntil) - Date.now()) / 1000)
+  const el   = document.getElementById('br-countdown')
+  if (el) el.textContent = Math.max(0, left)
+  if (left <= 0) { clearInterval(betweenRoundsInterval); betweenRoundsInterval = null }
+}
+
+function hideBetweenRounds() {
+  const overlay = document.getElementById('between-rounds-overlay')
+  if (overlay) overlay.classList.remove('open')
+  clearInterval(betweenRoundsInterval)
+  betweenRoundsInterval = null
+}
+
+// ── Between-rounds actions ────────────────────────────────
+async function hostNextRound() {
+  const btn = document.getElementById('btn-next-round')
+  btn.disabled = true
+  try {
+    const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'next-round' })
+    if (res?.state) state.gameState = res.state
+    render()
+  } catch (e) {
+    showToast(e.message)
+  } finally {
+    btn.disabled = false
+  }
+}
+
+async function switchRole() {
+  const newRole = state.role === 'spectator' ? 'player' : 'spectator'
+  const btn = document.getElementById('btn-switch-role')
+  btn.disabled = true
+  try {
+    await api.switchRole(state.roomCode, state.sessionId, newRole)
+    state.role = newRole
+    btn.textContent = newRole === 'spectator' ? 'Switch to Player' : 'Switch to Spectator'
+    const actionBar = document.querySelector('.pk-action-bar')
+    if (actionBar) actionBar.style.display = newRole === 'spectator' ? 'none' : ''
+    showToast(newRole === 'player' ? 'You are now a player.' : 'You are now spectating.')
+  } catch (e) {
+    showToast(e.message)
+  } finally {
+    btn.disabled = false
+  }
+}
+
 export function stopPoll() {
   clearInterval(state.poll)
   state.poll = null
+  clearInterval(turnTimerInterval)
+  turnTimerInterval = null
+  clearInterval(betweenRoundsInterval)
+  betweenRoundsInterval = null
 }
 
 function showWinner(winnerId) {
