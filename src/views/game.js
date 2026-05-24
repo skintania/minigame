@@ -51,7 +51,7 @@ export function enterGame() {
       state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
       saveSession()
       render()
-      if (state.gameState?.metadata?.winner) {
+      if (state.gameState?.metadata?.handWinner ?? state.gameState?.metadata?.winner) {
         stopPoll()
         onHandEnd(state.gameState.metadata)
       }
@@ -86,7 +86,7 @@ async function handleMoveResult(res) {
   if (res.state) state.gameState = res.state
   else state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
   render()
-  if (res.status === 'finished' || state.gameState?.metadata?.winner) {
+  if (res.status === 'finished' || state.gameState?.metadata?.handWinner || state.gameState?.metadata?.winner) {
     stopPoll()
     onHandEnd(state.gameState.metadata)
   }
@@ -103,7 +103,7 @@ async function showHandResult(meta) {
 
   const oppId  = (state.gameState.players || []).find(p => p !== state.sessionId)
   const chips  = meta.chips || {}
-  const won    = meta.winner === state.sessionId
+  const won    = (meta.handWinner ?? meta.winner) === state.sessionId
 
   // Give players 2 seconds to see revealed cards before the panel appears
   await sleep(2000)
@@ -140,7 +140,7 @@ async function showHandResult(meta) {
     state.poll = setInterval(async () => {
       try {
         const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
-        if (!gs?.metadata?.winner && gs?.metadata?.phase !== 'showdown') {
+        if (!gs?.metadata?.handWinner && !gs?.metadata?.winner && gs?.metadata?.phase !== 'showdown') {
           stopPoll()
           document.getElementById('hand-result-overlay').classList.remove('open')
           state.gameState = gs
@@ -182,11 +182,11 @@ async function startNextHand() {
   // Always poll until the server confirms winner is gone — whether start
   // succeeded, failed, or returned a still-stale showdown state.
   for (let i = 0; i < 12; i++) {
-    if (!state.gameState?.metadata?.winner) break
+    if (!state.gameState?.metadata?.handWinner && !state.gameState?.metadata?.winner) break
     await sleep(350)
     try {
       const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
-      if (!gs?.metadata?.winner) { state.gameState = gs; break }
+      if (!gs?.metadata?.handWinner && !gs?.metadata?.winner) { state.gameState = gs; break }
     } catch { /* keep trying */ }
   }
   handResultActive = false  // safe to clear only after winner is gone

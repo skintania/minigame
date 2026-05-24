@@ -28,9 +28,9 @@ function maybeSetAvatar(el, sessionId, fallback) {
   img.src = AVATAR_URL(sessionId)
 }
 
-// Short display label — API doesn't expose opponent usernames
 function oppLabel(oppId, idx, total) {
-  return total === 1 ? 'Opponent' : `Player ${idx + 2}`
+  const names = state.gameState?.playerNames || {}
+  return names[oppId] || (total === 1 ? 'Opponent' : `Player ${idx + 2}`)
 }
 
 // Build or update opponent badge+hand slots inside #pk-opponents
@@ -166,10 +166,12 @@ export function renderBoard(meta, mine) {
   const chips = meta.chips || {}
   document.getElementById('pk-my-chips').textContent = chips[state.sessionId] ?? '—'
 
-  // Opponent chip counts
-  opponents.forEach(id => {
-    const el = document.getElementById(`pk-opp-chips-${id}`)
-    if (el) el.textContent = chips[id] ?? '—'
+  // Opponent chip counts + name labels
+  opponents.forEach((id, idx) => {
+    const chipsEl = document.getElementById(`pk-opp-chips-${id}`)
+    if (chipsEl) chipsEl.textContent = chips[id] ?? '—'
+    const labelEl = document.querySelector(`#pk-opp-badge-${id} .pk-badge-label`)
+    if (labelEl) labelEl.textContent = oppLabel(id, idx, opponents.length)
   })
 
   // Fold / phase for this render
@@ -243,7 +245,7 @@ export function renderBoard(meta, mine) {
   // Chip / pot animations
   const curPot    = meta.pot    ?? 0
   const curBets   = meta.bets   || {}
-  const curWinner = meta.winner ?? null
+  const curWinner = meta.handWinner ?? meta.winner ?? null
 
   if (prevPot >= 0) {
     if (!prevWinner && curWinner) {

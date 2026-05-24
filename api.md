@@ -364,6 +364,7 @@ Submit a player action for the current turn.
 ```json
 {
   "players": ["sessionId1", "sessionId2"],
+  "playerNames": { "sessionId1": "Alice", "sessionId2": "Bob" },
   "metadata": {
     "phase": "waiting | preflop | flop | turn | river | showdown",
     "community": ["A♠", "10♥", "3♣"],
@@ -377,6 +378,7 @@ Submit a player action for the current turn.
     "folded": { "sessionId1": false, "sessionId2": false },
     "currentPlayer": "sessionId1",
     "currentBet": 100,
+    "handWinner": null,
     "winner": null,
     "lastAction": "sessionId2 bet 100"
   }
@@ -393,6 +395,7 @@ Card strings use Unicode suit symbols: `♠` `♥` `♦` `♣` (e.g. `A♠`, `10
 ```json
 {
   "players": ["sessionId1", "sessionId2"],
+  "playerNames": { "sessionId1": "Alice", "sessionId2": "Bob" },
   "metadata": {
     "phase": "waiting | started | finished",
     "discard": ["red_7", "blue_skip"],

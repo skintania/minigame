@@ -8,6 +8,10 @@ export function renderBoard(meta, mine, onPlay) {
   const oppId   = (state.gameState.players || []).find(p => p !== state.sessionId)
   const oppHand = (meta.hands || {})[oppId] || []
 
+  const oppName = (state.gameState?.playerNames || {})[oppId] || 'Opponent'
+  const oppLabelEl = document.querySelector('.uno-board .section-label')
+  if (oppLabelEl) oppLabelEl.textContent = oppName
+
   document.getElementById('uno-opp-cnt').textContent = oppHand.length
   document.getElementById('uno-opp-mini').innerHTML  =
     Array(Math.min(oppHand.length, 8)).fill('<div class="mini-card"></div>').join('')

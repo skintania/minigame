@@ -20,11 +20,17 @@ export async function initLogin() {
     btn.disabled    = true
     btn.textContent = 'Reconnecting…'
     try {
-      const { session } = await api.resume(state.sessionId)
+      const { session, activeMatches } = await api.resume(state.sessionId)
       state.sessionId = session.sessionId
       state.username  = session.username
+      const activeGame = (activeMatches || []).find(m => m.status === 'active')
+      if (activeGame) {
+        state.matchId = activeGame.matchId
+        state.gameId  = activeGame.gameId
+        state.roomCode = activeGame.roomCode || null
+      }
       saveSession()
-      window.location.href = 'lobby.html'
+      window.location.href = activeGame ? 'game.html' : 'lobby.html'
     } catch {
       state.sessionId = null
       btn.disabled    = false
