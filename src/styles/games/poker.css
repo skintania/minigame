@@ -144,6 +144,17 @@
   box-shadow: 0 0 0 2px #c47800, inset 0 0 6px rgba(0,0,0,0.35);
 }
 
+/* Winner flash */
+@keyframes winner-flash {
+  0%   { box-shadow: none; }
+  25%  { box-shadow: 0 0 0 3px rgba(255,215,0,0.95), 0 0 24px rgba(255,215,0,0.7); }
+  65%  { box-shadow: 0 0 0 2px rgba(255,215,0,0.4), 0 0 10px rgba(255,215,0,0.3); }
+  100% { box-shadow: none; }
+}
+.pk-player-badge.winner-flash {
+  animation: winner-flash 0.9s ease-out forwards;
+}
+
 /* Folded state */
 .pk-player-badge.folded { opacity: 0.45; }
 .pk-player-badge.folded::after {

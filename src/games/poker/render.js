@@ -108,7 +108,18 @@ function animatePotToWinner(winnerId) {
   const toEl   = winnerId === state.sessionId
     ? document.getElementById('pk-my-badge')
     : document.getElementById(`pk-opp-badge-${winnerId}`)
-  for (let i = 0; i < 5; i++) setTimeout(() => flyChip(fromEl, toEl), i * 110)
+  const COUNT = 10
+  for (let i = 0; i < COUNT; i++) setTimeout(() => flyChip(fromEl, toEl), i * 75)
+  // Gold flash on the badge after chips land
+  setTimeout(() => {
+    toEl?.classList.add('winner-flash')
+    setTimeout(() => toEl?.classList.remove('winner-flash'), 900)
+  }, COUNT * 75 + 550)
+}
+
+function localizeAction(str) {
+  const names = state.gameState?.playerNames || {}
+  return Object.entries(names).reduce((s, [sid, name]) => s.replaceAll(sid, name), str || '')
 }
 
 function animateFoldCards(containerId) {
@@ -160,7 +171,7 @@ export function renderBoard(meta, mine) {
   document.getElementById('pk-pot').textContent  = meta.pot        ?? 0
   document.getElementById('pk-cbet').textContent = meta.currentBet ?? 0
   document.getElementById('pk-mbet').textContent = (meta.bets || {})[state.sessionId] ?? 0
-  document.getElementById('pk-last').textContent = meta.lastAction || ''
+  document.getElementById('pk-last').textContent = localizeAction(meta.lastAction)
 
   // SB/BB roles
   const sbId = players[meta.sbIndex]

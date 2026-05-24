@@ -110,9 +110,13 @@ async function showHandResult(meta) {
   // Give players 2 seconds to see revealed cards before the panel appears
   await sleep(2000)
 
-  document.getElementById('hr-emoji').textContent     = won ? '🏆' : '😔'
+  const handWinnerId   = meta.handWinner ?? meta.winner
+  const playerNames    = state.gameState?.playerNames || {}
+  const winnerName     = playerNames[handWinnerId] || (won ? 'You' : 'Opponent')
+
+  document.getElementById('hr-emoji').textContent = won ? '🏆' : '😔'
   const titleEl = document.getElementById('hr-title')
-  titleEl.textContent = won ? 'You Win!' : 'You Lose'
+  titleEl.textContent = won ? 'You Win!' : `${winnerName} wins!`
   titleEl.className   = 'winner-title ' + (won ? 'win' : 'lose')
 
   const myChips  = chips[state.sessionId] ?? 0
