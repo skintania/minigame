@@ -180,7 +180,9 @@ function detectElimination() {
     state.role = 'spectator'
     saveSession()
     document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
-    showToast('You were eliminated — now spectating.')
+    // Skip toast when a hand result is about to show — the winner overlay will make it clear
+    const { handWinner, winner } = state.gameState?.metadata || {}
+    if (!handWinner && !winner) showToast('You were eliminated — now spectating.')
   }
 }
 
@@ -498,11 +500,13 @@ async function showHandResult(meta) {
 
   showHandWinnerBanner(`${winnerName} wins the hand`)
 
-  // Game over (someone busted): just leave the banner up — no auto-advance
-  const chips  = meta.chips || {}
-  const busted = Object.values(chips).some(c => c === 0)
-  if (busted) {
+  // Game over — show winner overlay after banner, for both host and non-host
+  if (meta.winner) {
     handResultActive = false
+    setTimeout(() => {
+      hideHandWinnerBanner()
+      showWinner(meta.winner)
+    }, 2500)
     return
   }
 
