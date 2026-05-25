@@ -11,14 +11,13 @@ let turnTimerInterval     = null
 let betweenRoundsInterval = null
 let roomHeartbeatInterval = null
 let roomData              = null   // latest GET /rooms/:code response
+let prevCommunityCount    = 0      // community card count before last state update (all-in detection)
 let wrSettings            = { maxPlayers: 8, startingChips: 1000, turnTimeLimit: 0, roundLimit: 0 }
 let wrDebounce            = {}
 
 // ── Init ──────────────────────────────────────────────────
 export function initGame() {
   // Overlay close buttons
-  document.getElementById('btn-back-to-room').addEventListener('click', goLobby)
-  document.getElementById('btn-leave-room-hr').addEventListener('click', () => leaveRoom())
   document.getElementById('btn-back-to-room-win').addEventListener('click', goLobby)
   document.getElementById('btn-leave-room-win').addEventListener('click', () => leaveRoom())
   document.getElementById('btn-leave-room-br').addEventListener('click', () => leaveRoom())
@@ -124,12 +123,14 @@ export function enterGame() {
     if (fetching) return
     fetching = true
     try {
+      const commBefore = state.gameState?.metadata?.community?.length ?? 0
       state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
       saveSession()
       detectElimination()
       render()
       if (state.gameState?.metadata?.handWinner ?? state.gameState?.metadata?.winner) {
         stopPoll()
+        prevCommunityCount = commBefore
         onHandEnd(state.gameState.metadata)
       }
     } catch (e) {
@@ -207,6 +208,7 @@ export function render() {
 
   if (isWaiting) {
     updateWaitingPanel(meta)
+    registry[state.gameId]?.render(meta, false)
     return
   }
 
@@ -242,43 +244,37 @@ export function render() {
 
 // ── Spectator panel ───────────────────────────────────────
 function updateSpectatorPanel() {
-  const room       = roomData
-  const gs         = state.gameState
-  const allNames   = gs?.playerNames || {}
-  const tablePlayers = gs?.players || []
-  const specCount  = room?.spectatorCount ?? 0
+  const room = roomData
+  const gs   = state.gameState
 
+  const specCount = room?.spectatorCount ?? 0
   document.getElementById('wr-spec-count').textContent = specCount
 
   const list = document.getElementById('spec-panel-list')
   if (!list) return
 
-  // Build spectator ID list: anyone in roomData.spectators, OR names we know
-  // that aren't at the table, plus self if spectating
-  let specIds = []
-  if (Array.isArray(room?.spectators) && room.spectators.length) {
-    specIds = room.spectators
+  // Primary: room heartbeat now includes members[] with sessionId+username+role
+  // Fallback: spectatorNames from game state, then add self if spectating
+  let specs = []
+  if (Array.isArray(room?.members) && room.members.length) {
+    specs = room.members.filter(m => m.role === 'spectator')
   } else {
-    // Derive from playerNames — anyone not in the active player list
-    specIds = Object.keys(allNames).filter(id => !tablePlayers.includes(id))
-    if (state.role === 'spectator' && state.sessionId && !specIds.includes(state.sessionId)) {
-      specIds.unshift(state.sessionId)
+    const specNames = gs?.spectatorNames || {}
+    specs = Object.entries(specNames).map(([id, username]) => ({ sessionId: id, username }))
+    if (state.role === 'spectator' && state.sessionId && !specs.find(s => s.sessionId === state.sessionId)) {
+      specs.unshift({ sessionId: state.sessionId, username: state.username || 'You' })
     }
   }
 
-  if (specIds.length === 0) {
-    const label = specCount > 0 ? `${specCount} watching` : 'None'
-    list.innerHTML = `<div class="spec-panel-empty">${label}</div>`
+  if (specs.length === 0) {
+    list.innerHTML = `<div class="spec-panel-empty">${specCount > 0 ? `${specCount} watching` : 'None'}</div>`
     return
   }
 
-  list.innerHTML = specIds.map(idOrObj => {
-    const id   = typeof idOrObj === 'object' ? (idOrObj.id || idOrObj.sessionId) : idOrObj
-    const name = typeof idOrObj === 'object'
-      ? (idOrObj.username || idOrObj.name || id.slice(0, 8))
-      : (id === state.sessionId ? (state.username || 'You') : (allNames[id] || id.slice(0, 8)))
+  list.innerHTML = specs.map(({ sessionId: id, username }) => {
     const isMe = id === state.sessionId
-    return `<div class="spec-panel-row">${isMe ? `• <strong>You</strong>` : `• ${name}`}</div>`
+    const name = isMe ? (state.username || username || 'You') : username
+    return `<div class="spec-panel-row">${isMe ? `• <strong>${name}</strong>` : `• ${name}`}</div>`
   }).join('')
 }
 
@@ -307,13 +303,23 @@ function updateWaitingPanel(meta) {
     }
   }
 
-  // Player list
+  // Player list — use room.members for names (covers waiting phase where playerNames is empty)
+  const memberNameMap = {}
+  if (Array.isArray(room?.members)) {
+    room.members.forEach(m => { memberNameMap[m.sessionId] = m.username })
+  }
+
+  // Authoritative player list: room members with player role when available, else game state
+  const tableMemberIds = Array.isArray(room?.members)
+    ? room.members.filter(m => m.role === 'player').map(m => m.sessionId)
+    : players
+
   const inner = document.getElementById('wr-players-inner')
-  if (players.length === 0) {
+  if (tableMemberIds.length === 0) {
     inner.innerHTML = '<div class="rm-empty">No players at the table yet</div>'
   } else {
-    inner.innerHTML = players.map(id => {
-      const name   = names[id] || id.slice(0, 8)
+    inner.innerHTML = tableMemberIds.map(id => {
+      const name   = names[id] || memberNameMap[id] || id.slice(0, 8)
       const isMe   = id === state.sessionId
       const isHost = id === (room?.hostId || state.hostId)
       const chipAmt = chips[id] != null ? `<span class="pk-chip-count">&#9885; ${chips[id]}</span>` : ''
@@ -434,6 +440,7 @@ async function wrKickPlayer(targetId) {
 
 // ── Move result handler ───────────────────────────────────
 async function handleMoveResult(res) {
+  const commBefore = state.gameState?.metadata?.community?.length ?? 0
   if (res.state) state.gameState = res.state
   else state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
   render()
@@ -441,6 +448,7 @@ async function handleMoveResult(res) {
     if (res.message) showToast(res.message)
   } else if (res.status === 'finished' || state.gameState?.metadata?.handWinner || state.gameState?.metadata?.winner) {
     stopPoll()
+    prevCommunityCount = commBefore
     onHandEnd(state.gameState.metadata)
   }
 }
@@ -450,52 +458,58 @@ function onHandEnd(meta) {
   else showWinner(meta.winner)
 }
 
-// ── Poker hand result ─────────────────────────────────────
+// ── Poker hand winner banner ──────────────────────────────
+function showHandWinnerBanner(text) {
+  const banner = document.getElementById('pk-hand-winner')
+  document.getElementById('pk-hw-text').textContent = text
+  banner.classList.remove('fading')
+  banner.style.display = ''
+}
+
+function hideHandWinnerBanner() {
+  const banner = document.getElementById('pk-hand-winner')
+  banner.style.display = 'none'
+  banner.classList.remove('fading')
+}
+
 async function showHandResult(meta) {
   if (handResultActive) return
   handResultActive = true
 
-  const oppId  = (state.gameState.players || []).find(p => p !== state.sessionId)
-  const chips  = meta.chips || {}
-  const won    = (meta.handWinner ?? meta.winner) === state.sessionId
-
-  await sleep(2000)
+  // Detect all-in runout: community jumped to 5 cards in one state update
+  // (server runs out remaining streets automatically when no action is needed).
+  const community     = meta.community || []
+  const isAllinRunout = community.length === 5 && prevCommunityCount < 5
+  if (isAllinRunout && registry[state.gameId]?.animateAllinRunout) {
+    await registry[state.gameId].animateAllinRunout(meta, prevCommunityCount)
+  } else {
+    await sleep(1500)
+  }
 
   const handWinnerId = meta.handWinner ?? meta.winner
   const names        = state.gameState?.playerNames || {}
-  const winnerName   = names[handWinnerId] || (won ? 'You' : 'Opponent')
+  const winnerName   = handWinnerId === state.sessionId
+    ? (state.username || 'You')
+    : (names[handWinnerId] || 'Opponent')
 
-  document.getElementById('hr-emoji').textContent = won ? '🏆' : '😔'
-  const titleEl = document.getElementById('hr-title')
-  titleEl.textContent = won ? 'You Win!' : `${winnerName} wins!`
-  titleEl.className   = 'winner-title ' + (won ? 'win' : 'lose')
+  showHandWinnerBanner(`${winnerName} wins the hand`)
 
-  const myChips  = chips[state.sessionId] ?? 0
-  const oppChips = oppId ? (chips[oppId] ?? 0) : 1
-  document.getElementById('hr-my-chips').textContent  = myChips
-  document.getElementById('hr-opp-chips').textContent = oppChips
-
-  const statusEl = document.getElementById('hr-status')
-  const busted   = myChips === 0 || oppChips === 0
-
+  // Game over (someone busted): just leave the banner up — no auto-advance
+  const chips  = meta.chips || {}
+  const busted = Object.values(chips).some(c => c === 0)
   if (busted) {
-    statusEl.textContent = myChips === 0
-      ? "You're out of chips — game over!"
-      : 'Opponent is out of chips — you win the table!'
-    document.getElementById('hand-result-overlay').classList.add('open')
     handResultActive = false
     return
   }
 
+  // Non-host in a room: poll until host starts next hand
   if (state.roomCode && !state.isHost) {
-    statusEl.textContent = 'Waiting for host to start next hand…'
-    document.getElementById('hand-result-overlay').classList.add('open')
     state.poll = setInterval(async () => {
       try {
         const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
         if (!gs?.metadata?.handWinner && !gs?.metadata?.winner && gs?.metadata?.phase !== 'showdown') {
           stopPoll()
-          document.getElementById('hand-result-overlay').classList.remove('open')
+          hideHandWinnerBanner()
           state.gameState = gs; handResultActive = false; enterGame()
         }
       } catch { /* keep polling */ }
@@ -503,18 +517,17 @@ async function showHandResult(meta) {
     return
   }
 
-  let secs = 5
-  statusEl.textContent = `Next hand in ${secs}s…`
-  document.getElementById('hand-result-overlay').classList.add('open')
-  handResultTimer = setInterval(() => {
-    secs--
-    if (secs > 0) { statusEl.textContent = `Next hand in ${secs}s…` }
-    else { clearInterval(handResultTimer); handResultTimer = null; startNextHand() }
-  }, 1000)
+  // Host / no room: auto-advance after 10 seconds
+  handResultTimer = setTimeout(() => {
+    handResultTimer = null
+    const banner = document.getElementById('pk-hand-winner')
+    banner.classList.add('fading')
+    setTimeout(startNextHand, 600)
+  }, 10000)
 }
 
 async function startNextHand() {
-  document.getElementById('hand-result-overlay').classList.remove('open')
+  hideHandWinnerBanner()
   try {
     const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
     if (res?.state) state.gameState = res.state
@@ -649,7 +662,7 @@ function showWinner(winnerId) {
 // ── Poll stop / navigation ────────────────────────────────
 export function stopPoll() {
   clearInterval(state.poll);           state.poll            = null
-  clearInterval(handResultTimer);      handResultTimer       = null
+  clearTimeout(handResultTimer);       handResultTimer       = null
   clearInterval(turnTimerInterval);    turnTimerInterval     = null
   clearInterval(betweenRoundsInterval);betweenRoundsInterval = null
   clearInterval(roomHeartbeatInterval);roomHeartbeatInterval = null

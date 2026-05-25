@@ -8,6 +8,8 @@ const CARD_BASE    = () => `${cfg.url}/assets/cards/standard-deck`
 const CHIP_URL     = () => `${cfg.url}/assets/cards/chips/chip-100.svg`
 const AVATAR_URL   = sid => `${cfg.url}/assets/avatars/${sid}.svg`
 
+const sleepR = ms => new Promise(r => setTimeout(r, ms))
+
 // ── Animation / render state ──────────────────────────────
 let prevPot     = -1
 let prevBets    = {}
@@ -371,4 +373,48 @@ function cssCard(str) {
     `<div class="center">${sym}</div>` +
     `<div class="br"><span class="r">${rank}</span><span class="s">${sym}</span></div>` +
     `</div>`
+}
+
+// ── All-in runout reveal ──────────────────────────────────
+// Called when a player goes all-in and remaining streets run automatically.
+// Re-draws community cards from `fromCount` face-down, then reveals each
+// street (flop / turn / river) one at a time with pauses.
+export async function animateAllinRunout(meta, fromCount) {
+  const community = meta.community || []
+  if (community.length <= fromCount || community.length === 0) return
+
+  const commEl = document.getElementById('pk-community')
+  if (!commEl) return
+
+  let current = fromCount
+
+  // Reset display: previously-seen real cards + remaining face-down backs.
+  // This runs synchronously before any await so the browser never paints
+  // the intermediate "all 5 cards face-up" state that render() produced.
+  commEl.innerHTML = [
+    ...community.slice(0, current).map(cardHTML),
+    ...Array(5 - current).fill('<div class="p-card back"></div>'),
+  ].join('')
+
+  await sleepR(900)  // dramatic pause before the flip begins
+
+  async function revealTo(targetCount) {
+    const slots = [...commEl.children]
+    for (let i = current; i < targetCount; i++) {
+      const slot = slots[i]
+      if (!slot) continue
+      const tmp = document.createElement('div')
+      tmp.innerHTML = cardHTML(community[i])
+      const el = tmp.firstChild
+      // Stagger reveal within a street (most visible for the 3-card flop)
+      el.style.animation =
+        `card-reveal 0.5s ${(i - current) * 220}ms cubic-bezier(0.34,1.56,0.64,1) both`
+      slot.replaceWith(el)
+    }
+    current = targetCount
+  }
+
+  if (current < 3) { await revealTo(3); await sleepR(2000) }
+  if (current < 4) { await revealTo(4); await sleepR(1800) }
+  if (current < 5) { await revealTo(5); await sleepR(1200) }
 }

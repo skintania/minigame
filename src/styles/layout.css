@@ -698,3 +698,37 @@
   .rm-code { font-size: 26px; }
   .home-options { flex-direction: column; align-items: center; }
 }
+
+/* ════ GAME PAGE — MOBILE PORTRAIT (≤ 640px) ════ */
+@media (max-width: 640px) {
+  /* Tighter game wrapper; no bottom padding (fixed action bar covers it) */
+  #view-game {
+    padding: 8px 8px 0;
+    gap: 8px;
+  }
+
+  /* Compact header */
+  .g-header { padding: 9px 12px; }
+  .g-game-name { font-size: 13px; }
+  .phase-badge { font-size: 10px; padding: 3px 8px; }
+  .turn-pill   { font-size: 11px; padding: 5px 10px; }
+  /* Hide round progress badge on mobile (space is tight) */
+  #g-round-progress { display: none !important; }
+
+  /* Spectator panel hidden — use room-code dropdown instead */
+  #spectator-panel { display: none !important; }
+
+  /* Room dropdown → bottom sheet */
+  .room-dropdown {
+    position: fixed !important;
+    top: auto   !important;
+    right: 0    !important;
+    bottom: 0;
+    left: 0;
+    width: 100% !important;
+    max-height: 80vh;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: 28px; /* home-indicator clearance */
+  }
+}

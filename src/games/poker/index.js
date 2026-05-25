@@ -1,4 +1,4 @@
-import { renderBoard } from './render.js'
+import { renderBoard, animateAllinRunout } from './render.js'
 import { pkAction, pkCall, pkBet } from './actions.js'
 
 export default {
@@ -14,4 +14,6 @@ export default {
   render(meta, mine) {
     renderBoard(meta, mine)
   },
+
+  animateAllinRunout,
 }
