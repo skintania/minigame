@@ -3,8 +3,6 @@ import { cfg, state, loadSession, saveSession } from '../state.js'
 import { showToast } from '../ui/toast.js'
 import { showView } from '../router.js'
 
-let createMaxPlayers = 8
-
 export async function initLogin() {
   loadSession()
 
@@ -20,25 +18,12 @@ export async function initLogin() {
   document.getElementById('config-link').addEventListener('click', toggleConfig)
 
   // Home screen buttons
-  document.getElementById('btn-go-create').addEventListener('click', () => showView('view-create'))
+  document.getElementById('btn-go-create').addEventListener('click', doCreateRoom)
   document.getElementById('btn-go-join').addEventListener('click', toggleJoinInput)
   document.getElementById('btn-join-submit').addEventListener('click', doJoinRoom)
   document.getElementById('home-code-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') doJoinRoom()
   })
-
-  // Create Room screen
-  document.getElementById('create-back-btn').addEventListener('click', () => {
-    showView('view-home')
-  })
-  document.getElementById('cr-game').addEventListener('change', updateCreateForm)
-  document.getElementById('cr-max-minus').addEventListener('click', () => {
-    if (createMaxPlayers > 2) { createMaxPlayers--; document.getElementById('cr-max-val').textContent = createMaxPlayers }
-  })
-  document.getElementById('cr-max-plus').addEventListener('click', () => {
-    if (createMaxPlayers < 16) { createMaxPlayers++; document.getElementById('cr-max-val').textContent = createMaxPlayers }
-  })
-  document.getElementById('btn-create-submit').addEventListener('click', doCreateRoom)
 
   // Auto-reconnect
   if (state.sessionId) {
@@ -141,30 +126,15 @@ async function doJoinRoom() {
   }
 }
 
-function updateCreateForm() {
-  const isPoker = document.getElementById('cr-game').value === 'poker'
-  document.getElementById('cr-poker-fields').style.display = isPoker ? '' : 'none'
-}
-
 async function doCreateRoom() {
-  const gameId = document.getElementById('cr-game').value
-  const chips  = parseInt(document.getElementById('cr-chips').value, 10)  || 1000
-  const timer  = parseInt(document.getElementById('cr-timer').value, 10)  || 0
-  const rounds = parseInt(document.getElementById('cr-rounds').value, 10) || 0
-  const isPoker = gameId === 'poker'
-
-  const btn = document.getElementById('btn-create-submit')
+  const btn = document.getElementById('btn-go-create')
   btn.disabled    = true
   btn.textContent = 'Creating…'
 
   try {
-    const opts = {
-      maxPlayers:     createMaxPlayers,
-      ...(isPoker && { startingChips: chips, turnTimeLimit: timer, roundLimit: rounds }),
-    }
-    const { matchId, roomCode } = await api.createRoom(state.sessionId, gameId, opts)
+    const { matchId, roomCode } = await api.createRoom(state.sessionId, 'poker', { maxPlayers: 8, startingChips: 1000 })
     state.matchId  = matchId
-    state.gameId   = gameId
+    state.gameId   = 'poker'
     state.roomCode = roomCode
     state.isHost   = true
     state.role     = 'spectator'

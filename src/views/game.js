@@ -104,13 +104,21 @@ export function enterGame() {
     document.getElementById('room-menu-wrap').style.display = ''
   }
 
+  // If in a room with no game state yet, show waiting panel immediately
+  if (state.roomCode && !state.gameState) {
+    state.gameState = { metadata: { phase: 'waiting' }, players: [], playerNames: {} }
+    render()
+  }
+
   // Room heartbeat (15s)
   if (state.roomCode) {
     pollRoomHeartbeat()
     roomHeartbeatInterval = setInterval(pollRoomHeartbeat, 15000)
   }
 
-  // Game state poll (2.2s)
+  // Game state poll (2.2s) — only when matchId is known
+  if (!state.matchId) return
+
   let fetching = false
   state.poll = setInterval(async () => {
     if (fetching) return
@@ -390,8 +398,15 @@ async function wrStartRound() {
   const btn = document.getElementById('wr-start-round')
   btn.disabled = true; btn.textContent = 'Starting…'
   try {
-    await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
-    // Poll will detect phase change and hide waiting panel
+    const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
+    // If matchId was missing, the move response may carry the state we need
+    if (res?.state) {
+      state.gameState = res.state
+      if (!state.matchId && res.matchId) { state.matchId = res.matchId; saveSession() }
+    }
+    // Start polling now that we have a matchId (re-enter if poll wasn't running)
+    if (!state.poll && state.matchId) enterGame()
+    else render()
   } catch (e) {
     showToast(e.message)
     btn.disabled = false
