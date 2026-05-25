@@ -289,8 +289,11 @@ export function renderBoard(meta, mine) {
       : meta.phase === 'waiting' ? '' : '<div class="p-card back"></div><div class="p-card back"></div>'
   })
 
-  // Showdown reveal — after real card faces are in the DOM
-  if (prevPot >= 0 && prevPhase !== 'showdown' && curPhase === 'showdown') {
+  // Reveal opponent cards when entering showdown or between-rounds (server may skip straight to between-rounds)
+  const enteringReveal = prevPot >= 0
+    && prevPhase !== 'showdown' && prevPhase !== 'between-rounds'
+    && (curPhase === 'showdown' || curPhase === 'between-rounds')
+  if (enteringReveal) {
     opponents.forEach(id => { if (!curFolded[id]) animateReveal(`pk-opp-hand-${id}`) })
     animateReveal('pk-hand')
   }

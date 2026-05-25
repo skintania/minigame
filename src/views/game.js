@@ -216,9 +216,10 @@ export function render() {
     return
   }
 
-  // Between-rounds — no popup, auto-advance is handled by showHandResult
+  // Between-rounds — render final board (reveals cards) but skip the popup
   if (meta.phase === 'between-rounds') {
     hideBetweenRounds()
+    registry[state.gameId]?.render(meta, false)
     return
   }
   hideBetweenRounds()
