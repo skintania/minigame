@@ -144,11 +144,17 @@ Poll this to get room state and keep your session alive. **Frontend must call th
   "roundLimit": 10,
   "betweenRoundsSec": 30,
   "playerCount": 2,
-  "spectatorCount": 1
+  "spectatorCount": 1,
+  "members": [
+    { "sessionId": "uuid", "username": "Alice", "role": "player" },
+    { "sessionId": "uuid", "username": "Bob",   "role": "spectator" }
+  ]
 }
 ```
 
 `hostId` is the current host session ID. The host can start rounds, change settings (before game starts), and kick players. If the host leaves the room, host is automatically transferred to a random player at the table (or a spectator if the table is empty).
+
+`members` lists every person currently in the room with their username and role (`"player"` or `"spectator"`), ordered by join time.
 
 ---
 
@@ -168,7 +174,7 @@ Send only the fields you want to change — at least one is required.
 { "roomCode": "843921", "maxPlayers": 4, "startingChips": 500, "turnTimeLimit": 60, "roundLimit": 5, "betweenRoundsSec": 30 }
 ```
 
-Errors: `"Only the room creator can change settings"`, `"Cannot change settings after the game has started"`, `"Cannot set max_players below current player count (n)"`, `"At least one setting (maxPlayers, startingChips, turnTimeLimit, roundLimit, or betweenRoundsSec) is required"`.
+Errors: `"Only the room host can change settings"`, `"Can only change settings before the game starts or between rounds"`, `"Cannot set max_players below current player count (n)"`, `"At least one setting (maxPlayers, startingChips, turnTimeLimit, roundLimit, or betweenRoundsSec) is required"`.
 
 ---
 
@@ -186,7 +192,7 @@ Kick a player from the room. Only the creator can call this, only while `waiting
 { "kicked": "uuid" }
 ```
 
-Errors: `"Only the room creator can kick players"`, `"Cannot kick players after the game has started"`, `"Cannot kick yourself"`.
+Errors: `"Only the room host can kick players"`, `"Can only kick players before the game starts or between rounds"`, `"Cannot kick yourself"`.
 
 ---
 
@@ -360,7 +366,7 @@ Submit a player action for the current turn.
 | `ok` | Normal move accepted, waiting for next player |
 | `started` | Game just started |
 | `phase-updated` | Betting round ended, community cards dealt (flop / turn / river) |
-| `round-complete` | Hand finished, next hand started automatically |
+| `round-complete` | Hand finished, game entered between-rounds — host must send `next-round` to continue |
 | `finished` | Game over — check `state.metadata.winner` for the winner |
 
 ---
@@ -453,6 +459,7 @@ All state responses include a top-level `playerNames` map that resolves session 
 {
   "players": ["sessionId1", "sessionId2"],
   "playerNames": { "sessionId1": "Alice", "sessionId2": "Bob" },
+  "spectatorNames": { "sessionId3": "Charlie" },
   "metadata": {
     "phase": "waiting | preflop | flop | turn | river | showdown | between-rounds",
     "community": ["A♠", "10♥", "3♣"],
@@ -558,11 +565,12 @@ Common `400` messages:
 - `"Card is not in hand."` — UNO card not in your hand
 - `"Card is not playable on the current discard."` — UNO card doesn't match
 - `"A color must be chosen when playing a wild card."` — missing `color` field
-- `"Only the room creator can change settings"` — PATCH /rooms settings by non-creator
-- `"Only the room creator can kick players"` — DELETE /rooms player by non-creator
+- `"Only the room host can change settings"` — PATCH /rooms settings by non-host
+- `"Only the room host can kick players"` — DELETE /rooms player by non-host
+- `"Can only change settings before the game starts or between rounds"` — settings change outside safe phase
+- `"Can only kick players before the game starts or between rounds"` — kick outside safe phase
 - `"Table is full"` — room has reached `maxPlayers` when trying to join as player
 - `"Can only change role before the game starts or between rounds"` — role/leave action outside permitted phase
-- `"Room creator cannot leave while others are present"` — creator must be last to leave
 
 ---
 
