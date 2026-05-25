@@ -18,12 +18,17 @@ export async function initLogin() {
   document.getElementById('config-link').addEventListener('click', toggleConfig)
 
   // Home screen buttons
-  document.getElementById('btn-go-create').addEventListener('click', doCreateRoom)
+  document.getElementById('btn-go-create').addEventListener('click', () => showView('view-create'))
   document.getElementById('btn-go-join').addEventListener('click', toggleJoinInput)
   document.getElementById('btn-join-submit').addEventListener('click', doJoinRoom)
   document.getElementById('home-code-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') doJoinRoom()
   })
+
+  // Game picker screen
+  document.getElementById('create-back-btn').addEventListener('click', () => showView('view-home'))
+  document.getElementById('btn-create-poker').addEventListener('click', () => doCreateRoom('poker'))
+  document.getElementById('btn-create-uno').addEventListener('click',   () => doCreateRoom('uno'))
 
   // Auto-reconnect
   if (state.sessionId) {
@@ -126,15 +131,17 @@ async function doJoinRoom() {
   }
 }
 
-async function doCreateRoom() {
-  const btn = document.getElementById('btn-go-create')
-  btn.disabled    = true
-  btn.textContent = 'Creating…'
+async function doCreateRoom(gameId) {
+  const btnId = gameId === 'poker' ? 'btn-create-poker' : 'btn-create-uno'
+  const btn = document.getElementById(btnId)
+  btn.style.opacity = '0.6'
+  btn.style.pointerEvents = 'none'
 
+  const opts = { maxPlayers: 8, ...(gameId === 'poker' && { startingChips: 1000 }) }
   try {
-    const { matchId, roomCode } = await api.createRoom(state.sessionId, 'poker', { maxPlayers: 8, startingChips: 1000 })
+    const { matchId, roomCode } = await api.createRoom(state.sessionId, gameId, opts)
     state.matchId  = matchId
-    state.gameId   = 'poker'
+    state.gameId   = gameId
     state.roomCode = roomCode
     state.isHost   = true
     state.role     = 'spectator'
@@ -143,7 +150,7 @@ async function doCreateRoom() {
   } catch (e) {
     console.error('[login] create room failed:', e)
     showToast(e.message)
-    btn.disabled    = false
-    btn.textContent = 'Create Room'
+    btn.style.opacity = ''
+    btn.style.pointerEvents = ''
   }
 }

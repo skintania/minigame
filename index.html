@@ -63,7 +63,7 @@
     </div>
   </div>
 
-  <!-- Create Room screen -->
+  <!-- Game picker screen -->
   <div class="view" id="view-create">
     <button class="lobby-back-arrow visible" id="create-back-btn">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -71,39 +71,19 @@
       </svg>
       Back
     </button>
-    <div class="lobby-title" style="margin-top:8px">Create Room</div>
-    <div class="lobby-sub">Configure your room settings</div>
-    <div class="create-form glass">
-      <div class="host-setting-row">
-        <span class="host-setting-lbl">Game</span>
-        <select id="cr-game" class="cr-select">
-          <option value="poker">🃏 Poker</option>
-          <option value="uno">🎴 UNO</option>
-        </select>
+    <div class="lobby-title" style="margin-top:8px">Choose a Game</div>
+    <div class="lobby-sub">Pick the game for your room</div>
+    <div class="home-options">
+      <div class="mode-card glass" id="btn-create-poker">
+        <div class="mode-card-icon">🃏</div>
+        <div class="mode-card-name">Poker</div>
+        <div class="mode-card-desc">Texas Hold'em — bet, bluff, and win chips</div>
       </div>
-      <div class="host-setting-row">
-        <span class="host-setting-lbl">Max Players</span>
-        <div class="host-stepper">
-          <button class="btn btn-ghost stepper-btn" id="cr-max-minus">−</button>
-          <span id="cr-max-val">8</span>
-          <button class="btn btn-ghost stepper-btn" id="cr-max-plus">+</button>
-        </div>
+      <div class="mode-card glass" id="btn-create-uno">
+        <div class="mode-card-icon">🎴</div>
+        <div class="mode-card-name">UNO</div>
+        <div class="mode-card-desc">Classic card game — first to empty your hand wins</div>
       </div>
-      <div id="cr-poker-fields">
-        <div class="host-setting-row">
-          <span class="host-setting-lbl">Starting Chips</span>
-          <input type="number" id="cr-chips" class="bet-field" value="1000" min="100" max="1000000" style="width:110px;text-align:right">
-        </div>
-        <div class="host-setting-row">
-          <span class="host-setting-lbl">Turn Limit (s, 0=off)</span>
-          <input type="number" id="cr-timer" class="bet-field" value="0" min="0" max="300" style="width:80px;text-align:right">
-        </div>
-        <div class="host-setting-row">
-          <span class="host-setting-lbl">Round Limit (0=∞)</span>
-          <input type="number" id="cr-rounds" class="bet-field" value="0" min="0" max="1000" style="width:80px;text-align:right">
-        </div>
-      </div>
-      <button class="btn btn-primary" id="btn-create-submit" style="margin-top:8px">Create Room</button>
     </div>
   </div>
 
