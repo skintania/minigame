@@ -33,6 +33,17 @@ function oppLabel(oppId, idx, total) {
   return names[oppId] || (total === 1 ? 'Opponent' : `Player ${idx + 2}`)
 }
 
+// Seat positions for N opponents (clockwise from top-center)
+const SEAT_MAP = [
+  ['top-center'],
+  ['top-left', 'top-right'],
+  ['top-left', 'top-center', 'top-right'],
+  ['left', 'top-left', 'top-right', 'right'],
+  ['left', 'top-left', 'top-center', 'top-right', 'right'],
+  ['left', 'mid-left', 'top-left', 'top-right', 'mid-right', 'right'],
+  ['left', 'mid-left', 'top-left', 'top-center', 'top-right', 'mid-right', 'right'],
+]
+
 // Build or update opponent badge+hand slots inside #pk-opponents
 function syncOpponentSlots(oppIds) {
   const container = document.getElementById('pk-opponents')
@@ -42,9 +53,13 @@ function syncOpponentSlots(oppIds) {
   if (oppIds.join(',') === builtOppIds.join(',')) return
   builtOppIds = [...oppIds]
 
+  const total = oppIds.length
+  const seats = SEAT_MAP[Math.min(total, 7) - 1] || SEAT_MAP[6]
+
   container.innerHTML = oppIds.map((id, idx) => {
-    const name = oppLabel(id, idx, oppIds.length)
-    return `<div class="pk-opp-slot" data-id="${id}">
+    const name = oppLabel(id, idx, total)
+    const seat = seats[idx] || 'top-center'
+    return `<div class="pk-opp-slot" data-id="${id}" data-seat="${seat}">
       <div class="pk-player-badge" id="pk-opp-badge-${id}">
         <div class="pk-avatar" id="pk-opp-avatar-${id}">${name[0]}</div>
         <div class="pk-badge-info">

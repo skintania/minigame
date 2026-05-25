@@ -6,38 +6,70 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0 4px 16px;
-  gap: 0;
-  width: 100%;
-}
-
-/* ── Opponents row (1–N players) ── */
-.pk-opponents-row {
-  display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 20px;
+  padding: 0 90px 8px;
+  gap: 14px;
   width: 100%;
-  padding: 16px 0 20px;
-  z-index: 2;
+  flex: 1;
+  min-height: 0;
 }
 
-.pk-opp-slot {
+/* Groups table + player zone so they center as one unit */
+.pk-table-unit {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  width: 100%;
 }
 
-/* ── My player zone ── */
+/* ── Table area: contains the oval + opponent overlay ── */
+.pk-table-area {
+  position: relative;
+  width: 100%;
+  /* top padding gives vertical room for badges above the table rim */
+  padding-top: 56px;
+}
+
+/* ── Opponents overlay (covers table-area, badges positioned absolutely) ── */
+.pk-opponents-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  overflow: visible;
+}
+
+/* ── Individual seat slots ── */
+.pk-opp-slot {
+  position: absolute;
+  pointer-events: all;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transform: translate(-50%, -50%);
+}
+
+/* Seat positions around the oval */
+.pk-opp-slot[data-seat="top-center"] { left: 50%;  top: 22px; }
+.pk-opp-slot[data-seat="top-left"]   { left: 27%;  top: 32px; }
+.pk-opp-slot[data-seat="top-right"]  { left: 73%;  top: 32px; }
+.pk-opp-slot[data-seat="mid-left"]   { left: 9%;   top: 42%; }
+.pk-opp-slot[data-seat="mid-right"]  { left: 91%;  top: 42%; }
+/* left/right hang outside the table-area into the #poker-board padding zone */
+.pk-opp-slot[data-seat="left"]  { left: -66px; top: 58%; }
+.pk-opp-slot[data-seat="right"] { left: calc(100% + 66px); top: 58%; }
+
+/* ── My player zone — pulled up to sit against the table rim ── */
 .pk-player-zone {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  z-index: 2;
-  padding: 20px 0 16px;
+  z-index: 4;
+  margin-top: -22px;
+  padding: 0 0 6px;
 }
 
 /* ── Name + chip badge ── */

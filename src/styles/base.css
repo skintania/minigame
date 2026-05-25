@@ -21,14 +21,19 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: 'Inter', system-ui, sans-serif;
   background-color: var(--bg);
-  /* subtle dot grid */
   background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
   background-size: 30px 30px;
   color: var(--text);
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* Ambient glow blobs */

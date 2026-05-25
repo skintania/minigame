@@ -404,7 +404,8 @@
 
 /* ════ GAME ════ */
 #view-game {
-  min-height: 100vh; flex-direction: column;
+  height: 100vh; overflow: hidden;
+  flex-direction: column;
   padding: 12px; gap: 10px;
 }
 
@@ -585,6 +586,107 @@
   width: 100%; max-width: 500px;
   padding: 18px 20px; border-radius: 16px;
   display: flex; flex-direction: column; gap: 14px;
+}
+
+/* ── Room menu dropdown ── */
+.room-menu-wrap { position: relative; }
+
+.room-menu-btn {
+  font-family: 'Courier New', monospace;
+  letter-spacing: .08em;
+}
+
+.room-dropdown {
+  position: fixed;
+  width: 300px;
+  padding: 16px;
+  border-radius: 16px;
+  z-index: 1000;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.rd-top {
+  display: flex; justify-content: space-between; align-items: center;
+}
+
+.rd-counts {
+  font-size: 12px; color: var(--muted); padding: 2px 0;
+}
+
+.rd-player-section {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.rd-role-row {
+  display: flex; justify-content: center; padding: 2px 0;
+}
+
+.rd-actions {
+  display: flex; flex-direction: column; gap: 8px;
+}
+
+.rd-settings {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* ── Spectator panel (fixed top-left) ── */
+#spectator-panel {
+  position: fixed;
+  top: 72px;
+  left: 12px;
+  z-index: 100;
+  min-width: 148px;
+  max-width: 200px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+
+.spec-panel-hdr {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spec-panel-hdr #wr-spec-count {
+  background: rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: var(--text);
+}
+
+#spec-panel-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.spec-panel-row {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spec-panel-empty {
+  font-size: 11px;
+  color: var(--muted);
 }
 
 /* ════ RESPONSIVE ════ */

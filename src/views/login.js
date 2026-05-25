@@ -56,7 +56,7 @@ export async function initLogin() {
         state.gameId   = active.gameId
         state.roomCode = active.roomCode || null
         saveSession()
-        window.location.href = active.status === 'active' ? 'game.html' : 'lobby.html'
+        window.location.href = 'game.html'
         return
       }
       goHome()
@@ -132,7 +132,7 @@ async function doJoinRoom() {
     state.roomCode = code
     state.role     = 'spectator'
     saveSession()
-    window.location.href = 'lobby.html'
+    window.location.href = 'game.html'
   } catch (e) {
     console.error('[login] join room failed:', e)
     showToast(e.message)
@@ -169,7 +169,7 @@ async function doCreateRoom() {
     state.isHost   = true
     state.role     = 'spectator'
     saveSession()
-    window.location.href = 'lobby.html'
+    window.location.href = 'game.html'
   } catch (e) {
     console.error('[login] create room failed:', e)
     showToast(e.message)

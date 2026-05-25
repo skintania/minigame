@@ -25,43 +25,54 @@
       <div style="display:flex;align-items:center;gap:10px">
         <button class="btn btn-danger" id="btn-end-game" style="display:none;width:auto;padding:7px 14px;font-size:12px">End Game</button>
         <div class="turn-pill mine" id="turn-pill">Your Turn</div>
+        <div class="room-menu-wrap" id="room-menu-wrap" style="display:none">
+          <button class="btn btn-ghost room-menu-btn" id="room-menu-btn" style="width:auto;padding:7px 14px;font-size:12px">—— ▾</button>
+        </div>
       </div>
     </div>
 
     <!-- Poker Board -->
     <div id="poker-board" class="game-board">
 
-      <!-- Opponents (built dynamically by render.js) -->
-      <div id="pk-opponents" class="pk-opponents-row"></div>
+      <!-- Table unit: table + player zone grouped so they center together -->
+      <div class="pk-table-unit">
+        <div class="pk-table-area">
+          <div id="pk-opponents" class="pk-opponents-overlay"></div>
 
-      <!-- Felt table -->
-      <div class="pk-table">
-        <div class="cards-row" id="pk-community"></div>
-        <div class="pk-table-center">
-          <div class="pk-tstat">
-            <span class="pk-tstat-lbl">Table Bet</span>
-            <span class="pk-tstat-val" id="pk-cbet">0</span>
-          </div>
-          <div class="pk-pot-display" id="pk-pot-display">
-            <div class="pk-pot-amount" id="pk-pot">0</div>
-            <div class="pk-pot-label">POT</div>
-            <div class="pk-blind-info" id="pk-blind-info"></div>
-          </div>
-          <div class="pk-tstat">
-            <span class="pk-tstat-lbl">Your Bet</span>
-            <span class="pk-tstat-val" id="pk-mbet">0</span>
+          <!-- Felt table -->
+          <div class="pk-table">
+            <div class="cards-row" id="pk-community"></div>
+            <div class="pk-table-center">
+              <div class="pk-tstat">
+                <span class="pk-tstat-lbl">Table Bet</span>
+                <span class="pk-tstat-val" id="pk-cbet">0</span>
+              </div>
+              <div class="pk-pot-display" id="pk-pot-display">
+                <div class="pk-pot-amount" id="pk-pot">0</div>
+                <div class="pk-pot-label">POT</div>
+                <div class="pk-blind-info" id="pk-blind-info"></div>
+              </div>
+              <div class="pk-tstat">
+                <span class="pk-tstat-lbl">Your Bet</span>
+                <span class="pk-tstat-val" id="pk-mbet">0</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Player -->
-      <div class="pk-player-zone">
-        <div class="cards-row" id="pk-hand"></div>
-        <div class="pk-player-badge mine" id="pk-my-badge">
-          <div class="pk-avatar mine" id="pk-my-avatar">Y</div>
-          <div class="pk-badge-info">
-            <span class="pk-badge-label">You</span>
-            <span class="pk-chip-count">&#9885; <span id="pk-my-chips">—</span></span>
+        <!-- Player sits right below the table rim -->
+        <div class="pk-player-zone">
+          <div class="cards-row" id="pk-hand"></div>
+          <div class="pk-player-badge mine" id="pk-my-badge">
+            <div class="pk-avatar mine" id="pk-my-avatar">Y</div>
+            <div class="pk-badge-info">
+              <span class="pk-badge-label">You</span>
+              <span class="pk-chip-count">&#9885; <span id="pk-my-chips">—</span></span>
+            </div>
+          </div>
+          <div id="wr-join-wrap" style="display:none;flex-direction:column;align-items:center;gap:8px;margin-top:12px">
+            <button class="btn btn-pink"  id="wr-join-table"  style="width:auto;padding:11px 36px">Join Table</button>
+            <button class="btn btn-ghost" id="wr-leave-table" style="display:none;width:auto;padding:11px 36px">Leave Table</button>
           </div>
         </div>
       </div>
@@ -114,6 +125,11 @@
         </div>
         <div class="last-action" id="uno-last"></div>
       </div>
+    </div>
+    <!-- Spectator panel (top-left, always visible when in a room) -->
+    <div id="spectator-panel" style="display:none">
+      <div class="spec-panel-hdr">👁 Spectators <span id="wr-spec-count">0</span></div>
+      <div id="spec-panel-list"><div class="spec-panel-empty">None</div></div>
     </div>
   </div>
 
@@ -173,6 +189,57 @@
         <button class="btn btn-primary" id="btn-next-round"  style="display:none;width:auto;padding:11px 24px">Start Next Round</button>
       </div>
       <button class="btn btn-ghost" id="btn-leave-room-br" style="width:auto;padding:9px 20px;margin-top:10px;font-size:12px;color:var(--muted)">Leave Room</button>
+    </div>
+  </div>
+
+  <!-- Room dropdown — at body level so backdrop-filter on .glass ancestors doesn't clip it -->
+  <div class="room-dropdown glass" id="room-dropdown" style="display:none">
+    <div class="rd-top">
+      <div>
+        <div class="rm-code-label">Room Code</div>
+        <div class="rm-code" id="wr-code">——</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="phase-badge" id="wr-game-badge">—</span>
+        <button class="btn btn-ghost" id="wr-copy-btn" style="width:auto;padding:6px 12px;font-size:11px">Copy</button>
+      </div>
+    </div>
+    <div class="rd-counts">
+      <span id="wr-player-count">—</span>/<span id="wr-max-display">—</span> at table
+    </div>
+    <div class="rd-player-section">
+      <div class="rm-list-title">At the Table</div>
+      <div id="wr-players-inner"><div class="rm-empty">No players yet</div></div>
+    </div>
+    <div class="rd-role-row">
+      <div class="rm-role-badge rm-role-spectator" id="wr-role-badge">👁 Spectating</div>
+    </div>
+    <div class="rd-actions">
+      <button class="btn btn-primary" id="wr-start-round" style="display:none;width:100%" disabled>Waiting for players…</button>
+      <button class="btn btn-ghost" id="wr-leave-room" style="width:100%;padding:9px 20px;font-size:12px;color:var(--muted)">Leave Room</button>
+    </div>
+    <div id="wr-settings" class="rd-settings" style="display:none">
+      <div class="host-settings-title">Room Settings</div>
+      <div class="host-setting-row">
+        <span class="host-setting-lbl">Max Players</span>
+        <div class="host-stepper">
+          <button class="btn btn-ghost stepper-btn" id="wr-max-minus">−</button>
+          <span id="wr-max-val">8</span>
+          <button class="btn btn-ghost stepper-btn" id="wr-max-plus">+</button>
+        </div>
+      </div>
+      <div class="host-setting-row" id="wr-chips-row" style="display:none">
+        <span class="host-setting-lbl">Starting Chips</span>
+        <input type="number" id="wr-chips" class="bet-field" value="1000" min="100" max="1000000" style="width:90px;text-align:right">
+      </div>
+      <div class="host-setting-row" id="wr-timer-row" style="display:none">
+        <span class="host-setting-lbl">Turn Limit (s, 0=off)</span>
+        <input type="number" id="wr-timer" class="bet-field" value="0" min="0" max="300" style="width:70px;text-align:right">
+      </div>
+      <div class="host-setting-row" id="wr-rounds-row" style="display:none">
+        <span class="host-setting-lbl">Round Limit (0=∞)</span>
+        <input type="number" id="wr-rounds" class="bet-field" value="0" min="0" max="1000" style="width:70px;text-align:right">
+      </div>
     </div>
   </div>
 
