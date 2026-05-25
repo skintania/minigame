@@ -500,12 +500,17 @@ async function showHandResult(meta) {
 
   showHandWinnerBanner(`${winnerName} wins the hand`)
 
-  // Game over — show winner overlay after banner, for both host and non-host
-  if (meta.winner) {
-    handResultActive = false
+  // Game over — server may not set meta.winner until next-round is sent,
+  // so also detect via chips: if anyone is at 0 the game cannot continue.
+  const chips  = meta.chips || {}
+  const busted = Object.values(chips).some(c => c === 0)
+  if (meta.winner || busted) {
+    // Keep handResultActive = true — blocks re-entry if the poll fires again before overlay shows
+    const players  = state.gameState?.players || []
+    const winnerId = meta.winner || players.find(p => (chips[p] || 0) > 0)
     setTimeout(() => {
       hideHandWinnerBanner()
-      showWinner(meta.winner)
+      if (winnerId) showWinner(winnerId)
     }, 2500)
     return
   }
@@ -535,6 +540,16 @@ async function showHandResult(meta) {
 }
 
 async function startNextHand() {
+  // Safety: if game is already over don't send next-round to the server
+  const chips  = state.gameState?.metadata?.chips || {}
+  const busted = Object.values(chips).some(c => c === 0)
+  if (state.gameState?.metadata?.winner || busted) {
+    const players  = state.gameState?.players || []
+    const winnerId = state.gameState?.metadata?.winner || players.find(p => (chips[p] || 0) > 0)
+    hideHandWinnerBanner()
+    if (winnerId) showWinner(winnerId)
+    return
+  }
   hideHandWinnerBanner()
   try {
     const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'next-round' })
