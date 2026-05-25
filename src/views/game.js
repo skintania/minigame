@@ -199,6 +199,10 @@ export function render() {
   // Join wrap only during waiting
   document.getElementById('wr-join-wrap').style.display = isWaiting ? 'flex' : 'none'
 
+  // Hide player badge when waiting and not at the table yet
+  document.getElementById('pk-my-badge').style.display =
+    (isWaiting && state.role !== 'player') ? 'none' : ''
+
   // Spectator panel: show whenever in a room
   document.getElementById('spectator-panel').style.display = state.roomCode ? '' : 'none'
   updateSpectatorPanel()

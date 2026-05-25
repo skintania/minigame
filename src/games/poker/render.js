@@ -286,7 +286,7 @@ export function renderBoard(meta, mine) {
     const hand = (meta.hands || {})[id]
     handEl.innerHTML = hand?.length
       ? hand.map(cardHTML).join('')
-      : '<div class="p-card back"></div><div class="p-card back"></div>'
+      : meta.phase === 'waiting' ? '' : '<div class="p-card back"></div><div class="p-card back"></div>'
   })
 
   // Showdown reveal — after real card faces are in the DOM
