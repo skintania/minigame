@@ -692,5 +692,10 @@ export function stopPoll() {
 }
 
 function goLobby() {
-  stopPoll(); window.location.href = 'lobby.html'
+  stopPoll()
+  // Clear match state so game.html doesn't re-trigger the winner overlay if lobby bounces back
+  state.matchId   = null
+  state.gameState = null
+  saveSession()
+  window.location.href = 'lobby.html'
 }
