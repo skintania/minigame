@@ -356,7 +356,7 @@ function updateWaitingPanel(meta) {
     startBtn.style.display = ''
     const cnt = room?.playerCount ?? players.length
     startBtn.disabled    = cnt < 2
-    startBtn.textContent = cnt >= 2 ? `Start Round  (${cnt} players)` : 'Waiting for players…'
+    startBtn.textContent = cnt >= 2 ? `Start (${cnt})` : 'Need players…'
   } else {
     startBtn.style.display = 'none'
   }

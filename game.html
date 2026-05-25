@@ -71,8 +71,11 @@
             </div>
           </div>
           <div id="wr-join-wrap" style="display:none;flex-direction:column;align-items:center;gap:8px;margin-top:12px">
-            <button class="btn btn-pink"  id="wr-join-table"  style="width:auto;padding:11px 36px">Join Table</button>
-            <button class="btn btn-ghost" id="wr-leave-table" style="display:none;width:auto;padding:11px 36px">Leave Table</button>
+            <button class="btn btn-pink" id="wr-join-table" style="width:auto;padding:11px 36px">Join Table</button>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-ghost"   id="wr-leave-table" style="display:none;width:auto;padding:11px 24px">Leave Table</button>
+              <button class="btn btn-primary" id="wr-start-round" style="display:none;width:auto;padding:11px 24px" disabled>Start Round</button>
+            </div>
           </div>
         </div>
       </div>
@@ -199,7 +202,6 @@
       <div class="rm-role-badge rm-role-spectator" id="wr-role-badge">👁 Spectating</div>
     </div>
     <div class="rd-actions">
-      <button class="btn btn-primary" id="wr-start-round" style="display:none;width:100%" disabled>Waiting for players…</button>
       <button class="btn btn-ghost" id="wr-leave-room" style="width:100%;padding:9px 20px;font-size:12px;color:var(--muted)">Leave Room</button>
     </div>
     <div id="wr-settings" class="rd-settings" style="display:none">
