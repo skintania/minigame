@@ -486,7 +486,7 @@ async function showHandResult(meta) {
   if (isAllinRunout && registry[state.gameId]?.animateAllinRunout) {
     await registry[state.gameId].animateAllinRunout(meta, prevCommunityCount)
   } else {
-    await sleep(1500)
+    await sleep(800)
   }
 
   const handWinnerId = meta.handWinner ?? meta.winner
@@ -520,13 +520,13 @@ async function showHandResult(meta) {
     return
   }
 
-  // Host / no room: auto-advance after 3 seconds
+  // Host / no room: auto-advance after 1.5 seconds
   handResultTimer = setTimeout(() => {
     handResultTimer = null
     const banner = document.getElementById('pk-hand-winner')
     banner.classList.add('fading')
     setTimeout(startNextHand, 600)
-  }, 3000)
+  }, 1500)
 }
 
 async function startNextHand() {
