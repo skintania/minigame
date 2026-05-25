@@ -216,9 +216,9 @@ export function render() {
     return
   }
 
-  // Between-rounds
+  // Between-rounds — no popup, auto-advance is handled by showHandResult
   if (meta.phase === 'between-rounds') {
-    showBetweenRounds(meta)
+    hideBetweenRounds()
     return
   }
   hideBetweenRounds()
@@ -448,9 +448,8 @@ async function handleMoveResult(res) {
   if (res.state) state.gameState = res.state
   else state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
   render()
-  if (res.status === 'round-complete') {
-    if (res.message) showToast(res.message)
-  } else if (res.status === 'finished' || state.gameState?.metadata?.handWinner || state.gameState?.metadata?.winner) {
+  if (res.status === 'round-complete' || res.status === 'finished' ||
+      state.gameState?.metadata?.handWinner || state.gameState?.metadata?.winner) {
     stopPoll()
     prevCommunityCount = commBefore
     onHandEnd(state.gameState.metadata)
@@ -521,19 +520,19 @@ async function showHandResult(meta) {
     return
   }
 
-  // Host / no room: auto-advance after 10 seconds
+  // Host / no room: auto-advance after 3 seconds
   handResultTimer = setTimeout(() => {
     handResultTimer = null
     const banner = document.getElementById('pk-hand-winner')
     banner.classList.add('fading')
     setTimeout(startNextHand, 600)
-  }, 10000)
+  }, 3000)
 }
 
 async function startNextHand() {
   hideHandWinnerBanner()
   try {
-    const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
+    const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'next-round' })
     if (res?.state) state.gameState = res.state
   } catch (e) { console.log('[game] next hand start:', e.message) }
   for (let i = 0; i < 12; i++) {
