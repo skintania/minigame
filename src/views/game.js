@@ -50,7 +50,7 @@ function applyServerState(gs) {
 
 // ── Init ──────────────────────────────────────────────────
 export function initGame() {
-  document.getElementById('btn-back-to-room-win').addEventListener('click', goLobby)
+  document.getElementById('btn-continue-match').addEventListener('click', continueMatch)
   document.getElementById('btn-leave-room-win').addEventListener('click', () => leaveRoom())
   document.getElementById('btn-leave-room-br').addEventListener('click',  () => leaveRoom())
   document.getElementById('btn-end-game').addEventListener('click', () => {
@@ -681,10 +681,13 @@ export function stopPoll() {
   clearInterval(roomHeartbeatInterval); roomHeartbeatInterval = null
 }
 
-function goLobby() {
-  stopPoll()
+function continueMatch() {
+  document.getElementById('winner-overlay').classList.remove('open')
+  handResultActive = false
+  // Clear match so the poll doesn't re-detect meta.winner and loop the overlay
   state.matchId   = null
   state.gameState = null
   saveSession()
-  window.location.href = 'lobby.html'
+  // Re-enter the page as a spectator; room heartbeat keeps the waiting panel live
+  enterGame()
 }
