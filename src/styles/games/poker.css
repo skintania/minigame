@@ -201,6 +201,20 @@
   padding: 2px 7px;
 }
 
+/* Mucked state (showdown) — same dim as folded, grey label */
+.pk-player-badge.mucked { opacity: 0.45; }
+.pk-player-badge.mucked::after {
+  content: 'MUCK';
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: rgba(180,180,180,0.9);
+  background: rgba(180,180,180,0.1);
+  border: 1px solid rgba(180,180,180,0.25);
+  border-radius: 10px;
+  padding: 2px 7px;
+}
+
 /* ── Green felt table ── */
 .pk-table {
   width: 100%;
@@ -292,7 +306,7 @@
   line-height: 1;
 }
 
-/* ── Your-turn indicator ─────────────────────────────────── */
+/* ── Turn indicators ─────────────────────────────────────── */
 
 /* Board dims while waiting for opponent */
 #poker-board {
@@ -302,13 +316,22 @@
   filter: brightness(0.76) saturate(0.8);
 }
 
-/* Badge pulses with pink glow when it's your turn */
+/* My badge pulses pink when it's my turn */
 @keyframes turn-pulse {
-  0%, 100% { box-shadow: none;                              border-color: rgba(232,82,154,0.3); }
+  0%, 100% { box-shadow: none;                               border-color: rgba(232,82,154,0.3); }
   50%       { box-shadow: 0 0 22px 6px rgba(232,82,154,0.38); border-color: rgba(232,82,154,0.85); }
 }
-#poker-board.turn-mine .pk-player-badge.mine {
+.pk-player-badge.mine.turn-active {
   animation: turn-pulse 2.1s ease-in-out infinite;
+}
+
+/* Opponent badge pulses blue when it's their turn */
+@keyframes opp-turn-pulse {
+  0%, 100% { box-shadow: none;                               border-color: rgba(60,180,230,0.25); }
+  50%       { box-shadow: 0 0 22px 6px rgba(60,180,230,0.38); border-color: rgba(60,180,230,0.85); }
+}
+.pk-player-badge.turn-active:not(.mine) {
+  animation: opp-turn-pulse 2.1s ease-in-out infinite;
 }
 
 /* Warm glow rising from the action bar area */

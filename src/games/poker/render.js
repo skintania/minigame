@@ -12,12 +12,13 @@ const AVATAR_URL   = sid => `${cfg.url}/assets/avatars/${sid}.svg`
 const sleepR = ms => new Promise(r => setTimeout(r, ms))
 
 // ── Animation / render state ──────────────────────────────
-let prevPot     = -1
-let prevBets    = {}
-let prevWinner  = null
-let prevFolded  = {}
-let prevPhase   = null
-let builtOppIds = []   // tracks which opponent slots are in the DOM
+let prevPot                = -1
+let prevBets               = {}
+let prevWinner             = null
+let prevFolded             = {}
+let prevPhase              = null
+let prevShowdownDecisions  = {}
+let builtOppIds            = []   // tracks which opponent slots are in the DOM
 
 // Cache revealed hands + community from showdown so they stay visible during between-rounds
 let cachedHands     = {}
@@ -188,10 +189,12 @@ export function renderBoard(meta, mine) {
     cachedHands     = { ...(meta.hands || {}) }
     cachedCommunity = [...(meta.community || [])]
   }
-  // Clear cache when a new hand begins
+  // Clear cache and muck state when a new hand begins
   if (curPhaseEarly === 'preflop' && prevPhase !== 'preflop' && prevPhase !== null) {
-    cachedHands     = {}
-    cachedCommunity = []
+    cachedHands            = {}
+    cachedCommunity        = []
+    prevShowdownDecisions  = {}
+    document.querySelectorAll('.pk-player-badge').forEach(el => el.classList.remove('mucked'))
   }
 
   // During between-rounds, fall back to cached revealed data so cards stay visible
@@ -271,6 +274,33 @@ export function renderBoard(meta, mine) {
   document.getElementById('pk-my-badge')?.classList.toggle('folded', myFolded)
   opponents.forEach(id => {
     document.getElementById(`pk-opp-badge-${id}`)?.classList.toggle('folded', !!curFolded[id])
+  })
+
+  // Muck: animate fold cards on first muck decision, then keep badge dimmed
+  const showDec = meta.showdownDecisions || {}
+  if (prevPot >= 0 && (curPhase === 'showdown' || curPhase === 'between-rounds')) {
+    if (showDec[state.sessionId] === 'muck' && prevShowdownDecisions[state.sessionId] !== 'muck') {
+      animateFoldCards('pk-hand')
+    }
+    opponents.forEach(id => {
+      if (showDec[id] === 'muck' && prevShowdownDecisions[id] !== 'muck') {
+        animateFoldCards(`pk-opp-hand-${id}`)
+      }
+    })
+  }
+  document.getElementById('pk-my-badge')?.classList.toggle('mucked', showDec[state.sessionId] === 'muck')
+  opponents.forEach(id => {
+    document.getElementById(`pk-opp-badge-${id}`)?.classList.toggle('mucked', showDec[id] === 'muck')
+  })
+
+  // Turn highlight: pink pulse on my badge, blue pulse on current opponent
+  const activeBetting  = ['preflop', 'flop', 'turn', 'river'].includes(curPhase)
+  const currentPlayer  = meta.currentPlayer || null
+  document.getElementById('pk-my-badge')?.classList.toggle('turn-active', activeBetting && mine)
+  opponents.forEach(id => {
+    document.getElementById(`pk-opp-badge-${id}`)?.classList.toggle(
+      'turn-active', activeBetting && currentPlayer === id
+    )
   })
 
   // Check vs Call label
@@ -367,11 +397,12 @@ export function renderBoard(meta, mine) {
     }
   }
 
-  prevPot    = curPot
-  prevBets   = { ...curBets }
-  prevWinner = curWinner
-  prevFolded = { ...curFolded }
-  prevPhase  = curPhase
+  prevPot               = curPot
+  prevBets              = { ...curBets }
+  prevWinner            = curWinner
+  prevFolded            = { ...curFolded }
+  prevPhase             = curPhase
+  prevShowdownDecisions = { ...showDec }
 }
 
 export function cardHTML(str) {
