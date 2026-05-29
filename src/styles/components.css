@@ -181,33 +181,35 @@
 .color-btn.yellow { background: linear-gradient(135deg, #ffd32a, #c09200); color: #222; }
 
 
-/* ── Winner overlay ── */
+/* ── Winner overlay (bottom bar) ── */
 #winner-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.85);
-  backdrop-filter: blur(16px);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 300; opacity: 0; pointer-events: none; transition: opacity 0.4s;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 400;
+  background: rgba(13, 13, 38, 0.96);
+  border-top: 1px solid rgba(232, 82, 154, 0.35);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  gap: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(100%);
+  transition: opacity 0.25s, transform 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
 }
-#winner-overlay.open { opacity: 1; pointer-events: all; }
-
-.winner-card {
-  background:
-    linear-gradient(#0d0d26, #0d0d26) padding-box,
-    var(--grad-border) border-box;
-  border: 1px solid transparent;
-  border-radius: 28px; padding: 52px 44px;
-  text-align: center; max-width: 380px; width: 90%;
-  box-shadow: 0 0 60px rgba(232,82,154,0.15), var(--shadow-lg);
-}
-.winner-emoji { font-size: 76px; display: block; margin-bottom: 16px; }
-.winner-title { font-size: 34px; font-weight: 800; margin-bottom: 10px; letter-spacing: -0.5px; }
+#winner-overlay.open { opacity: 1; pointer-events: all; transform: translateY(0); }
+.winner-info { display: flex; align-items: center; gap: 12px; }
+#w-emoji { font-size: 28px; line-height: 1; }
+.winner-title { font-size: 16px; font-weight: 800; margin: 0; }
 .winner-title.win {
   background: var(--grad);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 .winner-title.lose { color: var(--muted); }
-.winner-sub { color: var(--muted); font-size: 16px; margin-bottom: 30px; }
+.winner-sub { color: var(--muted); font-size: 12px; margin: 0; }
+.winner-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
 /* ── Spectator turn pill ── */
 .turn-pill.spectator {
