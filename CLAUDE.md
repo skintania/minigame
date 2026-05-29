@@ -79,3 +79,24 @@ API returns cards as `"K-spades"`, `"10-hearts"` (rank `-` suit name). R2 asset 
 ## Backend
 
 API source is in a separate repo (`minigame.skintania-api`, Cloudflare Worker + D1). `api.md` in this folder is a copy of the API reference. The production URL is `https://minigame-skintania-api.skintania143.workers.dev`.
+
+## Docs Maintenance
+
+The `docs/` folder contains four reference files for future Claude sessions:
+
+- `docs/claude.md` — project overview, architecture, patterns
+- `docs/route.md` — file dependency tree, call chains, polling summary
+- `docs/docs-src.md` — per-file JS documentation
+- `docs/docs-ui.md` — per-file CSS/HTML/config documentation
+
+**After any major change, update the relevant docs files.** A major change includes:
+- Adding or removing a source file
+- Adding a new game or game action
+- Changing the state shape (`state.js`)
+- Adding/removing API endpoints or changing how they're called
+- Changing navigation flow (new pages, redirects)
+- Adding new polling loops or timers
+- Significant refactor of a view or game module
+- New CSS components or layout patterns
+
+Update only the files affected by the change. Keep each doc file under 300 lines.
