@@ -174,17 +174,16 @@
     </div>
   </div>
 
-  <!-- Between-rounds overlay -->
+  <!-- Between-rounds bar (slides up from bottom, board stays visible) -->
   <div id="between-rounds-overlay">
-    <div class="winner-card">
+    <div class="br-info">
       <div class="br-round-info" id="br-round-info">Hand complete</div>
-      <div class="br-countdown-label">Next round in</div>
-      <div class="br-countdown" id="br-countdown">—</div>
-      <div class="br-actions">
-        <button class="btn btn-pink"    id="btn-switch-role" style="display:none;width:auto;padding:11px 24px">Join Table</button>
-        <button class="btn btn-primary" id="btn-next-round"  style="display:none;width:auto;padding:11px 24px">Start Next Round</button>
-      </div>
-      <button class="btn btn-ghost" id="btn-leave-room-br" style="width:auto;padding:9px 20px;margin-top:10px;font-size:12px;color:var(--muted)">Leave Room</button>
+      <div class="br-next">Next round in <span id="br-countdown">—</span></div>
+    </div>
+    <div class="br-actions">
+      <button class="btn btn-pink"    id="btn-switch-role"   style="display:none;width:auto;padding:9px 20px">Join Table</button>
+      <button class="btn btn-primary" id="btn-next-round"    style="display:none;width:auto;padding:9px 20px">Start Next Round</button>
+      <button class="btn btn-ghost"   id="btn-leave-room-br" style="width:auto;padding:9px 20px;font-size:12px;color:var(--muted)">Leave Room</button>
     </div>
   </div>
 
