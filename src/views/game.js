@@ -228,7 +228,6 @@ export function render() {
   }
 
   if (meta.phase === 'showdown') {
-    document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
     updateShowdownBar(meta)
     registry[state.gameId]?.render(meta, false)
     return
@@ -487,10 +486,15 @@ function updateShowdownBar(meta) {
 
   document.getElementById('btn-skip-showdown').style.display = amHost() ? '' : 'none'
 
-  const myDecision = meta.showdownDecisions?.[state.sessionId]
-  const canDecide  = myDecision === 'pending'
-  document.getElementById('btn-show-cards').style.display = canDecide ? '' : 'none'
-  document.getElementById('btn-muck-cards').style.display = canDecide ? '' : 'none'
+  // Show/Muck row in the action bar — visible only when this player is pending
+  const myDecision      = meta.showdownDecisions?.[state.sessionId]
+  const canDecide       = myDecision === 'pending'
+  const actionBar       = document.querySelector('.pk-action-bar')
+  const normalActions   = document.getElementById('pk-normal-actions')
+  const showdownActions = document.getElementById('pk-showdown-actions')
+  if (actionBar)       actionBar.style.display       = canDecide ? '' : 'none'
+  if (normalActions)   normalActions.style.display   = 'none'
+  if (showdownActions) showdownActions.style.display = canDecide ? '' : 'none'
 
   if (!bar.classList.contains('open')) {
     // Start local 1s countdown from server value on first open
@@ -508,6 +512,11 @@ function updateShowdownBar(meta) {
 function hideShowdownBar() {
   document.getElementById('showdown-bar')?.classList.remove('open')
   clearInterval(showdownInterval); showdownInterval = null
+  // Restore normal action row for the next active phase
+  const normalActions   = document.getElementById('pk-normal-actions')
+  const showdownActions = document.getElementById('pk-showdown-actions')
+  if (normalActions)   normalActions.style.display   = ''
+  if (showdownActions) showdownActions.style.display = 'none'
 }
 
 // ── Poker hand winner banner ──────────────────────────────
