@@ -19,6 +19,10 @@ let prevFolded  = {}
 let prevPhase   = null
 let builtOppIds = []   // tracks which opponent slots are in the DOM
 
+// Cache revealed hands + community from showdown so they stay visible during between-rounds
+let cachedHands     = {}
+let cachedCommunity = []
+
 const avatarsLoaded = new Set()
 
 function maybeSetAvatar(el, sessionId, fallback) {
@@ -176,6 +180,30 @@ export function renderBoard(meta, mine) {
   const players   = state.gameState.players || []
   const opponents = players.filter(p => p !== state.sessionId)
 
+  const curPhaseEarly = meta.phase || ''
+
+  // Cache revealed hands when entering showdown so they persist into between-rounds
+  if (curPhaseEarly === 'showdown') {
+    const h = meta.hands || {}
+    const hasReal = Object.values(h).some(cards =>
+      Array.isArray(cards) && cards.some(c => c !== 'hidden' && c !== 'back')
+    )
+    if (hasReal) {
+      cachedHands     = { ...h }
+      cachedCommunity = [...(meta.community || [])]
+    }
+  }
+  // Clear cache when a new hand begins
+  if (curPhaseEarly === 'preflop' && prevPhase !== 'preflop' && prevPhase !== null) {
+    cachedHands     = {}
+    cachedCommunity = []
+  }
+
+  // During between-rounds, fall back to cached revealed data so cards stay visible
+  const isBetween    = curPhaseEarly === 'between-rounds'
+  const effectHands  = (isBetween && Object.keys(cachedHands).length) ? cachedHands : (meta.hands || {})
+  const effectComm   = (isBetween && cachedCommunity.length) ? cachedCommunity : (meta.community || [])
+
   // My avatar (once)
   maybeSetAvatar(
     document.getElementById('pk-my-avatar'),
@@ -269,44 +297,42 @@ export function renderBoard(meta, mine) {
     checkBtn.dataset.action = 'check'
   }
 
-  // Community cards
-  const comm = meta.community || []
+  // Community cards (use cached during between-rounds)
   document.getElementById('pk-community').innerHTML =
-    comm.map(cardHTML).join('') +
-    Array(5 - comm.length).fill('<div class="p-card placeholder"></div>').join('')
+    effectComm.map(cardHTML).join('') +
+    Array(Math.max(0, 5 - effectComm.length)).fill('<div class="p-card placeholder"></div>').join('')
 
-  // My hand
-  const myHand = (meta.hands || {})[state.sessionId] || []
+  // My hand (use cached during between-rounds)
+  const myHand = (effectHands[state.sessionId]) || []
   document.getElementById('pk-hand').innerHTML =
     myFolded ? '' : myHand.map(cardHTML).join('')
 
-  // Each opponent's hand
+  // Each opponent's hand (use cached during between-rounds)
   opponents.forEach(id => {
     const handEl = document.getElementById(`pk-opp-hand-${id}`)
     if (!handEl) return
     if (curFolded[id]) { handEl.innerHTML = ''; return }
-    const hand = (meta.hands || {})[id]
+    const hand = effectHands[id]
     handEl.innerHTML = hand?.length
       ? hand.map(cardHTML).join('')
-      : meta.phase === 'waiting' ? '' : '<div class="p-card back"></div><div class="p-card back"></div>'
+      : curPhase === 'waiting' ? '' : '<div class="p-card back"></div><div class="p-card back"></div>'
   })
 
   // Hand rank labels — shown during showdown and between-rounds when cards are face-up
   const showRanks = curPhase === 'showdown' || curPhase === 'between-rounds'
-  const community = meta.community || []
   const myRankEl  = document.getElementById('pk-my-rank')
   if (myRankEl) {
     myRankEl.textContent = (showRanks && !myFolded)
-      ? getBestHandName([...((meta.hands || {})[state.sessionId] || []), ...community])
+      ? getBestHandName([...myHand, ...effectComm])
       : ''
   }
   opponents.forEach(id => {
     const rankEl = document.getElementById(`pk-opp-rank-${id}`)
     if (!rankEl) return
     if (!showRanks || curFolded[id]) { rankEl.textContent = ''; return }
-    const hand = (meta.hands || {})[id] || []
+    const hand = effectHands[id] || []
     const hasRealCards = hand.length > 0 && hand.every(c => c !== 'hidden' && c !== 'back')
-    rankEl.textContent = hasRealCards ? getBestHandName([...hand, ...community]) : ''
+    rankEl.textContent = hasRealCards ? getBestHandName([...hand, ...effectComm]) : ''
   })
 
   // Reveal opponent cards when entering showdown or between-rounds (server may skip straight to between-rounds)
