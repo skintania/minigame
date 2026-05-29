@@ -228,6 +228,7 @@ export function render() {
   }
 
   if (meta.phase === 'showdown') {
+    document.getElementById('g-phase').textContent = 'Showdown'
     updateShowdownBar(meta)
     registry[state.gameId]?.render(meta, false)
     return
@@ -236,10 +237,9 @@ export function render() {
   hideShowdownBar()
 
   if (meta.phase === 'between-rounds') {
+    document.getElementById('g-phase').textContent = 'Between Rounds'
     document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
-    if (!document.getElementById('between-rounds-overlay')?.classList.contains('open')) {
-      showBetweenRounds(meta)
-    }
+    showBetweenRounds(meta)
     registry[state.gameId]?.render(meta, false)
     return
   }
@@ -486,9 +486,15 @@ function updateShowdownBar(meta) {
 
   document.getElementById('btn-skip-showdown').style.display = amHost() ? '' : 'none'
 
-  // Show/Muck row in the action bar — visible only when this player is pending
-  const myDecision      = meta.showdownDecisions?.[state.sessionId]
-  const canDecide       = myDecision === 'pending'
+  // Show/Muck row in the action bar — visible when this player must decide.
+  // Fall back to "pending" if showdownDecisions field is absent but we are a
+  // non-folded, non-winner active player (handles servers that omit the field).
+  const folded     = !!(meta.folded || {})[state.sessionId]
+  const isWinner   = meta.handWinner === state.sessionId
+  const decisions  = meta.showdownDecisions
+  const myDecision = decisions?.[state.sessionId]
+  const canDecide  = myDecision === 'pending' ||
+    (myDecision == null && !folded && !isWinner && curRole() === 'player')
   const actionBar       = document.querySelector('.pk-action-bar')
   const normalActions   = document.getElementById('pk-normal-actions')
   const showdownActions = document.getElementById('pk-showdown-actions')
@@ -556,9 +562,7 @@ async function showHandResult(meta) {
     showHandWinnerBanner(`${winnerName} wins the hand`)
   }
 
-  const players  = state.gameState?.players || []
-  const chips    = meta.chips || {}
-  const winnerId = meta.winner || players.find(p => (chips[p] || 0) > 0)
+  const winnerId = meta.winner
   setTimeout(() => {
     hideHandWinnerBanner()
     if (winnerId) showWinner(winnerId)

@@ -355,7 +355,12 @@ export function renderBoard(meta, mine) {
   const curWinner = meta.handWinner ?? meta.winner ?? null
 
   if (prevPot >= 0) {
-    if (!prevWinner && curWinner) {
+    const leavingShowdown = prevPhase === 'showdown' && curPhase !== 'showdown'
+    if (leavingShowdown && curWinner) {
+      // Pot flies to winner as showdown ends (after show/muck decisions)
+      animatePotToWinner(curWinner)
+    } else if (!prevWinner && curWinner && curPhase !== 'showdown') {
+      // Winner set outside showdown (e.g. everyone folded) — animate immediately
       animatePotToWinner(curWinner)
     } else if (!curWinner && curPot > prevPot) {
       animateBetToPot(curBets, prevBets, meta.lastAction)
