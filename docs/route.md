@@ -99,12 +99,13 @@ pages/game.js
 enterGame() sets state.poll = setInterval(2200ms)
   → api.getState()
   → state.gameState = res
-  → detectElimination()
+  → applyServerState(res)
   → render()
-       ├─ phase=waiting   → updateWaitingPanel()
-       ├─ phase=active    → registry[gameId].render(meta, mine)
-       ├─ phase=between-rounds → show overlay, startBetweenRoundsTimer()
-       └─ meta.winner     → stopPoll() → showWinner()
+       ├─ phase=waiting        → updateWaitingPanel()
+       ├─ phase=showdown       → updateShowdownBar() + board render (poll keeps running)
+       ├─ phase=between-rounds → showBetweenRounds() once + board render (poll keeps running)
+       ├─ active phase         → registry[gameId].render(meta, mine)
+       └─ meta.winner set      → stopPoll() → onHandEnd() → showHandResult() / showWinner()
 ```
 
 ### Player Action (Poker)
@@ -131,14 +132,20 @@ click color in modal
   → api.unoPlay(matchId, sessionId, pendingWild, color) → fires 'game:move'
 ```
 
-### Hand End → Next Round
+### Showdown → Between-rounds → Next Hand
 ```
-poll detects meta.handWinner or meta.winner
+round ends (status=round-complete)
+  → poll keeps running; render() detects phase=showdown
+  → updateShowdownBar() opens pill with winner name + 5s countdown
+  → host can click "Skip" → hostNextRound() → api.pokerNextRound()
+  → server auto-transitions to between-rounds after 5s
+  → poll detects phase=between-rounds → showBetweenRounds() opens overlay
+  → host "Start Next Round" → hostNextRound() → api.pokerNextRound()
+  → server starts new hand → poll detects active phase → hideBetweenRounds()
+
+Game over (meta.winner set):
   → stopPoll()
-  → onHandEnd(meta) [game.js]
-  → showHandResult() — shows banner + between-rounds overlay
-  → if host && auto: startNextHand() after countdown
-  → startNextHand() → api.pokerNextRound(matchId, sessionId) → re-enterGame()
+  → showHandResult() → brief banner → showWinner() after 2.5s
 ```
 
 ### Room Heartbeat
@@ -168,6 +175,7 @@ roomHeartbeatInterval (15s) [game.js]
 | `#uno-board` | game | UNO board container |
 | `#pk-hand-winner` | game | Hand result banner |
 | `#winner-overlay` | game | Game-over full-screen overlay |
+| `#showdown-bar` | game | Showdown pill (winner name + countdown + Skip for host) |
 | `#between-rounds-overlay` | game | Between-rounds countdown overlay |
 | `#color-modal` | game | UNO wild color picker modal |
 | `#room-dropdown` | game | Room menu panel (code, players, leave) |
@@ -181,6 +189,7 @@ roomHeartbeatInterval (15s) [game.js]
 | `state.poll` | 2.2s | `enterGame()` | `stopPoll()` |
 | `roomHeartbeatInterval` | 15s | `enterGame()` | `stopPoll()` |
 | `turnTimerInterval` | 1s | `updateTurnTimer()` | `stopPoll()` / on turn change |
-| `betweenRoundsInterval` | 1s | `startBetweenRoundsTimer()` | `stopPoll()` / countdown ends |
+| `showdownInterval` | 1s | `updateShowdownBar()` | `stopPoll()` / `hideShowdownBar()` |
+| `betweenRoundsInterval` | 1s | `showBetweenRounds()` | `stopPoll()` / countdown ends |
 | lobby `heartbeat` | 15s | `initLobby()` | page unload |
 | lobby `stateTimer` | 4s | `initLobby()` | page unload |

@@ -134,9 +134,12 @@ Main game orchestrator (~700 lines). Manages polling, rendering dispatch, overla
 
 **`render()`** — main dispatch based on `state.gameState`:
 - `matchStatus === 'waiting'` → `updateWaitingPanel()`
-- `meta.phase === 'between-rounds'` → show overlay, tick countdown
+- `meta.phase === 'showdown'` → `updateShowdownBar()` + board render; poll continues
+- `meta.phase === 'between-rounds'` → `showBetweenRounds()` once + board render; poll continues
 - active phase → `registry[gameId].render(meta, isMyTurn)` + turn timer
-- `meta.handWinner` or `meta.winner` → `stopPoll()` → `onHandEnd()`
+- `meta.winner` detected → `stopPoll()` → `onHandEnd()` (game-over only)
+
+**Showdown phase:** poll keeps running. `updateShowdownBar()` opens `#showdown-bar` once with winner name, `showdownRemainingSec` local countdown, and "Skip" button for host. Host "Skip" and normal "Start Next Round" both call `hostNextRound()` → `api.pokerNextRound`. `round-complete` and `handWinner` no longer stop the poll.
 
 **Server-authoritative helpers (replaces client-side tracking):**
 - `amHost()` — reads `state.gameState.hostId === state.sessionId`; falls back to `state.isHost` before first poll
@@ -147,11 +150,12 @@ Main game orchestrator (~700 lines). Manages polling, rendering dispatch, overla
 - `pollRoomHeartbeat()` — updates `roomData` for `members[]`/settings; syncs host from room response when game state hasn't arrived yet
 - `updateWaitingPanel()` — render waiting-phase UI (player list, chips, join/start/settings)
 - `updateSpectatorPanel()` — reads `state.gameState.spectatorNames` directly; no client-side deduplication needed
-- `showHandResult(meta)` — poker hand winner banner + between-rounds overlay
-- `showWinner(winnerId)` — game-over overlay with winner name
-- `startNextHand()` — `api.pokerNextRound()` → re-`enterGame()`
-- `handleMoveResult(res)` — called from `game:move` event; assigns `res` directly as `state.gameState` (no nested `.state` unwrap)
-- `stopPoll()` — clears all intervals/timers
+- `updateShowdownBar(meta)` / `hideShowdownBar()` — open/close `#showdown-bar` pill; starts 1s countdown interval on first open
+- `showBetweenRounds(meta)` — open `#between-rounds-overlay`; start countdown from `betweenRoundsUntil`
+- `showHandResult(meta)` — game-over only: brief hand winner banner → `showWinner()` after 2.5s
+- `showWinner(winnerId)` — game-over overlay
+- `handleMoveResult(res)` — called from `game:move` event; assigns `res` as `state.gameState`; only stops poll on `meta.winner`
+- `stopPoll()` — clears all intervals including `showdownInterval`
 
 **Role and host changes:** After `switchRole`, `wrJoinTable`, `wrLeaveTable` — calls `api.getState()` immediately to refresh `myRole` and `hostId` from server before re-rendering.
 
