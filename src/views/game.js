@@ -32,11 +32,15 @@ function curRole() {
 function applyServerState(gs) {
   if (!gs) return
 
-  // Detect elimination: server switched us from player → spectator
-  if (prevMyRole === 'player' && gs.myRole === 'spectator') {
+  // Detect role change player → spectator during an active match
+  if (prevMyRole === 'player' && gs.myRole === 'spectator' && gs.matchStatus === 'active') {
     document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
-    const { handWinner, winner } = gs.metadata || {}
-    if (!handWinner && !winner) showToast('You were eliminated — now spectating.')
+    const myChips = gs.metadata?.chips?.[state.sessionId] ?? 0
+    if (myChips > 0) {
+      // Still has chips — kicked for inactivity, not chip bust
+      showToast('You were removed due to inactivity. Rejoin during between-rounds.')
+    }
+    // myChips === 0: natural elimination — winner overlay / hand result handles messaging
   }
   prevMyRole = gs.myRole ?? prevMyRole
 
@@ -158,7 +162,13 @@ export function enterGame() {
       applyServerState(gs)
       saveSession()
       render()
-      if (gs.metadata?.winner) {
+      if (gs.status === 'reset') {
+        // All players busted — room wiped back to waiting, matchId stays valid
+        hideBetweenRounds()
+        hideShowdownBar()
+        document.getElementById('winner-overlay')?.classList.remove('open')
+        showToast('All players busted out. Room reset.')
+      } else if (gs.metadata?.winner) {
         stopPoll()
         prevCommunityCount = commBefore
         onHandEnd(gs.metadata)
@@ -460,7 +470,12 @@ async function handleMoveResult(res) {
   applyServerState(res)
   saveSession()
   render()
-  if (res.status === 'finished' || res.metadata?.winner) {
+  if (res.status === 'reset') {
+    hideBetweenRounds()
+    hideShowdownBar()
+    document.getElementById('winner-overlay')?.classList.remove('open')
+    showToast('All players busted out. Room reset.')
+  } else if (res.status === 'finished' || res.metadata?.winner) {
     stopPoll()
     prevCommunityCount = commBefore
     onHandEnd(res.metadata)
