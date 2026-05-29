@@ -15,23 +15,34 @@ async function request(method, path, body) {
 
 export const api = {
   // Auth
-  auth:           username         => request('POST', '/auth', { username }),
-  resume:         sessionId        => request('POST', '/auth', { sessionId }),
+  auth:   username  => request('POST', '/auth', { username }),
+  resume: sessionId => request('POST', '/auth', { sessionId }),
 
   // Public matchmaking
-  join:           (sid, gid)       => request('POST', '/lobby/join', { sessionId: sid, gameId: gid }),
+  join: (sid, gid) => request('POST', '/lobby/join', { sessionId: sid, gameId: gid }),
 
   // Private rooms
-  createRoom:     (sid, gid, opts = {}) => request('POST', '/rooms/create', { sessionId: sid, gameId: gid, ...opts }),
-  joinRoom:       (sid, roomCode, role)  => request('POST', '/rooms/join',   { sessionId: sid, roomCode, role }),
-  getRoomStatus:  (roomCode, sid)       => request('GET',  `/rooms/${roomCode}${sid ? `?sessionId=${encodeURIComponent(sid)}` : ''}`),
-  switchRole:     (code, sid, role)     => request('PATCH', `/rooms/${code}/role`, { sessionId: sid, role }),
-  patchSettings:  (code, sid, settings) => request('PATCH', `/rooms/${code}/settings`, { sessionId: sid, ...settings }),
-  leaveRoom:      (code, sid)           => request('DELETE', `/rooms/${code}/leave`, { sessionId: sid }),
-  kickPlayer:     (code, sid, target)   => request('DELETE', `/rooms/${code}/players/${target}`, { sessionId: sid }),
+  createRoom:    (sid, gid, opts = {}) => request('POST', '/rooms/create', { sessionId: sid, gameId: gid, ...opts }),
+  joinRoom:      (sid, roomCode)       => request('POST', '/rooms/join',   { sessionId: sid, roomCode }),
+  getRoomStatus: (roomCode, sid)       => request('GET',  `/rooms/${roomCode}${sid ? `?sessionId=${encodeURIComponent(sid)}` : ''}`),
+  switchRole:    (code, sid, role)     => request('PATCH', `/rooms/${code}/role`,     { sessionId: sid, role }),
+  patchSettings: (code, sid, settings) => request('PATCH', `/rooms/${code}/settings`, { sessionId: sid, ...settings }),
+  leaveRoom:     (code, sid)           => request('DELETE', `/rooms/${code}/leave`,   { sessionId: sid }),
+  kickPlayer:    (code, sid, target)   => request('DELETE', `/rooms/${code}/players/${target}`, { sessionId: sid }),
 
-  // Game
-  move:           (gid, sid, mid, action) =>
-    request('POST', `/games/${gid}/move`, { sessionId: sid, matchId: mid, action }),
-  getState:       (gid, mid, sid)  => request('GET', `/games/${gid}/state?matchId=${mid}&sessionId=${sid}`),
+  // Game state (both games share same URL pattern)
+  getState: (gid, mid, sid) => request('GET', `/games/${gid}/${mid}/state?sessionId=${encodeURIComponent(sid)}`),
+
+  // Poker actions
+  pokerStart:     (mid, sid)         => request('POST', `/games/poker/${mid}/start`,      { sessionId: sid }),
+  pokerNextRound: (mid, sid)         => request('POST', `/games/poker/${mid}/next-round`, { sessionId: sid }),
+  pokerFold:      (mid, sid)         => request('POST', `/games/poker/${mid}/fold`,       { sessionId: sid }),
+  pokerCheck:     (mid, sid)         => request('POST', `/games/poker/${mid}/check`,      { sessionId: sid }),
+  pokerCall:      (mid, sid)         => request('POST', `/games/poker/${mid}/call`,       { sessionId: sid }),
+  pokerBet:       (mid, sid, amount) => request('POST', `/games/poker/${mid}/bet`,        { sessionId: sid, amount }),
+
+  // UNO actions
+  unoStart: (mid, sid)              => request('POST', `/games/uno/${mid}/start`, { sessionId: sid }),
+  unoPlay:  (mid, sid, card, color) => request('POST', `/games/uno/${mid}/play`,  color ? { sessionId: sid, card, color } : { sessionId: sid, card }),
+  unoDraw:  (mid, sid)              => request('POST', `/games/uno/${mid}/draw`,  { sessionId: sid }),
 }

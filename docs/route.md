@@ -111,11 +111,11 @@ enterGame() sets state.poll = setInterval(2200ms)
 ```
 click Fold/Check/Bet [poker/index.js button listener]
   → pkAction('fold') or pkCall() or pkBet() [poker/actions.js]
-  → dispatch(action)
-  → api.move(gameId, sessionId, matchId, action)
+  → api.pokerFold / api.pokerCheck / api.pokerCall / api.pokerBet
+  → res = unified game response (flat)
   → fires CustomEvent('game:move', { detail: res }) on document
   → game.js listener: handleMoveResult(res)
-  → updateGameState(res) → render()
+  → state.gameState = res → applyServerState(res) → render()
 ```
 
 ### Player Action (UNO)
@@ -123,13 +123,12 @@ click Fold/Check/Bet [poker/index.js button listener]
 click card [uno/render.js onPlay callback]
   → unoPlay(card) [uno/actions.js]
   → if wild: state.pendingWild = card → openModal('color-modal')
-  → else: dispatch({type:'play', card})
-  → api.move() → fires 'game:move' → handleMoveResult()
+  → else: api.unoPlay() → fires 'game:move' → handleMoveResult()
 
 click color in modal
   → pickColor(color) [uno/actions.js]
   → closeModal()
-  → dispatch({type:'play', card: pendingWild, color})
+  → api.unoPlay(matchId, sessionId, pendingWild, color) → fires 'game:move'
 ```
 
 ### Hand End → Next Round
@@ -139,7 +138,7 @@ poll detects meta.handWinner or meta.winner
   → onHandEnd(meta) [game.js]
   → showHandResult() — shows banner + between-rounds overlay
   → if host && auto: startNextHand() after countdown
-  → startNextHand() → api.move({type:'next-round'}) → re-enterGame()
+  → startNextHand() → api.pokerNextRound(matchId, sessionId) → re-enterGame()
 ```
 
 ### Room Heartbeat

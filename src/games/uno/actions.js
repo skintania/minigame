@@ -3,14 +3,19 @@ import { state } from '../../state.js'
 import { showToast } from '../../ui/toast.js'
 import { openModal, closeModal } from '../../ui/modal.js'
 
-async function dispatch(action) {
-  const res = await api.move(state.gameId, state.sessionId, state.matchId, action)
+function dispatch(res) {
   document.dispatchEvent(new CustomEvent('game:move', { detail: res }))
 }
 
 export async function unoAct(action) {
   try {
-    await dispatch(action)
+    let res
+    if (action.type === 'draw') {
+      res = await api.unoDraw(state.matchId, state.sessionId)
+    } else {
+      res = await api.unoPlay(state.matchId, state.sessionId, action.card, action.color)
+    }
+    dispatch(res)
   } catch (e) {
     console.error('[uno] action failed:', action, e)
     showToast(e.message)

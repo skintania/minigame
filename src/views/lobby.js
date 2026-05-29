@@ -232,7 +232,8 @@ async function startRound() {
   btn.disabled    = true
   btn.textContent = 'Starting…'
   try {
-    await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
+    const fn = state.gameId === 'poker' ? api.pokerStart : api.unoStart
+    await fn(state.matchId, state.sessionId)
     // heartbeat will detect status=active and redirect to game.html
   } catch (e) {
     showToast(e.message)

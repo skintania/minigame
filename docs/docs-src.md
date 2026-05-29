@@ -31,16 +31,27 @@ Thin fetch wrapper around the Cloudflare Worker API.
 | `resume(sessionId)` | POST | `/auth` |
 | `join(sid, gid)` | POST | `/lobby/join` |
 | `createRoom(sid, gid, opts)` | POST | `/rooms/create` |
-| `joinRoom(sid, code, role)` | POST | `/rooms/join` |
+| `joinRoom(sid, code)` | POST | `/rooms/join` |
 | `getRoomStatus(code, sid)` | GET | `/rooms/{code}` |
 | `switchRole(code, sid, role)` | PATCH | `/rooms/{code}/role` |
 | `patchSettings(code, sid, settings)` | PATCH | `/rooms/{code}/settings` |
 | `leaveRoom(code, sid)` | DELETE | `/rooms/{code}/leave` |
 | `kickPlayer(code, sid, targetId)` | DELETE | `/rooms/{code}/players/{targetId}` |
-| `move(gameId, sid, matchId, action)` | POST | `/games/{gameId}/move` |
-| `getState(gameId, matchId, sid)` | GET | `/games/{gameId}/state` |
+| `getState(gid, mid, sid)` | GET | `/games/{gid}/{mid}/state` |
+| `pokerStart(mid, sid)` | POST | `/games/poker/{mid}/start` |
+| `pokerNextRound(mid, sid)` | POST | `/games/poker/{mid}/next-round` |
+| `pokerFold(mid, sid)` | POST | `/games/poker/{mid}/fold` |
+| `pokerCheck(mid, sid)` | POST | `/games/poker/{mid}/check` |
+| `pokerCall(mid, sid)` | POST | `/games/poker/{mid}/call` |
+| `pokerBet(mid, sid, amount)` | POST | `/games/poker/{mid}/bet` |
+| `unoStart(mid, sid)` | POST | `/games/uno/{mid}/start` |
+| `unoPlay(mid, sid, card, color?)` | POST | `/games/uno/{mid}/play` |
+| `unoDraw(mid, sid)` | POST | `/games/uno/{mid}/draw` |
 
 All calls use `cfg.url` as base. Non-2xx responses throw `Error(d.error)`.
+
+**Unified Game Response** — all game state and action endpoints return a flat object:
+`{ players, metadata, playerNames, spectatorNames, hostId, myRole, matchStatus, isMyTurn, betweenRoundsRemainingSec?, status, message }`
 
 ---
 
@@ -122,21 +133,27 @@ Main game orchestrator (~700 lines). Manages polling, rendering dispatch, overla
 **`enterGame()`** — starts `state.poll` (2.2s game state) and `roomHeartbeatInterval` (15s room status).
 
 **`render()`** — main dispatch based on `state.gameState`:
-- `status === 'waiting'` → `updateWaitingPanel()`
-- `status === 'active'` → `registry[gameId].render(meta, isMine)` + turn timer
+- `matchStatus === 'waiting'` → `updateWaitingPanel()`
+- `meta.phase === 'between-rounds'` → show overlay, tick countdown
+- active phase → `registry[gameId].render(meta, isMyTurn)` + turn timer
 - `meta.handWinner` or `meta.winner` → `stopPoll()` → `onHandEnd()`
-- `status === 'between-rounds'` → show overlay, tick countdown
+
+**Server-authoritative helpers (replaces client-side tracking):**
+- `amHost()` — reads `state.gameState.hostId === state.sessionId`; falls back to `state.isHost` before first poll
+- `curRole()` — reads `state.gameState.myRole`; falls back to `state.role`
+- `applyServerState(gs)` — called after every state update; detects elimination (`myRole` changed to `'spectator'`), syncs host button visibility
 
 **Key functions:**
-- `pollRoomHeartbeat()` — detect host transfer, update panels
-- `detectElimination()` — check if player's sessionId still in active player list
+- `pollRoomHeartbeat()` — updates `roomData` for `members[]`/settings; syncs host from room response when game state hasn't arrived yet
 - `updateWaitingPanel()` — render waiting-phase UI (player list, chips, join/start/settings)
-- `updateSpectatorPanel()` — update spectator list in sidebar
+- `updateSpectatorPanel()` — reads `state.gameState.spectatorNames` directly; no client-side deduplication needed
 - `showHandResult(meta)` — poker hand winner banner + between-rounds overlay
 - `showWinner(winnerId)` — game-over overlay with winner name
-- `startNextHand()` — `api.move({type:'next-round'})` → re-`enterGame()`
-- `handleMoveResult(res)` — called from `game:move` event; updates state + render
+- `startNextHand()` — `api.pokerNextRound()` → re-`enterGame()`
+- `handleMoveResult(res)` — called from `game:move` event; assigns `res` directly as `state.gameState` (no nested `.state` unwrap)
 - `stopPoll()` — clears all intervals/timers
+
+**Role and host changes:** After `switchRole`, `wrJoinTable`, `wrLeaveTable` — calls `api.getState()` immediately to refresh `myRole` and `hostId` from server before re-rendering.
 
 ---
 
@@ -163,10 +180,10 @@ Poker action dispatchers.
 
 **Exports:** `pkAction(type)`, `pkCall()`, `pkBet()`
 
-- `pkAction(type)` — send `{type}` (fold, check)
-- `pkCall()` — read call amount from button's data attribute, send `{type:'call', amount}`
-- `pkBet()` — read amount from `#pk-bet-input`, validate against min-raise, send `{type:'bet', amount}`
-- `dispatch(action)` — `api.move()` → fires `CustomEvent('game:move')` on `document`
+- `pkAction(type)` — calls `api.pokerFold` or `api.pokerCheck` by type
+- `pkCall()` — calls `api.pokerCall` (no amount needed; server computes it)
+- `pkBet()` — reads amount from `#bet-amt`, calls `api.pokerBet(matchId, sessionId, amount)`
+- `dispatch(res)` — fires `CustomEvent('game:move', { detail: res })` on `document`
 
 Errors caught and shown via `showToast()`.
 
@@ -215,10 +232,10 @@ UNO action dispatchers.
 
 **Exports:** `unoAct(action)`, `unoPlay(card)`, `pickColor(color)`
 
-- `unoPlay(card)` — if wild: set `state.pendingWild`, `openModal('color-modal')`; else dispatch immediately
-- `pickColor(color)` — `closeModal()` → dispatch `{type:'play', card: pendingWild, color}`
-- `unoAct(action)` — generic dispatch (used for draw)
-- `dispatch(action)` — `api.move()` → fires `game:move` event
+- `unoPlay(card)` — if wild: set `state.pendingWild`, `openModal('color-modal')`; else call `unoAct` immediately
+- `pickColor(color)` — `closeModal()` → `unoAct({ type:'play', card: pendingWild, color })`
+- `unoAct(action)` — calls `api.unoDraw` or `api.unoPlay` based on `action.type`
+- `dispatch(res)` — fires `CustomEvent('game:move', { detail: res })` on `document`
 
 ---
 

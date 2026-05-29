@@ -10,25 +10,56 @@ let handResultActive      = false
 let turnTimerInterval     = null
 let betweenRoundsInterval = null
 let roomHeartbeatInterval = null
-let roomData              = null   // latest GET /rooms/:code response
-let prevCommunityCount    = 0      // community card count before last state update (all-in detection)
+let roomData              = null
+let prevCommunityCount    = 0
+let prevMyRole            = null
 let wrSettings            = { maxPlayers: 8, startingChips: 1000, turnTimeLimit: 0, roundLimit: 0 }
 let wrDebounce            = {}
 
+// ── Server-authoritative helpers ──────────────────────────
+// Use these everywhere instead of reading state.isHost / state.role directly.
+
+function amHost() {
+  if (state.gameState?.hostId) return state.gameState.hostId === state.sessionId
+  return !!state.isHost
+}
+
+function curRole() {
+  return state.gameState?.myRole || state.role || 'spectator'
+}
+
+// Called after every state update to detect elimination and sync cached fields.
+function applyServerState(gs) {
+  if (!gs) return
+
+  // Detect elimination: server switched us from player → spectator
+  if (prevMyRole === 'player' && gs.myRole === 'spectator') {
+    document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
+    const { handWinner, winner } = gs.metadata || {}
+    if (!handWinner && !winner) showToast('You were eliminated — now spectating.')
+  }
+  prevMyRole = gs.myRole ?? prevMyRole
+
+  // Sync host button visibility from every server response
+  if (gs.hostId) {
+    const isNowHost = gs.hostId === state.sessionId
+    document.getElementById('btn-end-game').style.display =
+      (state.roomCode && isNowHost) ? 'inline-flex' : 'none'
+  }
+}
+
 // ── Init ──────────────────────────────────────────────────
 export function initGame() {
-  // Overlay close buttons
   document.getElementById('btn-back-to-room-win').addEventListener('click', goLobby)
   document.getElementById('btn-leave-room-win').addEventListener('click', () => leaveRoom())
-  document.getElementById('btn-leave-room-br').addEventListener('click', () => leaveRoom())
+  document.getElementById('btn-leave-room-br').addEventListener('click',  () => leaveRoom())
   document.getElementById('btn-end-game').addEventListener('click', () => {
     if (confirm('End the game for everyone?')) leaveRoom()
   })
   document.getElementById('btn-next-round').addEventListener('click', hostNextRound)
   document.getElementById('btn-switch-role').addEventListener('click', switchRole)
 
-  // Room menu dropdown
-  const roomMenuBtn = document.getElementById('room-menu-btn')
+  const roomMenuBtn  = document.getElementById('room-menu-btn')
   const roomDropdown = document.getElementById('room-dropdown')
   roomMenuBtn.addEventListener('click', e => {
     e.stopPropagation()
@@ -45,7 +76,6 @@ export function initGame() {
     if (!e.target.closest('#room-menu-wrap')) roomDropdown.style.display = 'none'
   })
 
-  // Room menu / waiting panel actions
   document.getElementById('wr-copy-btn').addEventListener('click', () => {
     navigator.clipboard.writeText(state.roomCode || '')
       .then(() => { const b = document.getElementById('wr-copy-btn'); b.textContent = 'Copied!'; setTimeout(() => b.textContent = 'Copy', 2000) })
@@ -93,9 +123,8 @@ export function enterGame() {
   document.getElementById('poker-board').style.display = gameId === 'poker' ? 'flex' : 'none'
   document.getElementById('uno-board').style.display   = gameId === 'uno'   ? 'flex' : 'none'
   document.getElementById('btn-end-game').style.display =
-    (state.roomCode && state.isHost) ? 'inline-flex' : 'none'
+    (state.roomCode && amHost()) ? 'inline-flex' : 'none'
 
-  // Pre-fill room dropdown before first poll lands
   if (state.roomCode) {
     document.getElementById('wr-code').textContent       = state.roomCode
     document.getElementById('wr-game-badge').textContent = (state.gameId || '—').toUpperCase()
@@ -103,19 +132,16 @@ export function enterGame() {
     document.getElementById('room-menu-wrap').style.display = ''
   }
 
-  // If in a room with no game state yet, show waiting panel immediately
   if (state.roomCode && !state.gameState) {
-    state.gameState = { metadata: { phase: 'waiting' }, players: [], playerNames: {} }
+    state.gameState = { matchStatus: 'waiting', metadata: { phase: 'waiting' }, players: [], playerNames: {}, myRole: curRole(), hostId: state.hostId }
     render()
   }
 
-  // Room heartbeat (15s)
   if (state.roomCode) {
     pollRoomHeartbeat()
     roomHeartbeatInterval = setInterval(pollRoomHeartbeat, 15000)
   }
 
-  // Game state poll (2.2s) — only when matchId is known
   if (!state.matchId) return
 
   let fetching = false
@@ -124,14 +150,15 @@ export function enterGame() {
     fetching = true
     try {
       const commBefore = state.gameState?.metadata?.community?.length ?? 0
-      state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
+      const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+      state.gameState = gs
+      applyServerState(gs)
       saveSession()
-      detectElimination()
       render()
-      if (state.gameState?.metadata?.handWinner ?? state.gameState?.metadata?.winner) {
+      if (gs.metadata?.handWinner ?? gs.metadata?.winner) {
         stopPoll()
         prevCommunityCount = commBefore
-        onHandEnd(state.gameState.metadata)
+        onHandEnd(gs.metadata)
       }
     } catch (e) {
       console.error('[game] poll error:', e)
@@ -151,17 +178,16 @@ async function pollRoomHeartbeat() {
     const room = await api.getRoomStatus(state.roomCode, state.sessionId)
     roomData = room
 
-    if (room.hostId && room.hostId !== state.hostId) {
+    // Keep state.isHost in sync for initial load (before game state arrives)
+    if (room.hostId) {
       state.hostId = room.hostId
       state.isHost = room.hostId === state.sessionId
-      saveSession()
       document.getElementById('btn-end-game').style.display =
-        (state.roomCode && state.isHost) ? 'inline-flex' : 'none'
-      document.getElementById('btn-next-round').style.display = state.isHost ? '' : 'none'
+        (state.roomCode && amHost()) ? 'inline-flex' : 'none'
+      document.getElementById('btn-next-round').style.display = amHost() ? '' : 'none'
     }
 
-    // Refresh dropdown and spectator panel from latest room data
-    if (state.gameState?.metadata?.phase === 'waiting') {
+    if (state.gameState?.matchStatus === 'waiting' || state.gameState?.metadata?.phase === 'waiting') {
       updateWaitingPanel(state.gameState?.metadata || null)
     }
     updateSpectatorPanel()
@@ -172,45 +198,27 @@ async function pollRoomHeartbeat() {
   }
 }
 
-// ── Elimination detection ─────────────────────────────────
-function detectElimination() {
-  if (state.role !== 'player') return
-  const players = state.gameState?.players || []
-  if (players.length > 0 && !players.includes(state.sessionId)) {
-    state.role = 'spectator'
-    saveSession()
-    document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
-    // Skip toast when a hand result is about to show — the winner overlay will make it clear
-    const { handWinner, winner } = state.gameState?.metadata || {}
-    if (!handWinner && !winner) showToast('You were eliminated — now spectating.')
-  }
-}
-
 // ── Render ────────────────────────────────────────────────
 export function render() {
   if (!state.gameState) return
   const meta = state.gameState.metadata
   if (!meta) return
 
-  const isWaiting = meta.phase === 'waiting'
+  const isWaiting = state.gameState.matchStatus === 'waiting' || meta.phase === 'waiting'
 
-  // Room menu button (always visible in a room)
   document.getElementById('room-menu-wrap').style.display = state.roomCode ? '' : 'none'
   if (state.roomCode) document.getElementById('room-menu-btn').textContent = state.roomCode + ' ▾'
 
-  // Join wrap only during waiting
   document.getElementById('wr-join-wrap').style.display = isWaiting ? 'flex' : 'none'
 
-  // Hide player badge when waiting and not at the table yet
   document.getElementById('pk-my-badge').style.display =
-    (isWaiting && state.role !== 'player') ? 'none' : ''
+    (isWaiting && curRole() !== 'player') ? 'none' : ''
 
-  // Spectator panel: show whenever in a room
   document.getElementById('spectator-panel').style.display = state.roomCode ? '' : 'none'
   updateSpectatorPanel()
 
   document.querySelector('.pk-action-bar')?.style.setProperty('display',
-    isWaiting ? 'none' : (state.role === 'spectator' ? 'none' : ''))
+    isWaiting ? 'none' : (curRole() === 'spectator' ? 'none' : ''))
 
   if (isWaiting) {
     updateWaitingPanel(meta)
@@ -218,7 +226,6 @@ export function render() {
     return
   }
 
-  // Between-rounds — render final board (reveals cards) but skip the popup
   if (meta.phase === 'between-rounds') {
     hideBetweenRounds()
     registry[state.gameId]?.render(meta, false)
@@ -226,8 +233,8 @@ export function render() {
   }
   hideBetweenRounds()
 
-  const isSpectator = state.role === 'spectator'
-  const mine = !isSpectator && meta.currentPlayer === state.sessionId
+  const isSpectator = curRole() === 'spectator'
+  const mine = state.gameState.isMyTurn === true
 
   const pill = document.getElementById('turn-pill')
   if (isSpectator) {
@@ -251,27 +258,17 @@ export function render() {
 
 // ── Spectator panel ───────────────────────────────────────
 function updateSpectatorPanel() {
-  const room = roomData
   const gs   = state.gameState
+  const room = roomData
 
-  const specCount = room?.spectatorCount ?? 0
+  const specNames = gs?.spectatorNames || {}
+  const specCount = room?.spectatorCount ?? Object.keys(specNames).length
   document.getElementById('wr-spec-count').textContent = specCount
 
   const list = document.getElementById('spec-panel-list')
   if (!list) return
 
-  // Primary: room heartbeat now includes members[] with sessionId+username+role
-  // Fallback: spectatorNames from game state, then add self if spectating
-  let specs = []
-  if (Array.isArray(room?.members) && room.members.length) {
-    specs = room.members.filter(m => m.role === 'spectator')
-  } else {
-    const specNames = gs?.spectatorNames || {}
-    specs = Object.entries(specNames).map(([id, username]) => ({ sessionId: id, username }))
-    if (state.role === 'spectator' && state.sessionId && !specs.find(s => s.sessionId === state.sessionId)) {
-      specs.unshift({ sessionId: state.sessionId, username: state.username || 'You' })
-    }
-  }
+  const specs = Object.entries(specNames).map(([id, username]) => ({ sessionId: id, username }))
 
   if (specs.length === 0) {
     list.innerHTML = `<div class="spec-panel-empty">${specCount > 0 ? `${specCount} watching` : 'None'}</div>`
@@ -292,11 +289,10 @@ function updateWaitingPanel(meta) {
   const names   = gs?.playerNames || {}
   const players = gs?.players     || []
   const chips   = gs?.metadata?.chips || {}
-  const amHost  = state.sessionId === (room?.hostId || state.hostId)
   const isPoker = state.gameId === 'poker'
-  const role    = state.role || 'spectator'
+  const role    = curRole()
+  const host    = amHost()
 
-  // Counts from room poll
   if (room) {
     document.getElementById('wr-player-count').textContent = room.playerCount    ?? '—'
     document.getElementById('wr-max-display').textContent  = room.maxPlayers     ?? '—'
@@ -310,56 +306,53 @@ function updateWaitingPanel(meta) {
     }
   }
 
-  // Player list — use room.members for names (covers waiting phase where playerNames is empty)
   const memberNameMap = {}
   if (Array.isArray(room?.members)) {
     room.members.forEach(m => { memberNameMap[m.sessionId] = m.username })
   }
 
-  // Authoritative player list: room members with player role when available, else game state
   const tableMemberIds = Array.isArray(room?.members)
     ? room.members.filter(m => m.role === 'player').map(m => m.sessionId)
     : players
+
+  const hostId = gs?.hostId || room?.hostId || state.hostId
 
   const inner = document.getElementById('wr-players-inner')
   if (tableMemberIds.length === 0) {
     inner.innerHTML = '<div class="rm-empty">No players at the table yet</div>'
   } else {
     inner.innerHTML = tableMemberIds.map(id => {
-      const name   = names[id] || memberNameMap[id] || id.slice(0, 8)
-      const isMe   = id === state.sessionId
-      const isHost = id === (room?.hostId || state.hostId)
+      const name    = names[id] || memberNameMap[id] || id.slice(0, 8)
+      const isMe    = id === state.sessionId
+      const isHostP = id === hostId
       const chipAmt = chips[id] != null ? `<span class="pk-chip-count">&#9885; ${chips[id]}</span>` : ''
-      const kickBtn = (amHost && !isMe)
+      const kickBtn = (host && !isMe)
         ? `<button class="rm-kick-btn" data-kick="${id}">Kick</button>` : ''
       return `<div class="rm-player-row">
         <div class="rm-player-name">
           ${name}
-          ${isMe   ? '<span class="rm-badge rm-you-badge">You</span>'   : ''}
-          ${isHost ? '<span class="rm-badge rm-host-badge">Host</span>' : ''}
+          ${isMe    ? '<span class="rm-badge rm-you-badge">You</span>'   : ''}
+          ${isHostP ? '<span class="rm-badge rm-host-badge">Host</span>' : ''}
         </div>
         <div style="display:flex;align-items:center;gap:10px">${chipAmt}${kickBtn}</div>
       </div>`
     }).join('')
   }
 
-  // Role badge
   const badge = document.getElementById('wr-role-badge')
   if (role === 'player') {
-    badge.textContent = amHost ? '🎮 Host · Player' : '🎮 Player'
+    badge.textContent = host ? '🎮 Host · Player' : '🎮 Player'
     badge.className   = 'rm-role-badge rm-role-player'
   } else {
-    badge.textContent = amHost ? '👁 Host · Spectating' : '👁 Spectating'
+    badge.textContent = host ? '👁 Host · Spectating' : '👁 Spectating'
     badge.className   = 'rm-role-badge rm-role-spectator'
   }
 
-  // Join/Leave table
   document.getElementById('wr-join-table').style.display  = role === 'spectator' ? '' : 'none'
   document.getElementById('wr-leave-table').style.display = role === 'player'    ? '' : 'none'
 
-  // Start Round (host only)
   const startBtn = document.getElementById('wr-start-round')
-  if (amHost) {
+  if (host) {
     startBtn.style.display = ''
     const cnt = room?.playerCount ?? players.length
     startBtn.disabled    = cnt < 2
@@ -368,10 +361,9 @@ function updateWaitingPanel(meta) {
     startBtn.style.display = 'none'
   }
 
-  // Settings (host only)
   const settingsEl = document.getElementById('wr-settings')
-  settingsEl.style.display = amHost ? '' : 'none'
-  if (amHost) {
+  settingsEl.style.display = host ? '' : 'none'
+  if (host) {
     document.getElementById('wr-max-val').textContent    = wrSettings.maxPlayers
     document.getElementById('wr-chips').value            = wrSettings.startingChips
     document.getElementById('wr-timer').value            = wrSettings.turnTimeLimit
@@ -388,9 +380,11 @@ async function wrJoinTable() {
   btn.disabled = true
   try {
     await api.switchRole(state.roomCode, state.sessionId, 'player')
-    state.role = 'player'; saveSession()
+    const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+    state.gameState = gs; applyServerState(gs); saveSession()
     showToast('You joined the table!')
-    updateWaitingPanel(state.gameState?.metadata || null)
+    updateWaitingPanel(gs.metadata || null)
+    updateSpectatorPanel()
   } catch (e) { showToast(e.message) }
   finally { btn.disabled = false }
 }
@@ -400,9 +394,11 @@ async function wrLeaveTable() {
   btn.disabled = true
   try {
     await api.switchRole(state.roomCode, state.sessionId, 'spectator')
-    state.role = 'spectator'; saveSession()
+    const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+    state.gameState = gs; applyServerState(gs); saveSession()
     showToast('You left the table.')
-    updateWaitingPanel(state.gameState?.metadata || null)
+    updateWaitingPanel(gs.metadata || null)
+    updateSpectatorPanel()
   } catch (e) { showToast(e.message) }
   finally { btn.disabled = false }
 }
@@ -411,14 +407,10 @@ async function wrStartRound() {
   const btn = document.getElementById('wr-start-round')
   btn.disabled = true; btn.textContent = 'Starting…'
   try {
-    const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'start' })
-    // If matchId was missing, the move response may carry the state we need
-    if (res?.state) {
-      state.gameState = res.state
-      if (!state.matchId && res.matchId) { state.matchId = res.matchId; saveSession() }
-    }
-    // Start polling now that we have a matchId (re-enter if poll wasn't running)
-    if (!state.poll && state.matchId) enterGame()
+    const fn  = state.gameId === 'poker' ? api.pokerStart : api.unoStart
+    const res = await fn(state.matchId, state.sessionId)
+    state.gameState = res; applyServerState(res); saveSession()
+    if (!state.poll) enterGame()
     else render()
   } catch (e) {
     showToast(e.message)
@@ -448,14 +440,16 @@ async function wrKickPlayer(targetId) {
 // ── Move result handler ───────────────────────────────────
 async function handleMoveResult(res) {
   const commBefore = state.gameState?.metadata?.community?.length ?? 0
-  if (res.state) state.gameState = res.state
-  else state.gameState = await api.getState(state.gameId, state.matchId, state.sessionId)
+  // Action endpoints return the full unified game response directly
+  state.gameState = res
+  applyServerState(res)
+  saveSession()
   render()
   if (res.status === 'round-complete' || res.status === 'finished' ||
-      state.gameState?.metadata?.handWinner || state.gameState?.metadata?.winner) {
+      res.metadata?.handWinner || res.metadata?.winner) {
     stopPoll()
     prevCommunityCount = commBefore
-    onHandEnd(state.gameState.metadata)
+    onHandEnd(res.metadata)
   }
 }
 
@@ -482,8 +476,6 @@ async function showHandResult(meta) {
   if (handResultActive) return
   handResultActive = true
 
-  // Detect all-in runout: community jumped to 5 cards in one state update
-  // (server runs out remaining streets automatically when no action is needed).
   const community     = meta.community || []
   const isAllinRunout = community.length === 5 && prevCommunityCount < 5
   if (isAllinRunout && registry[state.gameId]?.animateAllinRunout) {
@@ -500,12 +492,9 @@ async function showHandResult(meta) {
 
   showHandWinnerBanner(`${winnerName} wins the hand`)
 
-  // Game over — server may not set meta.winner until next-round is sent,
-  // so also detect via chips: if anyone is at 0 the game cannot continue.
   const chips  = meta.chips || {}
   const busted = Object.values(chips).some(c => c === 0)
   if (meta.winner || busted) {
-    // Keep handResultActive = true — blocks re-entry if the poll fires again before overlay shows
     const players  = state.gameState?.players || []
     const winnerId = meta.winner || players.find(p => (chips[p] || 0) > 0)
     setTimeout(() => {
@@ -515,15 +504,18 @@ async function showHandResult(meta) {
     return
   }
 
+  // Show the between-rounds overlay so players can switch roles and see the countdown
+  showBetweenRounds(meta)
+
   // Non-host in a room: poll until host starts next hand
-  if (state.roomCode && !state.isHost) {
+  if (state.roomCode && !amHost()) {
     state.poll = setInterval(async () => {
       try {
         const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
         if (!gs?.metadata?.handWinner && !gs?.metadata?.winner && gs?.metadata?.phase !== 'showdown') {
           stopPoll()
           hideHandWinnerBanner()
-          state.gameState = gs; handResultActive = false; enterGame()
+          state.gameState = gs; applyServerState(gs); handResultActive = false; enterGame()
         }
       } catch { /* keep polling */ }
     }, 2200)
@@ -540,7 +532,6 @@ async function showHandResult(meta) {
 }
 
 async function startNextHand() {
-  // Safety: if game is already over don't send next-round to the server
   const chips  = state.gameState?.metadata?.chips || {}
   const busted = Object.values(chips).some(c => c === 0)
   if (state.gameState?.metadata?.winner || busted) {
@@ -552,15 +543,18 @@ async function startNextHand() {
   }
   hideHandWinnerBanner()
   try {
-    const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'next-round' })
-    if (res?.state) state.gameState = res.state
+    const res = await api.pokerNextRound(state.matchId, state.sessionId)
+    state.gameState = res; applyServerState(res); saveSession()
   } catch (e) { console.log('[game] next hand start:', e.message) }
+  // Poll until handWinner is cleared
   for (let i = 0; i < 12; i++) {
     if (!state.gameState?.metadata?.handWinner && !state.gameState?.metadata?.winner) break
     await sleep(350)
     try {
       const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
-      if (!gs?.metadata?.handWinner && !gs?.metadata?.winner) { state.gameState = gs; break }
+      if (!gs?.metadata?.handWinner && !gs?.metadata?.winner) {
+        state.gameState = gs; applyServerState(gs); saveSession(); break
+      }
     } catch { /* keep trying */ }
   }
   handResultActive = false; enterGame()
@@ -611,12 +605,12 @@ function showBetweenRounds(meta) {
   const switchBtn = document.getElementById('btn-switch-role')
   if (state.roomCode) {
     switchBtn.style.display = ''
-    switchBtn.textContent   = state.role === 'spectator' ? 'Join Table' : 'Leave Table'
+    switchBtn.textContent   = curRole() === 'spectator' ? 'Join Table' : 'Leave Table'
   } else {
     switchBtn.style.display = 'none'
   }
 
-  document.getElementById('btn-next-round').style.display = state.isHost ? '' : 'none'
+  document.getElementById('btn-next-round').style.display = amHost() ? '' : 'none'
   overlay.classList.add('open')
 
   if (!betweenRoundsInterval && meta.betweenRoundsUntil) {
@@ -643,21 +637,22 @@ async function hostNextRound() {
   const btn = document.getElementById('btn-next-round')
   btn.disabled = true
   try {
-    const res = await api.move(state.gameId, state.sessionId, state.matchId, { type: 'next-round' })
-    if (res?.state) state.gameState = res.state; render()
+    const res = await api.pokerNextRound(state.matchId, state.sessionId)
+    state.gameState = res; applyServerState(res); saveSession(); render()
   } catch (e) { showToast(e.message) }
   finally { btn.disabled = false }
 }
 
 async function switchRole() {
-  const newRole = state.role === 'spectator' ? 'player' : 'spectator'
+  const newRole = curRole() === 'spectator' ? 'player' : 'spectator'
   const btn = document.getElementById('btn-switch-role')
   btn.disabled = true
   try {
     await api.switchRole(state.roomCode, state.sessionId, newRole)
-    state.role = newRole; saveSession()
-    btn.textContent = newRole === 'spectator' ? 'Join Table' : 'Leave Table'
-    document.querySelector('.pk-action-bar')?.style.setProperty('display', newRole === 'spectator' ? 'none' : '')
+    const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+    state.gameState = gs; applyServerState(gs); saveSession()
+    btn.textContent = curRole() === 'spectator' ? 'Join Table' : 'Leave Table'
+    document.querySelector('.pk-action-bar')?.style.setProperty('display', curRole() === 'spectator' ? 'none' : '')
     showToast(newRole === 'player' ? 'You joined the table!' : 'You left the table.')
   } catch (e) { showToast(e.message) }
   finally { btn.disabled = false }
@@ -672,7 +667,7 @@ async function leaveRoom() {
   clearGameState(); window.location.href = 'index.html'
 }
 
-// ── UNO winner overlay ────────────────────────────────────
+// ── Winner overlay ────────────────────────────────────────
 function showWinner(winnerId) {
   const won = winnerId === state.sessionId
   document.getElementById('w-emoji').textContent = won ? '🏆' : '😔'
@@ -684,16 +679,15 @@ function showWinner(winnerId) {
 
 // ── Poll stop / navigation ────────────────────────────────
 export function stopPoll() {
-  clearInterval(state.poll);           state.poll            = null
-  clearTimeout(handResultTimer);       handResultTimer       = null
-  clearInterval(turnTimerInterval);    turnTimerInterval     = null
-  clearInterval(betweenRoundsInterval);betweenRoundsInterval = null
-  clearInterval(roomHeartbeatInterval);roomHeartbeatInterval = null
+  clearInterval(state.poll);            state.poll            = null
+  clearTimeout(handResultTimer);        handResultTimer       = null
+  clearInterval(turnTimerInterval);     turnTimerInterval     = null
+  clearInterval(betweenRoundsInterval); betweenRoundsInterval = null
+  clearInterval(roomHeartbeatInterval); roomHeartbeatInterval = null
 }
 
 function goLobby() {
   stopPoll()
-  // Clear match state so game.html doesn't re-trigger the winner overlay if lobby bounces back
   state.matchId   = null
   state.gameState = null
   saveSession()

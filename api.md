@@ -152,7 +152,7 @@ Poll this to get room state and keep your session alive. **Frontend must call th
 }
 ```
 
-`hostId` is the current host session ID. The host can start rounds, change settings (before game starts), and kick players. If the host leaves the room, host is automatically transferred to a random player at the table (or a spectator if the table is empty).
+`hostId` is the current host session ID. The host can start rounds, change settings (before game starts or between rounds), and kick players. If the host leaves the room, host is automatically transferred to a random player at the table (or a spectator if the table is empty).
 
 `members` lists every person currently in the room with their username and role (`"player"` or `"spectator"`), ordered by join time.
 
@@ -160,7 +160,7 @@ Poll this to get room state and keep your session alive. **Frontend must call th
 
 ### `PATCH /rooms/:code/settings`
 
-Change room settings. Only the room creator can call this. Room must still be in `waiting` status.
+Change room settings. Only the room host can call this. Only valid while `waiting` or in the `between-rounds` phase.
 
 Send only the fields you want to change — at least one is required.
 
@@ -180,7 +180,7 @@ Errors: `"Only the room host can change settings"`, `"Can only change settings b
 
 ### `DELETE /rooms/:code/players/:targetId`
 
-Kick a player from the room. Only the creator can call this, only while `waiting`.
+Kick a player from the room. Only the host can call this. Only valid while `waiting` or in `between-rounds`.
 
 **Request**
 ```json
@@ -230,7 +230,7 @@ Fully leave a room. Removes you from both the spectator list and the active play
 
 Valid timing: only during `waiting` or `between-rounds` (same as role changes). Mid-hand, use `PATCH /rooms/:code/role` to step back to spectator instead — you'll be removed from the next hand safely.
 
-The room creator cannot leave while other members are present. If you are the last person in the room, the room is deleted.
+If you are the last person in the room, the room is deleted. If you are the host and others are present, host is transferred to the next member before you leave.
 
 **Request**
 ```json
@@ -242,7 +242,7 @@ The room creator cannot leave while other members are present. If you are the la
 { "left": true }
 ```
 
-Errors: `"Room not found"`, `"Can only leave before the game starts or between rounds"`, `"Room creator cannot leave while others are present"`, `"You are not in this room"`.
+Errors: `"Room not found"`, `"Can only leave before the game starts or between rounds"`, `"You are not in this room"`.
 
 ---
 
@@ -252,7 +252,7 @@ Errors: `"Room not found"`, `"Can only leave before the game starts or between r
 
 Fetch a card image or any other static asset from R2 storage. No auth required.
 
-The path after `/assets/` maps directly to the R2 key. See `docs/r2-structure.md` for the full key layout.
+The path after `/assets/` maps directly to the R2 key.
 
 **Common paths**
 
@@ -296,13 +296,13 @@ Find an existing public waiting match, or create one. Only joins matches that ha
 
 ---
 
-## Games
+## Games — Poker
 
-### `POST /games/:gameId/join`
+All poker endpoints share a common response shape (see [Unified Game Response](#unified-game-response) below).
 
-Manually join or create a match for a specific game. Equivalent to `/lobby/join` but targeted directly at a game route.
+### `POST /games/poker/join`
 
-`:gameId` — `poker` or `uno`
+Find or join a waiting public poker match. Only joins matches with no room code. Equivalent to `POST /lobby/join` with `gameId: "poker"`.
 
 **Request**
 ```json
@@ -316,223 +316,315 @@ Manually join or create a match for a specific game. Equivalent to `/lobby/join`
 
 ---
 
-### `GET /games/:gameId/state`
+### `GET /games/poker/:matchId/state`
 
-Get the current game state for a match.
-
-`:gameId` — `poker` or `uno`
+Get the current game state. Also updates your `last_seen_at` heartbeat and applies any pending turn or between-rounds timeouts.
 
 **Query params**
 
 | Param | Type | Description |
 |---|---|---|
-| `matchId` | string | The match to fetch state for |
-| `sessionId` | string | Your session ID — opponent hole cards are hidden unless it's showdown |
+| `sessionId` | string | Your session ID — used to hide opponent hole cards and compute `myRole`/`isMyTurn` |
 
-In poker, opponent `hands` entries are replaced with `["hidden", "hidden"]` until the `showdown` phase. At showdown all hands are revealed. Pass your `sessionId` so the server knows which hand is yours.
-
-**Response** — full game state object (see state shapes below). Always includes a `playerNames` map.
+**Response** — [Unified Game Response](#unified-game-response)
 
 ---
 
-### `POST /games/:gameId/move`
+### `POST /games/poker/:matchId/start`
 
-Submit a player action for the current turn.
-
-`:gameId` — `poker` or `uno`
+Start the first hand. Host only. Requires ≥ 2 players seated at the table.
 
 **Request**
 ```json
-{
-  "sessionId": "uuid",
-  "matchId": "uuid",
-  "action": { ... }
-}
+{ "sessionId": "uuid" }
+```
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+---
+
+### `POST /games/poker/:matchId/next-round`
+
+Start the next hand. Host only. Only valid during the `between-rounds` phase. Requires ≥ 2 players at the table.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+---
+
+### `POST /games/poker/:matchId/fold`
+
+Fold your hand and exit the current betting round.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+---
+
+### `POST /games/poker/:matchId/check`
+
+Pass without betting. Only valid when nothing is owed (`currentBet` equals your contribution for this street).
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+---
+
+### `POST /games/poker/:matchId/call`
+
+Match the current bet. Goes all-in if your chips are insufficient. Acts as a check if nothing is owed (e.g. BB when no one raised).
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+---
+
+### `POST /games/poker/:matchId/bet`
+
+Open or raise the betting. Must be at least as large as the previous raise this street (all-in bets are always allowed regardless of size).
+
+**Request**
+```json
+{ "sessionId": "uuid", "amount": 50 }
+```
+
+`amount` must be a positive number.
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+Errors: `"amount must be a positive number"`, `"Insufficient chips. You have N."`, `"Minimum raise is N (raise by at least N). You raised by M."`.
+
+---
+
+## Games — UNO
+
+All UNO endpoints share the same common response shape.
+
+### `POST /games/uno/join`
+
+Find or join a waiting public UNO match. Only joins matches with no room code.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
 ```
 
 **Response**
 ```json
+{ "matchId": "uuid" }
+```
+
+---
+
+### `GET /games/uno/:matchId/state`
+
+Get the current game state. Opponent hands are hidden — only card counts are implied via `hands` key count.
+
+**Query params**
+
+| Param | Type | Description |
+|---|---|---|
+| `sessionId` | string | Your session ID — used to hide opponent hands and compute `myRole`/`isMyTurn` |
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+---
+
+### `POST /games/uno/:matchId/start`
+
+Start the game. Host only. Requires ≥ 2 players seated at the table.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+---
+
+### `POST /games/uno/:matchId/play`
+
+Play a card from your hand. `color` is required when playing `wild` or `wild_draw4`.
+
+**Request**
+```json
+{ "sessionId": "uuid", "card": "red_7" }
+```
+
+**Wild card**
+```json
+{ "sessionId": "uuid", "card": "wild", "color": "blue" }
+```
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+Errors: `"Card is not in hand."`, `"Card is not playable on the current discard."`, `"A color must be chosen when playing a wild card."`.
+
+---
+
+### `POST /games/uno/:matchId/draw`
+
+Draw one card from the deck.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+---
+
+## Unified Game Response
+
+Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/bet`, `/play`, etc.) return the same flat shape:
+
+```json
 {
-  "state": { ... },
-  "status": "waiting" | "ok" | "started" | "phase-updated" | "round-complete" | "finished",
-  "message": "string",
-  "playerNames": { "sessionId1": "Alice", "sessionId2": "Bob" }
+  "players": ["sessionId1", "sessionId2"],
+  "metadata": { ... },
+  "playerNames":   { "sessionId1": "Alice", "sessionId2": "Bob" },
+  "spectatorNames": { "sessionId3": "Charlie" },
+  "hostId": "uuid",
+  "myRole": "player" | "spectator",
+  "matchStatus": "waiting" | "active" | "finished",
+  "isMyTurn": true,
+  "betweenRoundsRemainingSec": 12,
+  "status": "ok",
+  "message": "Alice bet 100"
 }
 ```
+
+| Field | Description |
+|---|---|
+| `players` | Ordered list of sessionIds currently seated at the table |
+| `metadata` | Game-specific state (see shapes below) |
+| `playerNames` | Map of sessionId → username for every player at the table |
+| `spectatorNames` | Map of sessionId → username for every spectator in the room |
+| `hostId` | Session ID of the current room host |
+| `myRole` | Your current role: `"player"` or `"spectator"` |
+| `matchStatus` | Overall match state: `"waiting"`, `"active"`, or `"finished"` |
+| `isMyTurn` | `true` if it is currently your turn to act |
+| `betweenRoundsRemainingSec` | Seconds until the next hand auto-starts. Only present during Poker `between-rounds` when `betweenRoundsSec > 0`. `undefined` otherwise. |
+| `status` | Action result string (see table below) |
+| `message` | Human-readable description of the last event |
+
+**`status` values**
 
 | Status | Meaning |
 |---|---|
-| `waiting` | Game hasn't started yet — keep polling after more players join and send `start` |
-| `ok` | Normal move accepted, waiting for next player |
-| `started` | Game just started |
-| `phase-updated` | Betting round ended, community cards dealt (flop / turn / river) |
-| `round-complete` | Hand finished, game entered between-rounds — host must send `next-round` to continue |
-| `finished` | Game over — check `state.metadata.winner` for the winner |
+| `"waiting"` | Game hasn't started — waiting for players |
+| `"ok"` | Move accepted, waiting for next player |
+| `"started"` | Game just started |
+| `"phase-updated"` | Poker: betting round ended, community cards dealt |
+| `"round-complete"` | Poker hand finished; game is now in `between-rounds` |
+| `"finished"` | Game over — check `metadata.winner` for the winner |
 
 ---
 
-## Game Actions
+## Game State Shapes
 
-### Poker (`gameId = "poker"`)
+### Poker `metadata`
 
-**Start first round** — requires at least 2 players seated at the table; only the host can send this
-```json
-{ "type": "start" }
-```
-
-**Start next round** — only valid during the `between-rounds` phase; only the host can send this; requires at least 2 players at the table
-```json
-{ "type": "next-round" }
-```
-
-**Fold**
-```json
-{ "type": "fold" }
-```
-
-**Check** — only valid when your current bet already matches `currentBet` (nothing owed)
-```json
-{ "type": "check" }
-```
-
-**Call** — matches `currentBet` automatically; goes all-in for remaining chips if you can't cover the full amount; acts as a check if nothing is owed (e.g. BB when no one raised)
-```json
-{ "type": "call" }
-```
-
-**Bet / Raise** — raises must be at least as large as the previous raise in the same street; all-in bets are always allowed regardless of size
-```json
-{ "type": "bet", "amount": 50 }
-```
-
-**Blinds:** Each hand posts a small blind and big blind automatically before cards are dealt. Blind sizes scale with `startingChips` (SB = `startingChips / 100`, BB = `startingChips / 50`). For 1000-chip games: SB = 10, BB = 20. Preflop action starts at UTG (seat after BB). In heads-up the dealer posts the SB and acts first preflop.
-
-**All-in:** When a player goes all-in and at most one opponent still has chips, the remaining streets run out automatically to showdown. Side pots are calculated correctly when players go all-in for different amounts — each player can only win the portion of the pot they contributed to. Ties split the pot equally (odd chip goes to the first winner).
-
-**Poker game phases:** `waiting → preflop → flop → turn → river → showdown → between-rounds → preflop → …`
-
-After each hand the game always enters `between-rounds`. During this window, players may call `PATCH /rooms/:code/role` to join or leave the table. Players who ended the hand with 0 chips are automatically moved to spectator — they can rejoin the table and receive `startingChips` when the next round begins. The host starts the next hand by sending `{ "type": "next-round" }`.
-
-**Eliminated players:** when a hand ends with a player at 0 chips, they are automatically moved to spectator. They can click "Join Table" (`PATCH /rooms/:code/role { role: "player" }`) during `between-rounds` to rejoin with `startingChips`.
-
-**Game end:** only when `roundLimit > 0` and all rounds have been played. With `roundLimit = 0` (infinite), the room runs indefinitely. The winner is the player with the most chips when the game ends.
-
----
-
-### UNO (`gameId = "uno"`)
-
-**Start the game** — requires at least 2 players; in a private room only the creator can send this
-```json
-{ "type": "start" }
-```
-
-**Play a card**
-```json
-{ "type": "play", "card": "red_7" }
-```
-
-**Play a wild card** — `color` is required
-```json
-{ "type": "play", "card": "wild", "color": "blue" }
-```
-
-**Play Wild Draw Four** — `color` is required
-```json
-{ "type": "play", "card": "wild_draw4", "color": "green" }
-```
-
-**Draw a card**
-```json
-{ "type": "draw" }
-```
-
-**UNO card format:** `{color}_{value}` — e.g. `red_0`, `blue_skip`, `yellow_reverse`, `green_draw2`, `wild`, `wild_draw4`
-
----
-
-## Game state shapes
-
-All state responses include a top-level `playerNames` map that resolves session IDs to usernames. Use this to display player names in the UI without a separate lookup.
-
-### Poker
 ```json
 {
-  "players": ["sessionId1", "sessionId2"],
-  "playerNames": { "sessionId1": "Alice", "sessionId2": "Bob" },
-  "spectatorNames": { "sessionId3": "Charlie" },
-  "metadata": {
-    "phase": "waiting | preflop | flop | turn | river | showdown | between-rounds",
-    "community": ["A♠", "10♥", "3♣"],
-    "hands": {
-      "sessionId1": ["K♦", "Q♠"],
-      "sessionId2": ["hidden", "hidden"]
-    },
-    "pot": 150,
-    "bets": { "sessionId1": 50, "sessionId2": 100 },
-    "totalBets": { "sessionId1": 70, "sessionId2": 100 },
-    "chips": { "sessionId1": 880, "sessionId2": 850 },
-    "folded": { "sessionId1": false, "sessionId2": false },
-    "currentPlayer": "sessionId1",
-    "currentBet": 100,
-    "lastRaiseAmount": 20,
-    "dealerIndex": 0,
-    "sbIndex": 0,
-    "bbIndex": 1,
-    "turnTimeLimit": 30,
-    "turnStartedAt": "2026-05-21T10:00:00.000Z",
-    "roundLimit": 10,
-    "betweenRoundsSec": 30,
-    "betweenRoundsUntil": null,
-    "currentRound": 2,
-    "handWinner": "sessionId2",
-    "winner": null,
-    "lastAction": "sessionId2 bet 100"
-  }
+  "phase": "waiting | preflop | flop | turn | river | showdown | between-rounds",
+  "community": ["A♠", "10♥", "3♣"],
+  "hands": {
+    "sessionId1": ["K♦", "Q♠"],
+    "sessionId2": ["hidden", "hidden"]
+  },
+  "pot": 150,
+  "bets": { "sessionId1": 50, "sessionId2": 100 },
+  "totalBets": { "sessionId1": 70, "sessionId2": 100 },
+  "chips": { "sessionId1": 880, "sessionId2": 850 },
+  "folded": { "sessionId1": false, "sessionId2": false },
+  "currentPlayer": "sessionId1",
+  "currentBet": 100,
+  "lastRaiseAmount": 20,
+  "dealerIndex": 0,
+  "sbIndex": 0,
+  "bbIndex": 1,
+  "turnTimeLimit": 30,
+  "turnStartedAt": "2026-05-21T10:00:00.000Z",
+  "roundLimit": 10,
+  "betweenRoundsSec": 30,
+  "betweenRoundsUntil": "2026-05-21T10:01:00.000Z",
+  "currentRound": 2,
+  "handWinner": "sessionId2",
+  "winner": null,
+  "lastAction": "sessionId2 bet 100"
 }
 ```
 
-`chips` — each player's current chip stack. Deducted on every bet/blind, awarded at showdown via side pot calculation.
+| Field | Description |
+|---|---|
+| `chips` | Each player's current chip stack |
+| `bets` | Chips put in during the **current street only** — resets at each new street |
+| `totalBets` | Cumulative chips put in across **all streets** this hand — used for side pot calculation |
+| `lastRaiseAmount` | Size of the last raise this street; next raise must be at least this large (all-in exempt) |
+| `sbIndex` / `bbIndex` | Index into `players` of the small and big blind for this hand |
+| `handWinner` | Player who won the most recent hand. `null` before first hand ends |
+| `winner` | Overall game winner. Only set when the game is `finished`. `null` while ongoing |
+| `betweenRoundsUntil` | ISO timestamp when the between-rounds countdown ends and the next hand auto-starts. `null` outside `between-rounds` phase |
 
-`bets` — chips put in during the **current street only**. Resets to 0 at each new street.
+Opponent `hands` entries show `["hidden", "hidden"]` until `showdown`. Pass `sessionId` to the state endpoint so the server knows which hand is yours.
 
-`totalBets` — cumulative chips put in across **all streets** this hand. Used to calculate side pots at showdown.
+**Blinds:** SB = `startingChips / 100`, BB = `startingChips / 50`. For 1000-chip games: SB = 10, BB = 20. Preflop action starts at UTG (seat after BB). In heads-up the dealer posts the SB and acts first preflop.
 
-`lastRaiseAmount` — size of the last raise this street. The next raise must be at least this large (all-in bets exempt).
+**All-in:** When a player goes all-in and at most one opponent still has chips, remaining streets run out automatically. Side pots are calculated correctly. Ties split the pot equally (odd chip goes to the first winner by seat order).
 
-`sbIndex` / `bbIndex` — index into `players` of the small and big blind for this hand.
+**Card strings** use Unicode suit symbols: `♠ ♥ ♦ ♣` (e.g. `A♠`, `10♥`). To map to R2 asset keys, convert suit to its ASCII name (`♠→spades`, `♥→hearts`, `♦→diamonds`, `♣→clubs`) and join with `-`: `A♠ → cards/standard-deck/A-spades.svg`.
 
-`handWinner` — the player who won the most recent hand (by showdown or everyone else folding). `null` before the first hand ends.
+**Phases:** `waiting → preflop → flop → turn → river → showdown → between-rounds → preflop → …`
 
-`winner` — the overall game winner. Only set when the game is fully finished (one player holds all chips or `roundLimit` is reached). `null` while the game is ongoing.
+**Eliminated players:** at the end of each hand, players with 0 chips are automatically moved to spectator. They can call `PATCH /rooms/:code/role { role: "player" }` during `between-rounds` to rejoin with `startingChips`.
 
-`betweenRoundsSec` — countdown length in seconds between hands. `0` means the next hand starts immediately.
+**Game end:** when `roundLimit > 0` and all rounds have been played, or when only one player has chips remaining. With `roundLimit = 0` (infinite), only the last-player-standing condition ends the game.
 
-`betweenRoundsUntil` — ISO timestamp when the between-rounds countdown ends and the next hand auto-starts. `null` when not in the `between-rounds` phase.
+---
 
-Opponent `hands` entries show `["hidden", "hidden"]` until `showdown`. Pass `sessionId` to `GET /games/poker/state` so the server knows which hand to reveal.
+### UNO `metadata`
 
-Card strings use Unicode suit symbols: `♠` `♥` `♦` `♣` (e.g. `A♠`, `10♥`). To map to R2 asset keys, convert suit to its ASCII name (`♠→spades`, `♥→hearts`, `♦→diamonds`, `♣→clubs`) and join with `-`: `A♠ → cards/standard-deck/A-spades.svg`.
-
-### UNO
 ```json
 {
-  "players": ["sessionId1", "sessionId2"],
-  "playerNames": { "sessionId1": "Alice", "sessionId2": "Bob" },
-  "metadata": {
-    "phase": "waiting | started | finished",
-    "discard": ["red_7", "blue_skip"],
-    "hands": { "sessionId1": ["green_2", "wild"], "sessionId2": ["red_0"] },
-    "currentPlayer": "sessionId1",
-    "direction": 1,
-    "currentColor": "red",
-    "lastCard": "blue_skip",
-    "winner": null,
-    "lastAction": "sessionId2 played blue_skip and next player draws 2"
-  }
+  "phase": "waiting | started | finished",
+  "discard": ["red_7", "blue_skip"],
+  "hands": {
+    "sessionId1": ["green_2", "wild"],
+    "sessionId2": ["hidden", "hidden", "hidden"]
+  },
+  "currentPlayer": "sessionId1",
+  "direction": 1,
+  "currentColor": "red",
+  "lastCard": "blue_skip",
+  "winner": null,
+  "lastAction": "sessionId2 played blue_skip"
 }
 ```
+
+Opponent `hands` entries are `"hidden"` strings — the array length reveals how many cards they hold.
 
 `direction` is `1` (clockwise) or `-1` (counter-clockwise, after a reverse card).
+
+**Card format:** `{color}_{value}` — e.g. `red_0`, `blue_skip`, `yellow_reverse`, `green_draw2`, `wild`, `wild_draw4`.
 
 ---
 
@@ -553,15 +645,15 @@ Common `400` messages:
 - `"invalid session"` — sessionId does not exist when submitting a move
 - `"match or player not found"` — matchId is wrong or you haven't joined this match
 - `"match not found"` — matchId does not exist
-- `"Only the room host can start the round"` — start or next-round action sent by a non-host
-- `"Cannot join a game that has already started."` — game is past the waiting phase
+- `"Only the room host can start the round"` — start/next-round sent by a non-host
+- `"You are not seated at this table."` — submitting a game action while you are a spectator
 - `"It is not your turn."` — another player must move first
 - `"At least 2 players are required to start poker."` — need more players
 - `"At least 2 players are required to start UNO."` — need more players
 - `"Cannot check — there is a bet to call."` — use `call` or `bet` to match `currentBet`
-- `"Bet amount must be a positive number."` — invalid bet amount
+- `"amount must be a positive number"` — invalid bet amount sent to `/bet`
 - `"Insufficient chips. You have N."` — bet exceeds your chip stack
-- `"Minimum raise is N (raise by at least N). You raised by M."` — raise too small; must match or exceed the previous raise size (all-in exempt)
+- `"Minimum raise is N (raise by at least N). You raised by M."` — raise too small (all-in exempt)
 - `"Card is not in hand."` — UNO card not in your hand
 - `"Card is not playable on the current discard."` — UNO card doesn't match
 - `"A color must be chosen when playing a wild card."` — missing `color` field
@@ -574,46 +666,58 @@ Common `400` messages:
 
 ---
 
-## Typical flow
+## Typical flows
 
-**Public matchmaking**
+**Public matchmaking — Poker**
 ```
-1. POST /auth { username }          → save sessionId
-2. POST /lobby/join                 → get matchId  (second player does the same)
-3. poll GET /games/:id/state        → wait until 2+ players joined
-4. POST /games/:id/move { type: "start" }
-5. GET  /games/:id/state            → render board
-6. POST /games/:id/move             → take your turn
-7. repeat 5–6 until status = "finished"
+1. POST /auth { username }                      → save sessionId
+2. POST /games/poker/join { sessionId }         → get matchId  (second player does the same)
+3. poll GET /games/poker/:matchId/state         → wait until ≥ 2 players, matchStatus = "waiting"
+4. POST /games/poker/:matchId/start { sessionId }   (host only)
+5. poll GET /games/poker/:matchId/state         → render board
+6. POST /games/poker/:matchId/fold|check|call|bet   → take your turn (isMyTurn = true)
+7. repeat 5–6 until matchStatus = "finished"
 ```
 
-**Private room**
+**Private room — Poker**
 ```
-1. POST /auth { username }          → save sessionId
-2. POST /rooms/create               → get matchId + roomCode (host)
+1. POST /auth { username }                      → save sessionId
+2. POST /rooms/create { sessionId, gameId: "poker" } → get matchId + roomCode (host)
    share roomCode with friends
-3. POST /rooms/join { roomCode }    → everyone joins as spectator
-4. PATCH /rooms/:code/role { role: "player" } → sit at the table
-5. poll GET /rooms/:code            → wait until playerCount >= 2
-6. POST /games/:id/move { type: "start" }  (host only)
-7. GET  /games/:id/state            → render board, players take turns
-8. POST /games/:id/move             → take your turn
-   … hand ends, game enters between-rounds …
-9. (players join/leave the table)
-   PATCH /rooms/:code/role          → switch spectator ↔ player
-10. POST /games/:id/move { type: "next-round" } (host only) → start next hand
-11. repeat 7–10 until status = "finished" (roundLimit reached)
+3. POST /rooms/join { sessionId, roomCode }     → everyone joins as spectator
+4. PATCH /rooms/:code/role { sessionId, role: "player" } → sit at the table
+5. poll GET /rooms/:code?sessionId=             → wait until playerCount ≥ 2
+6. POST /games/poker/:matchId/start { sessionId }   (host only)
+7. poll GET /games/poker/:matchId/state         → render board, players take turns
+8. POST /games/poker/:matchId/fold|check|call|bet   → take your turn
+   … hand ends, matchStatus stays "active", metadata.phase = "between-rounds" …
+9. PATCH /rooms/:code/role                      → join or leave the table (any member)
+10. POST /games/poker/:matchId/next-round       → start next hand (host only)
+11. repeat 7–10 until matchStatus = "finished"
+```
+
+**Private room — UNO**
+```
+1. POST /auth { username }
+2. POST /rooms/create { sessionId, gameId: "uno" } → get matchId + roomCode
+3. POST /rooms/join { sessionId, roomCode }     → join as spectator
+4. PATCH /rooms/:code/role { sessionId, role: "player" }
+5. POST /games/uno/:matchId/start { sessionId } → host starts (≥ 2 players)
+6. poll GET /games/uno/:matchId/state
+7. POST /games/uno/:matchId/play { sessionId, card, color? }
+   OR POST /games/uno/:matchId/draw { sessionId }
+8. repeat 6–7 until matchStatus = "finished"
 ```
 
 **Spectator joining mid-game / switching roles**
 ```
-1. POST /rooms/join { roomCode }    → join as spectator anytime
-2. GET  /games/:id/state            → watch the game
+1. POST /rooms/join { roomCode }                → join as spectator anytime
+2. GET /games/poker/:matchId/state?sessionId=   → watch the game (myRole = "spectator")
 3. (during between-rounds)
-   PATCH /rooms/:code/role { role: "player" } → join the next hand
+   PATCH /rooms/:code/role { role: "player" }   → join the next hand
 4. (during between-rounds)
    PATCH /rooms/:code/role { role: "spectator" } → leave the table
-5. DELETE /rooms/:code/leave        → leave the room entirely
+5. DELETE /rooms/:code/leave                    → leave the room entirely
 ```
 
 **Reconnection after disconnect**
@@ -621,6 +725,6 @@ Common `400` messages:
 1. POST /auth { sessionId }         → resume; response includes activeMatches
    if "Session not found" → POST /auth { username } to create a new session
 2. pick the match from activeMatches (matchId + gameId)
-3. GET  /games/:id/state            → restore board from saved state
-4. resume from step 6 of the normal flow
+3. GET /games/poker/:matchId/state?sessionId=   → restore board from saved state
+4. resume taking turns (isMyTurn will tell you if it's your move)
 ```
