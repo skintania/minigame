@@ -1,4 +1,5 @@
 import { state, cfg } from '../../state.js'
+import { getBestHandName } from './eval.js'
 
 const SUIT_SYMBOLS = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' }
 const SUIT_NAMES   = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs' }
@@ -70,6 +71,7 @@ function syncOpponentSlots(oppIds) {
         </div>
       </div>
       <div class="cards-row" id="pk-opp-hand-${id}"></div>
+      <div class="pk-hand-rank" id="pk-opp-rank-${id}"></div>
     </div>`
   }).join('')
 
@@ -287,6 +289,24 @@ export function renderBoard(meta, mine) {
     handEl.innerHTML = hand?.length
       ? hand.map(cardHTML).join('')
       : meta.phase === 'waiting' ? '' : '<div class="p-card back"></div><div class="p-card back"></div>'
+  })
+
+  // Hand rank labels — shown during showdown and between-rounds when cards are face-up
+  const showRanks = curPhase === 'showdown' || curPhase === 'between-rounds'
+  const community = meta.community || []
+  const myRankEl  = document.getElementById('pk-my-rank')
+  if (myRankEl) {
+    myRankEl.textContent = (showRanks && !myFolded)
+      ? getBestHandName([...((meta.hands || {})[state.sessionId] || []), ...community])
+      : ''
+  }
+  opponents.forEach(id => {
+    const rankEl = document.getElementById(`pk-opp-rank-${id}`)
+    if (!rankEl) return
+    if (!showRanks || curFolded[id]) { rankEl.textContent = ''; return }
+    const hand = (meta.hands || {})[id] || []
+    const hasRealCards = hand.length > 0 && hand.every(c => c !== 'hidden' && c !== 'back')
+    rankEl.textContent = hasRealCards ? getBestHandName([...hand, ...community]) : ''
   })
 
   // Reveal opponent cards when entering showdown or between-rounds (server may skip straight to between-rounds)
