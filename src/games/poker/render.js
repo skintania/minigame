@@ -318,18 +318,20 @@ export function renderBoard(meta, mine) {
       : curPhase === 'waiting' ? '' : '<div class="p-card back"></div><div class="p-card back"></div>'
   })
 
-  // Hand rank labels — shown during showdown and between-rounds when cards are face-up
-  const showRanks = curPhase === 'showdown' || curPhase === 'between-rounds'
-  const myRankEl  = document.getElementById('pk-my-rank')
+  // Hand rank labels
+  // Player's own rank: live from flop onwards (evaluator returns '' for <5 cards)
+  // Opponent ranks: only when their cards are revealed (showdown / between-rounds)
+  const showOppRanks = curPhase === 'showdown' || curPhase === 'between-rounds'
+  const myRankEl     = document.getElementById('pk-my-rank')
   if (myRankEl) {
-    myRankEl.textContent = (showRanks && !myFolded)
+    myRankEl.textContent = (!myFolded && curPhase !== 'waiting')
       ? getBestHandName([...myHand, ...effectComm])
       : ''
   }
   opponents.forEach(id => {
     const rankEl = document.getElementById(`pk-opp-rank-${id}`)
     if (!rankEl) return
-    if (!showRanks || curFolded[id]) { rankEl.textContent = ''; return }
+    if (!showOppRanks || curFolded[id]) { rankEl.textContent = ''; return }
     const hand = effectHands[id] || []
     const hasRealCards = hand.length > 0 && hand.every(c => c !== 'hidden' && c !== 'back')
     rankEl.textContent = hasRealCards ? getBestHandName([...hand, ...effectComm]) : ''
