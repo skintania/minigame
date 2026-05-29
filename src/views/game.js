@@ -669,6 +669,8 @@ function showWinner(winnerId) {
   document.getElementById('w-title').textContent = won ? 'You Win!' : 'You Lose'
   document.getElementById('w-title').className   = 'winner-title ' + (won ? 'win' : 'lose')
   document.getElementById('w-sub').textContent   = won ? 'Congratulations!' : 'Better luck next time.'
+  // Winner goes back to the room; loser stays to spectate
+  document.getElementById('btn-continue-match').textContent = won ? 'Back to Room' : 'Continue Match'
   document.getElementById('winner-overlay').classList.add('open')
 }
 
