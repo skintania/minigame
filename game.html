@@ -136,11 +136,13 @@
       <div id="spec-panel-list"><div class="spec-panel-empty">None</div></div>
     </div>
 
-    <!-- Showdown bar: winner + countdown, skip button for host -->
+    <!-- Showdown bar: winner + countdown, show/muck for player, skip for host -->
     <div id="showdown-bar">
       <span id="sd-winner-text"></span>
       <span class="sd-sep">·</span>
       <span id="sd-countdown"></span>
+      <button class="btn btn-pink"    id="btn-show-cards"    style="display:none;width:auto;padding:5px 13px;font-size:12px;margin-left:2px">Show</button>
+      <button class="btn btn-ghost"   id="btn-muck-cards"    style="display:none;width:auto;padding:5px 13px;font-size:12px">Muck</button>
       <button class="btn btn-primary" id="btn-skip-showdown" style="display:none;width:auto;padding:5px 13px;font-size:12px;margin-left:2px">Skip</button>
     </div>
   </div>

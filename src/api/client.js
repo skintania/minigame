@@ -40,6 +40,8 @@ export const api = {
   pokerCheck:     (mid, sid)         => request('POST', `/games/poker/${mid}/check`,      { sessionId: sid }),
   pokerCall:      (mid, sid)         => request('POST', `/games/poker/${mid}/call`,       { sessionId: sid }),
   pokerBet:       (mid, sid, amount) => request('POST', `/games/poker/${mid}/bet`,        { sessionId: sid, amount }),
+  pokerShow:      (mid, sid)         => request('POST', `/games/poker/${mid}/show`,       { sessionId: sid }),
+  pokerMuck:      (mid, sid)         => request('POST', `/games/poker/${mid}/muck`,       { sessionId: sid }),
 
   // UNO actions
   unoStart: (mid, sid)              => request('POST', `/games/uno/${mid}/start`, { sessionId: sid }),

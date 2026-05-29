@@ -58,6 +58,8 @@ export function initGame() {
   })
   document.getElementById('btn-next-round').addEventListener('click', hostNextRound)
   document.getElementById('btn-skip-showdown').addEventListener('click', hostNextRound)
+  document.getElementById('btn-show-cards').addEventListener('click', showCards)
+  document.getElementById('btn-muck-cards').addEventListener('click', muckCards)
   document.getElementById('btn-switch-role').addEventListener('click', switchRole)
 
   const roomMenuBtn  = document.getElementById('room-menu-btn')
@@ -485,6 +487,11 @@ function updateShowdownBar(meta) {
 
   document.getElementById('btn-skip-showdown').style.display = amHost() ? '' : 'none'
 
+  const myDecision = meta.showdownDecisions?.[state.sessionId]
+  const canDecide  = myDecision === 'pending'
+  document.getElementById('btn-show-cards').style.display = canDecide ? '' : 'none'
+  document.getElementById('btn-muck-cards').style.display = canDecide ? '' : 'none'
+
   if (!bar.classList.contains('open')) {
     // Start local 1s countdown from server value on first open
     let remaining = meta.showdownRemainingSec ?? 5
@@ -620,6 +627,27 @@ function tickBetweenRounds(meta) {
 function hideBetweenRounds() {
   document.getElementById('between-rounds-overlay')?.classList.remove('open')
   clearInterval(betweenRoundsInterval); betweenRoundsInterval = null
+}
+
+// ── Showdown decisions ────────────────────────────────────
+async function showCards() {
+  const btn = document.getElementById('btn-show-cards')
+  btn.disabled = true
+  try {
+    const res = await api.pokerShow(state.matchId, state.sessionId)
+    document.dispatchEvent(new CustomEvent('game:move', { detail: res }))
+  } catch (e) { showToast(e.message) }
+  finally { btn.disabled = false }
+}
+
+async function muckCards() {
+  const btn = document.getElementById('btn-muck-cards')
+  btn.disabled = true
+  try {
+    const res = await api.pokerMuck(state.matchId, state.sessionId)
+    document.dispatchEvent(new CustomEvent('game:move', { detail: res }))
+  } catch (e) { showToast(e.message) }
+  finally { btn.disabled = false }
 }
 
 // ── Between-rounds actions ────────────────────────────────

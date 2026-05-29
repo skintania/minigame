@@ -182,16 +182,11 @@ export function renderBoard(meta, mine) {
 
   const curPhaseEarly = meta.phase || ''
 
-  // Cache revealed hands when entering showdown so they persist into between-rounds
+  // Keep cache current throughout showdown so the final show/muck state
+  // (which cards are revealed vs hidden) persists into between-rounds
   if (curPhaseEarly === 'showdown') {
-    const h = meta.hands || {}
-    const hasReal = Object.values(h).some(cards =>
-      Array.isArray(cards) && cards.some(c => c !== 'hidden' && c !== 'back')
-    )
-    if (hasReal) {
-      cachedHands     = { ...h }
-      cachedCommunity = [...(meta.community || [])]
-    }
+    cachedHands     = { ...(meta.hands || {}) }
+    cachedCommunity = [...(meta.community || [])]
   }
   // Clear cache when a new hand begins
   if (curPhaseEarly === 'preflop' && prevPhase !== 'preflop' && prevPhase !== null) {
