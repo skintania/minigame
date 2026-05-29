@@ -5,8 +5,8 @@ import registry from '../games/registry.js'
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
-let handResultTimer       = null
 let handResultActive      = false
+let showdownInterval      = null
 let turnTimerInterval     = null
 let betweenRoundsInterval = null
 let roomHeartbeatInterval = null
@@ -57,6 +57,7 @@ export function initGame() {
     if (confirm('End the game for everyone?')) leaveRoom()
   })
   document.getElementById('btn-next-round').addEventListener('click', hostNextRound)
+  document.getElementById('btn-skip-showdown').addEventListener('click', hostNextRound)
   document.getElementById('btn-switch-role').addEventListener('click', switchRole)
 
   const roomMenuBtn  = document.getElementById('room-menu-btn')
@@ -155,7 +156,7 @@ export function enterGame() {
       applyServerState(gs)
       saveSession()
       render()
-      if (gs.metadata?.handWinner ?? gs.metadata?.winner) {
+      if (gs.metadata?.winner) {
         stopPoll()
         prevCommunityCount = commBefore
         onHandEnd(gs.metadata)
@@ -217,21 +218,34 @@ export function render() {
   document.getElementById('spectator-panel').style.display = state.roomCode ? '' : 'none'
   updateSpectatorPanel()
 
-  document.querySelector('.pk-action-bar')?.style.setProperty('display',
-    isWaiting ? 'none' : (curRole() === 'spectator' ? 'none' : ''))
-
   if (isWaiting) {
+    document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
     updateWaitingPanel(meta)
     registry[state.gameId]?.render(meta, false)
     return
   }
 
-  if (meta.phase === 'between-rounds') {
-    hideBetweenRounds()
+  if (meta.phase === 'showdown') {
+    document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
+    updateShowdownBar(meta)
     registry[state.gameId]?.render(meta, false)
     return
   }
+
+  hideShowdownBar()
+
+  if (meta.phase === 'between-rounds') {
+    document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
+    if (!document.getElementById('between-rounds-overlay')?.classList.contains('open')) {
+      showBetweenRounds(meta)
+    }
+    registry[state.gameId]?.render(meta, false)
+    return
+  }
+
   hideBetweenRounds()
+  document.querySelector('.pk-action-bar')?.style.setProperty('display',
+    curRole() === 'spectator' ? 'none' : '')
 
   const isSpectator = curRole() === 'spectator'
   const mine = state.gameState.isMyTurn === true
@@ -445,8 +459,7 @@ async function handleMoveResult(res) {
   applyServerState(res)
   saveSession()
   render()
-  if (res.status === 'round-complete' || res.status === 'finished' ||
-      res.metadata?.handWinner || res.metadata?.winner) {
+  if (res.status === 'finished' || res.metadata?.winner) {
     stopPoll()
     prevCommunityCount = commBefore
     onHandEnd(res.metadata)
@@ -456,6 +469,38 @@ async function handleMoveResult(res) {
 function onHandEnd(meta) {
   if (state.gameId === 'poker') showHandResult(meta)
   else showWinner(meta.winner)
+}
+
+// ── Showdown bar ──────────────────────────────────────────
+function updateShowdownBar(meta) {
+  const bar = document.getElementById('showdown-bar')
+  if (!bar) return
+
+  const names      = state.gameState?.playerNames || {}
+  const handWinner = meta.handWinner
+  const won        = handWinner === state.sessionId
+  const winnerName = won ? (state.username || 'You') : (names[handWinner] || 'Opponent')
+  document.getElementById('sd-winner-text').textContent =
+    handWinner ? `${winnerName} wins the hand` : 'Showdown'
+
+  document.getElementById('btn-skip-showdown').style.display = amHost() ? '' : 'none'
+
+  if (!bar.classList.contains('open')) {
+    // Start local 1s countdown from server value on first open
+    let remaining = meta.showdownRemainingSec ?? 5
+    document.getElementById('sd-countdown').textContent = remaining
+    showdownInterval = setInterval(() => {
+      remaining = Math.max(0, remaining - 1)
+      document.getElementById('sd-countdown').textContent = remaining
+      if (remaining <= 0) { clearInterval(showdownInterval); showdownInterval = null }
+    }, 1000)
+    bar.classList.add('open')
+  }
+}
+
+function hideShowdownBar() {
+  document.getElementById('showdown-bar')?.classList.remove('open')
+  clearInterval(showdownInterval); showdownInterval = null
 }
 
 // ── Poker hand winner banner ──────────────────────────────
@@ -476,6 +521,9 @@ async function showHandResult(meta) {
   if (handResultActive) return
   handResultActive = true
 
+  hideShowdownBar()
+  hideBetweenRounds()
+
   const community     = meta.community || []
   const isAllinRunout = community.length === 5 && prevCommunityCount < 5
   if (isAllinRunout && registry[state.gameId]?.animateAllinRunout) {
@@ -485,79 +533,21 @@ async function showHandResult(meta) {
   }
 
   const handWinnerId = meta.handWinner ?? meta.winner
-  const names        = state.gameState?.playerNames || {}
-  const winnerName   = handWinnerId === state.sessionId
-    ? (state.username || 'You')
-    : (names[handWinnerId] || 'Opponent')
-
-  showHandWinnerBanner(`${winnerName} wins the hand`)
-
-  const chips  = meta.chips || {}
-  const busted = Object.values(chips).some(c => c === 0)
-  if (meta.winner || busted) {
-    const players  = state.gameState?.players || []
-    const winnerId = meta.winner || players.find(p => (chips[p] || 0) > 0)
-    setTimeout(() => {
-      hideHandWinnerBanner()
-      if (winnerId) showWinner(winnerId)
-    }, 2500)
-    return
+  if (handWinnerId) {
+    const names      = state.gameState?.playerNames || {}
+    const won        = handWinnerId === state.sessionId
+    const winnerName = won ? (state.username || 'You') : (names[handWinnerId] || 'Opponent')
+    showHandWinnerBanner(`${winnerName} wins the hand`)
   }
 
-  // Show the between-rounds overlay so players can switch roles and see the countdown
-  showBetweenRounds(meta)
-
-  // Non-host in a room: poll until host starts next hand
-  if (state.roomCode && !amHost()) {
-    state.poll = setInterval(async () => {
-      try {
-        const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
-        if (!gs?.metadata?.handWinner && !gs?.metadata?.winner && gs?.metadata?.phase !== 'showdown') {
-          stopPoll()
-          hideHandWinnerBanner()
-          state.gameState = gs; applyServerState(gs); handResultActive = false; enterGame()
-        }
-      } catch { /* keep polling */ }
-    }, 2200)
-    return
-  }
-
-  // Host / no room: auto-advance after 1.5 seconds
-  handResultTimer = setTimeout(() => {
-    handResultTimer = null
-    const banner = document.getElementById('pk-hand-winner')
-    banner.classList.add('fading')
-    setTimeout(startNextHand, 600)
-  }, 1500)
-}
-
-async function startNextHand() {
-  const chips  = state.gameState?.metadata?.chips || {}
-  const busted = Object.values(chips).some(c => c === 0)
-  if (state.gameState?.metadata?.winner || busted) {
-    const players  = state.gameState?.players || []
-    const winnerId = state.gameState?.metadata?.winner || players.find(p => (chips[p] || 0) > 0)
+  const players  = state.gameState?.players || []
+  const chips    = meta.chips || {}
+  const winnerId = meta.winner || players.find(p => (chips[p] || 0) > 0)
+  setTimeout(() => {
     hideHandWinnerBanner()
     if (winnerId) showWinner(winnerId)
-    return
-  }
-  hideHandWinnerBanner()
-  try {
-    const res = await api.pokerNextRound(state.matchId, state.sessionId)
-    state.gameState = res; applyServerState(res); saveSession()
-  } catch (e) { console.log('[game] next hand start:', e.message) }
-  // Poll until handWinner is cleared
-  for (let i = 0; i < 12; i++) {
-    if (!state.gameState?.metadata?.handWinner && !state.gameState?.metadata?.winner) break
-    await sleep(350)
-    try {
-      const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
-      if (!gs?.metadata?.handWinner && !gs?.metadata?.winner) {
-        state.gameState = gs; applyServerState(gs); saveSession(); break
-      }
-    } catch { /* keep trying */ }
-  }
-  handResultActive = false; enterGame()
+    handResultActive = false
+  }, 2500)
 }
 
 // ── Turn timer ────────────────────────────────────────────
@@ -634,13 +624,18 @@ function hideBetweenRounds() {
 
 // ── Between-rounds actions ────────────────────────────────
 async function hostNextRound() {
-  const btn = document.getElementById('btn-next-round')
-  btn.disabled = true
+  const btn     = document.getElementById('btn-next-round')
+  const skipBtn = document.getElementById('btn-skip-showdown')
+  if (btn)     btn.disabled     = true
+  if (skipBtn) skipBtn.disabled = true
   try {
     const res = await api.pokerNextRound(state.matchId, state.sessionId)
     state.gameState = res; applyServerState(res); saveSession(); render()
   } catch (e) { showToast(e.message) }
-  finally { btn.disabled = false }
+  finally {
+    if (btn)     btn.disabled     = false
+    if (skipBtn) skipBtn.disabled = false
+  }
 }
 
 async function switchRole() {
@@ -680,9 +675,9 @@ function showWinner(winnerId) {
 // ── Poll stop / navigation ────────────────────────────────
 export function stopPoll() {
   clearInterval(state.poll);            state.poll            = null
-  clearTimeout(handResultTimer);        handResultTimer       = null
   clearInterval(turnTimerInterval);     turnTimerInterval     = null
   clearInterval(betweenRoundsInterval); betweenRoundsInterval = null
+  clearInterval(showdownInterval);      showdownInterval      = null
   clearInterval(roomHeartbeatInterval); roomHeartbeatInterval = null
 }
 

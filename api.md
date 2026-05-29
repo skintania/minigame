@@ -522,6 +522,7 @@ Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/be
 | `myRole` | Your current role: `"player"` or `"spectator"` |
 | `matchStatus` | Overall match state: `"waiting"`, `"active"`, or `"finished"` |
 | `isMyTurn` | `true` if it is currently your turn to act |
+| `showdownRemainingSec` | Seconds until the showdown display auto-closes (always 5s). Only present during Poker `showdown` phase. `undefined` otherwise. |
 | `betweenRoundsRemainingSec` | Seconds until the next hand auto-starts. Only present during Poker `between-rounds` when `betweenRoundsSec > 0`. `undefined` otherwise. |
 | `status` | Action result string (see table below) |
 | `message` | Human-readable description of the last event |
@@ -534,7 +535,7 @@ Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/be
 | `"ok"` | Move accepted, waiting for next player |
 | `"started"` | Game just started |
 | `"phase-updated"` | Poker: betting round ended, community cards dealt |
-| `"round-complete"` | Poker hand finished; game is now in `between-rounds` |
+| `"round-complete"` | Poker hand finished; game is now in `showdown` phase — cards visible, 5-second display |
 | `"finished"` | Game over — check `metadata.winner` for the winner |
 
 ---
@@ -594,6 +595,8 @@ Opponent `hands` entries show `["hidden", "hidden"]` until `showdown`. Pass `ses
 **Card strings** use Unicode suit symbols: `♠ ♥ ♦ ♣` (e.g. `A♠`, `10♥`). To map to R2 asset keys, convert suit to its ASCII name (`♠→spades`, `♥→hearts`, `♦→diamonds`, `♣→clubs`) and join with `-`: `A♠ → cards/standard-deck/A-spades.svg`.
 
 **Phases:** `waiting → preflop → flop → turn → river → showdown → between-rounds → preflop → …`
+
+`showdown` is a stable display phase — all hole cards are revealed, `handWinner` is set, chips are already awarded. The phase lasts 5 seconds (`showdownRemainingSec`), then auto-advances to `between-rounds`. The host can skip it early with `POST /:matchId/next-round`.
 
 **Eliminated players:** at the end of each hand, players with 0 chips are automatically moved to spectator. They can call `PATCH /rooms/:code/role { role: "player" }` during `between-rounds` to rejoin with `startingChips`.
 
