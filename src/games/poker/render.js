@@ -189,6 +189,21 @@ export function renderBoard(meta, mine) {
     cachedHands     = { ...(meta.hands || {}) }
     cachedCommunity = [...(meta.community || [])]
   }
+
+  // On the first render of between-rounds after showdown, merge any real cards
+  // from the server response into the cache. This covers the case where the last
+  // player's show/muck decision causes an immediate phase transition — the action
+  // response arrives as between-rounds so the showdown branch above never ran.
+  if (curPhaseEarly === 'between-rounds' && prevPhase === 'showdown') {
+    const h = meta.hands || {}
+    Object.entries(h).forEach(([id, cards]) => {
+      if (Array.isArray(cards) && cards.some(c => c !== 'hidden' && c !== 'back')) {
+        cachedHands[id] = cards
+      }
+    })
+    if (meta.community?.length) cachedCommunity = [...meta.community]
+  }
+
   // Clear cache and muck state when a new hand begins
   if (curPhaseEarly === 'preflop' && prevPhase !== 'preflop' && prevPhase !== null) {
     cachedHands            = {}
