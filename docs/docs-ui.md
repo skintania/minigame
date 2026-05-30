@@ -136,17 +136,27 @@ UNO card hand and board styling.
 - `.uno-card` — 72×104px rounded rect, gradient background by color
   - `.red` → red gradient, `.blue`, `.green`, `.yellow` → respective gradients
   - `.wild` → conic-gradient (4 color quadrants)
-  - `.playable` — white outline, lifts on hover (`translateY(-6px)`)
+  - `.playable` — white outline, lifts on hover (`translateY(-12px)`)
   - `.not-playable` — `opacity: 0.38`, no pointer events
-- `.uno-card-img` — image-based variant (SVG from R2), same sizing
+  - `.small` — 42×62px compact size for opponent reveal cards
+- `.uno-card-img` — image-based variant (SVG from R2), same sizing + `.small` variant
+
+**Opponent zone (multi-player):**
+- `.uno-opp-slot` — one row per opponent; `.current-player` tints name blue, `.winner-slot` tints gold
+- `.uno-opp-info` — flex row: name + dot + count
+- `.uno-turn-dot` — animated blue pulse dot on current player's row
+- `.uno-opp-cards` — flex row of cards; `.mini` for back-card display during play
+- `.uno-uno-badge` — gold "UNO!" pill (shown when opponent has 1 card)
+- `.uno-winner-tag` — 🏆 shown on the 0-card winner during reveal window
 
 **Hand layout:**
 - `.hand-row` — flex-wrap row, gap between cards
-- `.uno-discard` — larger card display for top of discard pile
-- `.mini-card` — 18×26px back cards for opponent count display, overlap with negative margin
+- `.mini-card` — 26×38px back cards used in `.mini` opponent rows (negative margin overlap)
 
-**Color indicators:**
-- `.color-label` — colored pill showing current active color
+**Utility elements:**
+- `#uno-direction` — direction arrow (↻/↺) next to discard pile
+- `#uno-reveal-bar` — blue-tinted bar shown during 10s reveal window with countdown
+- `#uno-my-uno` — "UNO!" badge shown in hand label when my hand has 1 card
 
 ---
 

@@ -177,7 +177,7 @@ export function enterGame() {
       applyServerState(gs)
       saveSession()
       render()
-      if (gs.matchStatus === 'finished' || gs.metadata?.winner) {
+      if (gs.metadata?.winner && gs.revealRemainingSec == null) {
         stopPoll()
         prevCommunityCount = commBefore
         onHandEnd(gs.metadata)
@@ -486,7 +486,7 @@ async function handleMoveResult(res) {
   applyServerState(res)
   saveSession()
   render()
-  if (res.matchStatus === 'finished' || res.metadata?.winner) {
+  if (res.metadata?.winner && res.revealRemainingSec == null) {
     stopPoll()
     prevCommunityCount = commBefore
     onHandEnd(res.metadata)

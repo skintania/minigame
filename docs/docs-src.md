@@ -249,17 +249,21 @@ UNO action dispatchers.
 
 ## `src/games/uno/render.js`
 
-UNO board rendering (~80 lines).
+UNO board rendering (~120 lines).
 
 **Exports:** `renderBoard(meta, mine, onPlay)`, `canPlay(card, meta)`
 
-- Renders opponent card count + mini back-cards
+- Renders N opponent slots (`#uno-opponents`) — each shows name, card count, turn indicator, UNO!/winner badges
+  - During normal play: mini back-cards row
+  - During reveal window (`meta.phase === 'finished'`): actual small card SVGs for revealed hands
+- Renders direction indicator (`#uno-direction`, ↻/↺)
 - Renders top discard card (image + CSS fallback)
 - Renders current color label
-- Renders player hand: each card clickable if `mine && canPlay(card, meta)`
-- `canPlay` — true if card color matches current, or value matches top card, or card is wild
-
-Card image path: `{cfg.url}/assets/cards/uno-deck/{card}.svg`
+- Reveals countdown (`#uno-reveal-bar`) when `state.gameState.revealRemainingSec` is present
+- Renders player hand: each card clickable if `mine && canPlay(card, meta)`; hides `btn-draw` during finished phase
+- Shows `#uno-my-uno` UNO! badge when my hand has 1 card (not during finished)
+- `canPlay` — true if card color matches `meta.currentColor`, value matches top discard value, or card is wild
+- Card image path: `{cfg.url}/assets/cards/uno-deck/{card}.svg`; `.small` class for 42×62px reveal cards
 
 ---
 

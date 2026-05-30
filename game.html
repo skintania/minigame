@@ -110,27 +110,39 @@
 
     <!-- UNO Board -->
     <div id="uno-board" class="game-board">
+      <!-- Dynamic opponents (N players) -->
       <div class="g-section glass">
-        <div class="section-label">Opponent</div>
-        <div style="display:flex;align-items:center;gap:14px">
-          <div style="font-size:13px;color:var(--muted)"><span id="uno-opp-cnt">0</span> cards</div>
-          <div id="uno-opp-mini" style="display:flex"></div>
-        </div>
+        <div class="section-label" id="uno-opp-label">Players</div>
+        <div id="uno-opponents"></div>
       </div>
 
+      <!-- Discard pile + direction -->
       <div class="g-section glass" style="text-align:center">
         <div class="section-label">Discard Pile</div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
           <div id="uno-discard"></div>
-          <div>
-            <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Current Color</div>
-            <div id="uno-color-lbl" style="font-size:16px;font-weight:800;margin-top:3px">—</div>
+          <div style="display:flex;align-items:center;gap:16px;justify-content:center">
+            <div id="uno-direction" title="Turn order"></div>
+            <div>
+              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Color</div>
+              <div id="uno-color-lbl" style="font-size:16px;font-weight:800;margin-top:3px">—</div>
+            </div>
           </div>
         </div>
       </div>
 
+      <!-- Reveal countdown (shown during 10s window after last card played) -->
+      <div id="uno-reveal-bar" style="display:none">
+        <span>Revealing cards &mdash; winner in </span>
+        <span id="uno-reveal-countdown"></span>
+      </div>
+
+      <!-- My hand -->
       <div class="g-section glass">
-        <div class="section-label">Your Hand</div>
+        <div class="section-label" style="display:flex;align-items:center;gap:8px">
+          Your Hand
+          <span id="uno-my-uno" class="uno-uno-badge" style="display:none">UNO!</span>
+        </div>
         <div class="hand-row" id="uno-hand"></div>
         <div style="margin-top:14px">
           <button class="btn btn-blue" id="btn-draw" style="width:auto">Draw Card</button>

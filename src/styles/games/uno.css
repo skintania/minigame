@@ -125,3 +125,124 @@
 @media (max-width: 480px) {
   .uno-card-img { width: 58px; height: 86px; }
 }
+
+/* ── Multi-player opponents zone ── */
+.uno-opp-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.uno-opp-slot:last-child { border-bottom: none; }
+
+.uno-opp-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.uno-opp-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+}
+
+.uno-opp-slot.current-player .uno-opp-name { color: #3cb4e6; }
+.uno-opp-slot.winner-slot    .uno-opp-name { color: #ffd700; }
+
+.uno-opp-count {
+  font-size: 11px;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+/* Animated dot on the current player's row */
+.uno-turn-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3cb4e6;
+  flex-shrink: 0;
+  animation: uno-pulse 1.2s ease-in-out infinite;
+}
+@keyframes uno-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* UNO! and winner badges */
+.uno-uno-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  color: #ffd700;
+  background: rgba(255,215,0,0.12);
+  border: 1px solid rgba(255,215,0,0.35);
+  border-radius: 8px;
+  padding: 1px 6px;
+  text-transform: uppercase;
+}
+
+.uno-winner-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffd700;
+}
+
+/* Opponents' card rows */
+.uno-opp-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.uno-opp-cards.mini {
+  gap: 0;
+  align-items: center;
+}
+
+/* ── Small card size for opponent reveal ── */
+.uno-card-img.small {
+  width: 42px;
+  height: 62px;
+  border-radius: 7px;
+}
+
+.uno-card.small {
+  width: 42px;
+  height: 62px;
+  border-radius: 7px;
+}
+.uno-card.small .cv { font-size: 16px; }
+.uno-card.small .cl { font-size: 7px;  }
+
+/* ── Direction indicator ── */
+#uno-direction {
+  font-size: 20px;
+  color: var(--muted);
+  width: 24px;
+  text-align: center;
+  line-height: 1;
+}
+
+/* ── Reveal countdown bar ── */
+#uno-reveal-bar {
+  background: rgba(60,180,230,0.08);
+  border: 1px solid rgba(60,180,230,0.2);
+  border-radius: 12px;
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+#uno-reveal-countdown {
+  font-weight: 900;
+  background: var(--grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
