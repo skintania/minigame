@@ -509,7 +509,7 @@ function updateShowdownBar(meta) {
   const decisions  = meta.showdownDecisions
   const myDecision = decisions?.[state.sessionId]
   const canDecide  = myDecision === 'pending' ||
-    (myDecision == null && !folded && !isWinner && curRole() === 'player')
+    (myDecision == null && !folded && curRole() === 'player')
   const actionBar       = document.querySelector('.pk-action-bar')
   const normalActions   = document.getElementById('pk-normal-actions')
   const showdownActions = document.getElementById('pk-showdown-actions')

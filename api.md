@@ -97,7 +97,12 @@ Create a private room and get the code to share.
 
 All fields are optional. Defaults: `maxPlayers = 8` (min `2`, max `16`), `startingChips = 1000` (min `100`, max `1,000,000`), `turnTimeLimit = 0` (disabled; min `10`, max `300` seconds), `roundLimit = 0` (infinite; min `1`, max `1000`), `betweenRoundsSec = 0` (disabled; min `5`, max `120` seconds). `startingChips`, `turnTimeLimit`, `roundLimit`, and `betweenRoundsSec` are poker-only.
 
-**Player inactivity timeout:** Any player who has not called any API endpoint for **30 minutes** is automatically kicked from their room. This is fixed and cannot be configured. During an active hand the kick only fires during the `between-rounds` phase to avoid disrupting gameplay. If the last player is removed, the room is deleted immediately.
+**Player inactivity timeout:** Any player who has not called a game endpoint (`GET /games/:matchId/state` or any action) for **5 minutes** is automatically kicked. What happens depends on the game phase:
+- `waiting`: removed from the room entirely. Room is deleted if it becomes empty.
+- `between-rounds` / `showdown`: moved to spectator.
+- Mid-hand (`preflop`–`river`): folded out immediately, moved to spectator. If only one player is left active, the hand ends and pot is awarded. Kicked players can rejoin as `player` role during `between-rounds`.
+
+The scheduled cleanup job also removes players inactive for **30 minutes** across all rooms.
 
 **Response**
 ```json
@@ -395,6 +400,36 @@ Match the current bet. Goes all-in if your chips are insufficient. Acts as a che
 
 ---
 
+### `POST /games/poker/:matchId/show`
+
+Showdown phase only. Reveal your hole cards to all players.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+Errors: `"Not in showdown phase."`, `"You have no showdown decision to make."`, `"You have already decided."`
+
+---
+
+### `POST /games/poker/:matchId/muck`
+
+Showdown phase only. Keep your cards hidden. Only available when you are **not** the hand winner — the winner is always required to show.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+Errors: `"Not in showdown phase."`, `"You have no showdown decision to make."`, `"You have already decided."`
+
+---
+
 ### `POST /games/poker/:matchId/bet`
 
 Open or raise the betting. Must be at least as large as the previous raise this street (all-in bets are always allowed regardless of size).
@@ -537,6 +572,7 @@ Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/be
 | `"phase-updated"` | Poker: betting round ended, community cards dealt |
 | `"round-complete"` | Poker hand finished; game is now in `showdown` phase — cards visible, 5-second display |
 | `"finished"` | Game over — check `metadata.winner` for the winner |
+| `"reset"` | All players busted out; room reset to `waiting` — everyone moved to spectator, fresh game state, settings preserved. `matchStatus` becomes `"waiting"`. |
 
 ---
 
@@ -596,11 +632,15 @@ Opponent `hands` entries show `["hidden", "hidden"]` until `showdown`. Pass `ses
 
 **Phases:** `waiting → preflop → flop → turn → river → showdown → between-rounds → preflop → …`
 
-`showdown` is a stable display phase — all hole cards are revealed, `handWinner` is set, chips are already awarded. The phase lasts 5 seconds (`showdownRemainingSec`), then auto-advances to `between-rounds`. The host can skip it early with `POST /:matchId/next-round`.
+`showdown` is a stable display phase — `handWinner` is set and chips are already awarded. The phase lasts 5 seconds (`showdownRemainingSec`), then auto-advances to `between-rounds`. The host can skip it early with `POST /:matchId/next-round`.
+
+**Mucking:** During showdown, non-winning players can choose to hide their cards (`POST /:matchId/muck`) or reveal them (`POST /:matchId/show`). The winner is always required to show. `metadata.showdownDecisions` shows each player's decision: `"show"`, `"muck"`, or `"pending"`. Only cards with `"show"` are revealed in the response — all others remain `["hidden", "hidden"]`. When all players have decided, the phase advances to `between-rounds` immediately (no need to wait for the 5-second timer). If the timer expires or the host presses `next-round`, remaining `"pending"` players are auto-mucked.
 
 **Eliminated players:** at the end of each hand, players with 0 chips are automatically moved to spectator. They can call `PATCH /rooms/:code/role { role: "player" }` during `between-rounds` to rejoin with `startingChips`.
 
-**Game end:** when `roundLimit > 0` and all rounds have been played, or when only one player has chips remaining. With `roundLimit = 0` (infinite), only the last-player-standing condition ends the game.
+**Game end:** when `roundLimit > 0` and all rounds have been played — the last standing player is `metadata.winner`, `matchStatus` becomes `"finished"`.
+
+**Room reset:** when all players bust out and only one player has chips remaining, the room resets automatically instead of closing. All seated players are moved to spectator, game state is wiped (settings preserved), and `matchStatus` returns to `"waiting"`. Players can rejoin as `"player"` during `between-rounds` or after the reset, and the host can start a fresh game.
 
 ---
 

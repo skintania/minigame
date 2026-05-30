@@ -194,7 +194,7 @@ export function renderBoard(meta, mine) {
   // from the server response into the cache. This covers the case where the last
   // player's show/muck decision causes an immediate phase transition — the action
   // response arrives as between-rounds so the showdown branch above never ran.
-  if (curPhaseEarly === 'between-rounds' && prevPhase === 'showdown') {
+  if (curPhaseEarly === 'between-rounds') {
     const h = meta.hands || {}
     Object.entries(h).forEach(([id, cards]) => {
       if (Array.isArray(cards) && cards.some(c => c !== 'hidden' && c !== 'back')) {
