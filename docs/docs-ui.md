@@ -46,8 +46,8 @@ Reusable UI component styles.
 - `.color-grid` — 2×2 grid for UNO color picker buttons
 
 **Game overlays:**
-- `#winner-overlay`, `#between-rounds-overlay` — full-screen, dark blur, centered content
-- `.wr-countdown` — large countdown number
+- `#winner-overlay` — fixed bottom bar (slides up), dark blur, `env(safe-area-inset-bottom)` padding; `.open` shows it
+- `#between-rounds-overlay` — same shape as winner-overlay, z-index 300 (winner is 400); `.open` shows it
 - `.hand-winner-banner` — centered card for hand result text
 
 **Turn pill:**
@@ -75,9 +75,10 @@ Page-level layout grids and structural styles.
 - Host settings panel (max players, chips, timer, rounds inputs) — hidden for non-host
 
 **Room dropdown (`#room-dropdown`):**
-- Fixed-position panel (appears in game screen)
-- Shows room code, player list, leave button
-- Toggled by a menu button in-game
+- Fixed-position panel on desktop (top-right), bottom sheet on mobile (≤640px)
+- Shows room code, player list, leave button; host settings in `#wr-settings`
+- Mobile: `max-height: 80vh`, `-webkit-overflow-scrolling: touch`, `overscroll-behavior: contain`, `env(safe-area-inset-bottom)` padding
+- Toggled by room menu button in the game header
 
 ---
 
@@ -106,11 +107,18 @@ Poker table layout, seat positioning, and card animations (~450 lines).
 - Fold, Check/Call, Bet input + button
 - `.pk-timer-bar` — progress bar fill animation for turn timer
 
+**Player badge states:**
+- `.folded` — `opacity: 0.45` + red `FOLDED` pill via `::after`
+- `.mucked` — `opacity: 0.45` + grey `MUCK` pill via `::after` (showdown only)
+- `.allin` — blue `ALL-IN` pill via `::after`
+- `.turn-active` — pulsing glow: pink on `.mine`, blue on opponents
+- `.winner-flash` — gold glow burst on winning badge
+
 **Animations:**
 - `.flying-chip` — absolute positioned, `--tx`/`--ty` CSS vars, translate keyframe
-- `.pk-opp-slot.winner-flash` — gold glow pulse
-- `.pk-hand-winner` — 3D flip-in animation (`rotateX`)
-- Fold: `.folding-card` — rotate + translate off screen
+- `.pk-hand-winner` — fade/scale in/out via `pk-hw-in` / `pk-hw-out` keyframes
+- Fold: card clone animates off screen with `card-fold-out` keyframe
+- Card reveal: `card-reveal` keyframe (rotateY 90→0 + scale)
 - All-in runout: staggered card reveals via JS-added delays
 
 **Cards:**
@@ -171,6 +179,8 @@ Entry for waiting-room page. Loads `src/pages/lobby.js` as ES module.
 ## `game.html`
 
 Entry for active game page. Loads `src/pages/game.js` as ES module. Hosts both game boards and all overlays.
+
+**Viewport:** `viewport-fit=cover` is set so `env(safe-area-inset-bottom)` works on iPhone (home-indicator clearance).
 
 **Key elements:**
 - `#poker-board` — poker table markup (hidden during UNO)

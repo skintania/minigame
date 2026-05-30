@@ -303,7 +303,7 @@ Find an existing public waiting match, or create one. Only joins matches that ha
 
 ## Games — Poker
 
-All poker endpoints share a common response shape (see [Unified Game Response](#unified-game-response) below).
+**Action endpoints return `{ "ok": true }` only.** After any action, poll `GET /games/poker/:matchId/state` to get the updated game state.
 
 ### `POST /games/poker/join`
 
@@ -344,7 +344,7 @@ Start the first hand. Host only. Requires ≥ 2 players seated at the table.
 { "sessionId": "uuid" }
 ```
 
-**Response** — [Unified Game Response](#unified-game-response)
+**Response** `{ "ok": true }`
 
 ---
 
@@ -357,7 +357,7 @@ Start the next hand. Host only. Only valid during the `between-rounds` phase. Re
 { "sessionId": "uuid" }
 ```
 
-**Response** — [Unified Game Response](#unified-game-response)
+**Response** `{ "ok": true }`
 
 ---
 
@@ -370,7 +370,7 @@ Fold your hand and exit the current betting round.
 { "sessionId": "uuid" }
 ```
 
-**Response** — [Unified Game Response](#unified-game-response)
+**Response** `{ "ok": true }`
 
 ---
 
@@ -383,7 +383,7 @@ Pass without betting. Only valid when nothing is owed (`currentBet` equals your 
 { "sessionId": "uuid" }
 ```
 
-**Response** — [Unified Game Response](#unified-game-response)
+**Response** `{ "ok": true }`
 
 ---
 
@@ -396,7 +396,7 @@ Match the current bet. Goes all-in if your chips are insufficient. Acts as a che
 { "sessionId": "uuid" }
 ```
 
-**Response** — [Unified Game Response](#unified-game-response)
+**Response** `{ "ok": true }`
 
 ---
 
@@ -409,7 +409,7 @@ Showdown phase only. Reveal your hole cards to all players.
 { "sessionId": "uuid" }
 ```
 
-**Response** — [Unified Game Response](#unified-game-response)
+**Response** `{ "ok": true }`
 
 Errors: `"Not in showdown phase."`, `"You have no showdown decision to make."`, `"You have already decided."`
 
@@ -424,7 +424,7 @@ Showdown phase only. Keep your cards hidden. Only available when you are **not**
 { "sessionId": "uuid" }
 ```
 
-**Response** — [Unified Game Response](#unified-game-response)
+**Response** `{ "ok": true }`
 
 Errors: `"Not in showdown phase."`, `"You have no showdown decision to make."`, `"You have already decided."`
 
@@ -441,7 +441,7 @@ Open or raise the betting. Must be at least as large as the previous raise this 
 
 `amount` must be a positive number.
 
-**Response** — [Unified Game Response](#unified-game-response)
+**Response** `{ "ok": true }`
 
 Errors: `"amount must be a positive number"`, `"Insufficient chips. You have N."`, `"Minimum raise is N (raise by at least N). You raised by M."`.
 
@@ -449,7 +449,7 @@ Errors: `"amount must be a positive number"`, `"Insufficient chips. You have N."
 
 ## Games — UNO
 
-All UNO endpoints share the same common response shape.
+**Action endpoints return `{ "ok": true }` only.** After any action, poll `GET /games/uno/:matchId/state` to get the updated game state.
 
 ### `POST /games/uno/join`
 
@@ -490,7 +490,7 @@ Start the game. Host only. Requires ≥ 2 players seated at the table.
 { "sessionId": "uuid" }
 ```
 
-**Response** — [Unified Game Response](#unified-game-response)
+**Response** `{ "ok": true }`
 
 ---
 
@@ -508,7 +508,7 @@ Play a card from your hand. `color` is required when playing `wild` or `wild_dra
 { "sessionId": "uuid", "card": "wild", "color": "blue" }
 ```
 
-**Response** — [Unified Game Response](#unified-game-response)
+**Response** `{ "ok": true }`
 
 Errors: `"Card is not in hand."`, `"Card is not playable on the current discard."`, `"A color must be chosen when playing a wild card."`.
 
@@ -523,13 +523,15 @@ Draw one card from the deck.
 { "sessionId": "uuid" }
 ```
 
-**Response** — [Unified Game Response](#unified-game-response)
+**Response** `{ "ok": true }`
 
 ---
 
 ## Unified Game Response
 
-Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/bet`, `/play`, etc.) return the same flat shape:
+`GET /:matchId/state` is the only endpoint that returns game state. Action endpoints (`POST /:matchId/fold`, `/bet`, `/play`, etc.) return `{ "ok": true }` only — poll state after every action to update the UI.
+
+The state shape returned by `GET /:matchId/state`:
 
 ```json
 {
@@ -541,9 +543,7 @@ Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/be
   "myRole": "player" | "spectator",
   "matchStatus": "waiting" | "active" | "finished",
   "isMyTurn": true,
-  "betweenRoundsRemainingSec": 12,
-  "status": "ok",
-  "message": "Alice bet 100"
+  "betweenRoundsRemainingSec": 12
 }
 ```
 
@@ -561,20 +561,6 @@ Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/be
 | `betweenRoundsRemainingSec` | Seconds until the next hand auto-starts. Only present during Poker `between-rounds` when `betweenRoundsSec > 0`. `undefined` otherwise. |
 | `turnRemainingSec` | Seconds remaining for the current player's turn. Only present during Poker when `turnTimeLimit > 0` and a turn is in progress. `undefined` otherwise. |
 | `playerStates` | Per-player display map (Poker only, absent during `waiting` phase). See [Player States](#player-states-poker-only) below. |
-| `status` | Action result string (see table below) |
-| `message` | Human-readable description of the last event |
-
-**`status` values**
-
-| Status | Meaning |
-|---|---|
-| `"waiting"` | Game hasn't started — waiting for players |
-| `"ok"` | Move accepted, waiting for next player |
-| `"started"` | Game just started |
-| `"phase-updated"` | Poker: betting round ended, community cards dealt |
-| `"round-complete"` | Poker hand finished; game is now in `showdown` phase — cards visible, 10-second display |
-| `"finished"` | Game over — check `metadata.winner` for the winner |
-| `"reset"` | All players busted out; room reset to `waiting` — everyone moved to spectator, fresh game state, settings preserved. `matchStatus` becomes `"waiting"`. |
 
 ---
 
@@ -646,10 +632,23 @@ Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/be
 {
   "phase": "waiting | preflop | flop | turn | river | showdown | between-rounds",
   "community": ["A♠", "10♥", "3♣"],
+  "hands": {
+    "sessionId1": ["K♦", "Q♠"],
+    "sessionId2": ["hidden", "hidden"]
+  },
   "pot": 150,
+  "bets": { "sessionId1": 50, "sessionId2": 100 },
+  "totalBets": { "sessionId1": 70, "sessionId2": 100 },
+  "chips": { "sessionId1": 880, "sessionId2": 850 },
+  "folded": { "sessionId1": false, "sessionId2": false },
+  "currentPlayer": "sessionId1",
   "currentBet": 100,
   "lastRaiseAmount": 20,
+  "dealerIndex": 0,
+  "sbIndex": 0,
+  "bbIndex": 1,
   "turnTimeLimit": 30,
+  "turnStartedAt": "2026-05-21T10:00:00.000Z",
   "roundLimit": 10,
   "betweenRoundsSec": 30,
   "betweenRoundsUntil": "2026-05-21T10:01:00.000Z",
@@ -660,15 +659,18 @@ Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/be
 }
 ```
 
-Per-player data (chips, bets, cards, fold state, blind roles, showdown decisions) is in `playerStates` — see [Player States](#player-states-poker-only) above. Use `playerStates[id].*` for all seat rendering; the individual flat maps (`hands`, `chips`, `bets`, etc.) are no longer sent.
-
 | Field | Description |
 |---|---|
-| `currentBet` | Highest bet on the current street — used to compute the call amount |
+| `chips` | Each player's current chip stack |
+| `bets` | Chips put in during the **current street only** — resets at each new street |
+| `totalBets` | Cumulative chips put in across **all streets** this hand — used for side pot calculation |
 | `lastRaiseAmount` | Size of the last raise this street; next raise must be at least this large (all-in exempt) |
+| `sbIndex` / `bbIndex` | Index into `players` of the small and big blind for this hand |
 | `handWinner` | Player who won the most recent hand. `null` before first hand ends |
 | `winner` | Overall game winner. Only set when the game is `finished`. `null` while ongoing |
 | `betweenRoundsUntil` | ISO timestamp when the between-rounds countdown ends and the next hand auto-starts. `null` outside `between-rounds` phase |
+
+Opponent `hands` entries: `["hidden","hidden"]` while in play, `["fold","fold"]` after folding, or actual cards after showing at showdown. Your own cards are always actual values. Prefer using `playerStates[id].cards` — it combines all these cases in one place.
 
 **Blinds:** SB = `startingChips / 100`, BB = `startingChips / 50`. For 1000-chip games: SB = 10, BB = 20. Preflop action starts at UTG (seat after BB). In heads-up the dealer posts the SB and acts first preflop.
 
