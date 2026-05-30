@@ -200,6 +200,13 @@ async function pollRoomHeartbeat() {
     const room = await api.getRoomStatus(state.roomCode, state.sessionId)
     roomData = room
 
+    // Sync matchId — required after continueMatch() clears it so the host can start the next game
+    if (room.matchId) {
+      state.matchId = room.matchId
+      state.gameId  = room.gameId || state.gameId
+      saveSession()
+    }
+
     // Keep state.isHost in sync for initial load (before game state arrives)
     if (room.hostId) {
       state.hostId = room.hostId
@@ -658,7 +665,9 @@ function showBetweenRounds(meta) {
   document.getElementById('btn-next-round').style.display = amHost() ? '' : 'none'
   overlay.classList.add('open')
 
-  const remSec = state.gameState?.betweenRoundsRemainingSec ?? null
+  const remSec   = state.gameState?.betweenRoundsRemainingSec ?? null
+  const brNextEl = document.querySelector('#between-rounds-overlay .br-next')
+  if (brNextEl) brNextEl.style.display = remSec != null ? '' : 'none'
   if (!betweenRoundsInterval && remSec != null) {
     localBetweenRoundsRemaining = remSec
     tickBetweenRounds()

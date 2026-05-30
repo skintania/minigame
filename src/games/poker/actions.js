@@ -7,6 +7,8 @@ async function act(actionFn) {
     await actionFn()
     const res = await api.getState(state.gameId, state.matchId, state.sessionId)
     document.dispatchEvent(new CustomEvent('game:move', { detail: res }))
+    const betInput = document.getElementById('bet-amt')
+    if (betInput) betInput.value = ''
   } catch (e) {
     console.error('[poker] action failed:', e)
     showToast(e.message)
@@ -25,5 +27,4 @@ export async function pkBet() {
   const amount = parseInt(document.getElementById('bet-amt').value)
   if (!amount || amount <= 0) { showToast('Enter a valid bet amount.'); return }
   await act(() => api.pokerBet(state.matchId, state.sessionId, amount))
-  document.getElementById('bet-amt').value = ''
 }
