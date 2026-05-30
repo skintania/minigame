@@ -20,10 +20,6 @@ let prevPhase              = null
 let prevShowdownDecisions  = {}
 let builtOppIds            = []   // tracks which opponent slots are in the DOM
 
-// Cache revealed hands + community from showdown so they stay visible during between-rounds
-let cachedHands     = {}
-let cachedCommunity = []
-
 const avatarsLoaded = new Set()
 
 function maybeSetAvatar(el, sessionId, fallback) {
@@ -210,60 +206,11 @@ export function renderBoard(meta, mine) {
 
   const curPhaseEarly = meta.phase || ''
 
-  // Keep cache current throughout showdown so the final show/muck state
-  // (which cards are revealed vs hidden) persists into between-rounds.
-  // Also persist to sessionStorage so a hard-refresh during between-rounds
-  // can restore the revealed hands (server sends hidden for all in that phase).
-  if (curPhaseEarly === 'showdown') {
-    players.forEach(id => { cachedHands[id] = ps[id]?.cards || [] })
-    cachedCommunity = [...(meta.community || [])]
-    if (state.matchId) {
-      try {
-        sessionStorage.setItem(`pk_hands_${state.matchId}`,
-          JSON.stringify({ hands: cachedHands, community: cachedCommunity }))
-      } catch {}
-    }
-  }
-
-  // Between-rounds: restore cache from sessionStorage if it was cleared (hard refresh),
-  // then merge any real cards the server may have sent (e.g. last-player show/muck
-  // transitions directly to between-rounds before this cache block could run).
-  if (curPhaseEarly === 'between-rounds') {
-    if (!Object.keys(cachedHands).length && state.matchId) {
-      try {
-        const raw = sessionStorage.getItem(`pk_hands_${state.matchId}`)
-        if (raw) {
-          const s = JSON.parse(raw)
-          if (s?.hands)             cachedHands     = { ...s.hands }
-          if (s?.community?.length) cachedCommunity = [...s.community]
-        }
-      } catch {}
-    }
-    players.forEach(id => {
-      const cards = ps[id]?.cards || []
-      if (cards.some(c => c !== 'hidden' && c !== 'back' && c !== 'fold')) {
-        cachedHands[id] = cards
-      }
-    })
-    if (meta.community?.length) cachedCommunity = [...meta.community]
-  }
-
-  // Clear cache and muck state when a new hand begins
+  // Clear muck state when a new hand begins
   if (curPhaseEarly === 'preflop' && prevPhase !== 'preflop' && prevPhase !== null) {
-    cachedHands            = {}
-    cachedCommunity        = []
-    prevShowdownDecisions  = {}
-    if (state.matchId) {
-      try { sessionStorage.removeItem(`pk_hands_${state.matchId}`) } catch {}
-    }
+    prevShowdownDecisions = {}
     document.querySelectorAll('.pk-player-badge').forEach(el => el.classList.remove('mucked'))
   }
-
-  // During between-rounds, fall back to cached revealed data so cards stay visible
-  const isBetween   = curPhaseEarly === 'between-rounds'
-  const handsFromPS = Object.fromEntries(players.map(id => [id, ps[id]?.cards || []]))
-  const effectHands = (isBetween && Object.keys(cachedHands).length) ? cachedHands : handsFromPS
-  const effectComm  = (isBetween && cachedCommunity.length) ? cachedCommunity : (meta.community || [])
 
   // My avatar (once)
   maybeSetAvatar(
@@ -388,20 +335,21 @@ export function renderBoard(meta, mine) {
     checkBtn.dataset.action = 'check'
   }
 
-  // Community cards (use cached during between-rounds)
+  // Community cards
+  const community = meta.community || []
   document.getElementById('pk-community').innerHTML =
-    effectComm.map(cardHTML).join('') +
-    Array(Math.max(0, 5 - effectComm.length)).fill('<div class="p-card placeholder"></div>').join('')
+    community.map(cardHTML).join('') +
+    Array(Math.max(0, 5 - community.length)).fill('<div class="p-card placeholder"></div>').join('')
 
-  // My hand — ['fold','fold'] from server renders as fold art via cardHTML
-  const myHand = effectHands[state.sessionId] || []
+  // My hand
+  const myHand = ps[state.sessionId]?.cards || []
   document.getElementById('pk-hand').innerHTML = myHand.map(cardHTML).join('')
 
   // Each opponent's hand
   opponents.forEach(id => {
     const handEl = document.getElementById(`pk-opp-hand-${id}`)
     if (!handEl) return
-    const hand = effectHands[id]
+    const hand = ps[id]?.cards
     handEl.innerHTML = hand?.length
       ? hand.map(cardHTML).join('')
       : curPhase === 'waiting' ? '' : '<div class="p-card back"></div><div class="p-card back"></div>'
@@ -413,7 +361,7 @@ export function renderBoard(meta, mine) {
   const myRankEl = document.getElementById('pk-my-rank')
   if (myRankEl) {
     myRankEl.textContent = (!myFolded && curPhase !== 'waiting')
-      ? (useServerRank ? (ps[state.sessionId]?.handRank || '') : getBestHandName([...myHand, ...effectComm]))
+      ? (useServerRank ? (ps[state.sessionId]?.handRank || '') : getBestHandName([...myHand, ...community]))
       : ''
   }
   opponents.forEach(id => {
@@ -421,9 +369,9 @@ export function renderBoard(meta, mine) {
     if (!rankEl) return
     if (!showOppRanks || curFolded[id]) { rankEl.textContent = ''; return }
     if (useServerRank) { rankEl.textContent = ps[id]?.handRank || ''; return }
-    const hand = effectHands[id] || []
+    const hand = ps[id]?.cards || []
     const hasRealCards = hand.length > 0 && hand.every(c => c !== 'hidden' && c !== 'back' && c !== 'fold')
-    rankEl.textContent = hasRealCards ? getBestHandName([...hand, ...effectComm]) : ''
+    rankEl.textContent = hasRealCards ? getBestHandName([...hand, ...community]) : ''
   })
 
   // Reveal opponent cards when entering showdown or between-rounds (server may skip straight to between-rounds)
