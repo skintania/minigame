@@ -184,17 +184,34 @@ export function renderBoard(meta, mine) {
   const curPhaseEarly = meta.phase || ''
 
   // Keep cache current throughout showdown so the final show/muck state
-  // (which cards are revealed vs hidden) persists into between-rounds
+  // (which cards are revealed vs hidden) persists into between-rounds.
+  // Also persist to sessionStorage so a hard-refresh during between-rounds
+  // can restore the revealed hands (server sends hidden for all in that phase).
   if (curPhaseEarly === 'showdown') {
     cachedHands     = { ...(meta.hands || {}) }
     cachedCommunity = [...(meta.community || [])]
+    if (state.matchId) {
+      try {
+        sessionStorage.setItem(`pk_hands_${state.matchId}`,
+          JSON.stringify({ hands: cachedHands, community: cachedCommunity }))
+      } catch {}
+    }
   }
 
-  // On the first render of between-rounds after showdown, merge any real cards
-  // from the server response into the cache. This covers the case where the last
-  // player's show/muck decision causes an immediate phase transition — the action
-  // response arrives as between-rounds so the showdown branch above never ran.
+  // Between-rounds: restore cache from sessionStorage if it was cleared (hard refresh),
+  // then merge any real cards the server may have sent (e.g. last-player show/muck
+  // transitions directly to between-rounds before this cache block could run).
   if (curPhaseEarly === 'between-rounds') {
+    if (!Object.keys(cachedHands).length && state.matchId) {
+      try {
+        const raw = sessionStorage.getItem(`pk_hands_${state.matchId}`)
+        if (raw) {
+          const s = JSON.parse(raw)
+          if (s?.hands)             cachedHands     = { ...s.hands }
+          if (s?.community?.length) cachedCommunity = [...s.community]
+        }
+      } catch {}
+    }
     const h = meta.hands || {}
     Object.entries(h).forEach(([id, cards]) => {
       if (Array.isArray(cards) && cards.some(c => c !== 'hidden' && c !== 'back')) {
@@ -209,6 +226,9 @@ export function renderBoard(meta, mine) {
     cachedHands            = {}
     cachedCommunity        = []
     prevShowdownDecisions  = {}
+    if (state.matchId) {
+      try { sessionStorage.removeItem(`pk_hands_${state.matchId}`) } catch {}
+    }
     document.querySelectorAll('.pk-player-badge').forEach(el => el.classList.remove('mucked'))
   }
 
