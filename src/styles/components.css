@@ -193,6 +193,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 20px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
   gap: 12px;
   opacity: 0;
   pointer-events: none;
@@ -236,6 +237,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 10px 20px;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
   gap: 12px;
   opacity: 0;
   pointer-events: none;

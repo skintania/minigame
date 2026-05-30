@@ -284,10 +284,14 @@ export function renderBoard(meta, mine) {
     })
   }
 
-  // Folded badges
+  // Folded / all-in badges
+  const myAllin = (ps[state.sessionId]?.status || 'active') === 'allin'
   document.getElementById('pk-my-badge')?.classList.toggle('folded', myFolded)
+  document.getElementById('pk-my-badge')?.classList.toggle('allin',  myAllin)
   opponents.forEach(id => {
+    const oppStatus = ps[id]?.status || 'active'
     document.getElementById(`pk-opp-badge-${id}`)?.classList.toggle('folded', curFolded[id])
+    document.getElementById(`pk-opp-badge-${id}`)?.classList.toggle('allin',  oppStatus === 'allin')
   })
 
   // Muck: animate fold cards on first muck decision, then keep badge dimmed

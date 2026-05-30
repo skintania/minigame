@@ -215,6 +215,19 @@
   padding: 2px 7px;
 }
 
+/* All-in state */
+.pk-player-badge.allin::after {
+  content: 'ALL-IN';
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: #3cb4e6;
+  background: rgba(60,180,230,0.1);
+  border: 1px solid rgba(60,180,230,0.3);
+  border-radius: 10px;
+  padding: 2px 7px;
+}
+
 /* ── Green felt table ── */
 .pk-table {
   width: 100%;
@@ -515,8 +528,9 @@
   .pk-opp-slot .pk-badge-label { font-size: 10px; }
   .pk-opp-slot .pk-chip-count  { font-size: 10px; }
 
-  /* Opponent cards: hide on mobile (no room) */
-  .pk-opp-slot .cards-row { display: none; }
+  /* Opponent cards + hand-rank label: hide on mobile (no room) */
+  .pk-opp-slot .cards-row    { display: none; }
+  .pk-opp-slot .pk-hand-rank { display: none; }
 
   /* ── Felt table ── */
   .pk-table {

@@ -563,6 +563,7 @@ async function showHandResult(meta) {
   if (handResultActive) return
   handResultActive = true
 
+  document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
   hideShowdownBar()
   hideBetweenRounds()
 
