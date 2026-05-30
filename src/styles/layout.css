@@ -728,7 +728,9 @@
     width: 100% !important;
     max-height: 80vh;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     border-radius: 20px 20px 0 0;
-    padding-bottom: 28px; /* home-indicator clearance */
+    padding-bottom: max(28px, env(safe-area-inset-bottom));
   }
 }
