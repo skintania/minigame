@@ -177,10 +177,34 @@ function animateReveal(containerId) {
   })
 }
 
+// Build a playerStates-shaped map from legacy flat metadata fields.
+// Used as a fallback when the server hasn't deployed the playerStates format yet.
+function legacyPS(meta, players) {
+  const hands    = meta.hands    || {}
+  const chips    = meta.chips    || {}
+  const bets     = meta.bets     || {}
+  const totals   = meta.totalBets || bets
+  const folded   = meta.folded   || {}
+  const decs     = meta.showdownDecisions || {}
+  const sbId     = players[meta.sbIndex] ?? null
+  const bbId     = players[meta.bbIndex] ?? null
+  return Object.fromEntries(players.map(id => [id, {
+    cards:            hands[id]    || [],
+    chips:            chips[id],
+    bet:              bets[id]     ?? 0,
+    totalBet:         totals[id]   ?? bets[id] ?? 0,
+    status:           folded[id]   ? 'folded' : 'active',
+    isCurrentPlayer:  meta.currentPlayer === id,
+    isSB:             sbId === id,
+    isBB:             bbId === id,
+    showdownDecision: decs[id]     || null,
+  }]))
+}
+
 export function renderBoard(meta, mine) {
   const players   = state.gameState.players || []
   const opponents = players.filter(p => p !== state.sessionId)
-  const ps        = meta.playerStates || {}
+  const ps        = meta.playerStates || legacyPS(meta, players)
 
   const curPhaseEarly = meta.phase || ''
 

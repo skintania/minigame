@@ -35,7 +35,9 @@ function applyServerState(gs) {
 
   // Detect role change player → spectator during an active match
   if (prevMyRole === 'player' && gs.myRole === 'spectator' && gs.matchStatus === 'active') {
-    const myChips = gs.metadata?.playerStates?.[state.sessionId]?.chips ?? 0
+    const myChips = (gs.metadata?.playerStates?.[state.sessionId]?.chips
+      ?? gs.metadata?.chips?.[state.sessionId]
+      ?? 0)
     if (myChips > 0) {
       showToast('You were removed due to inactivity.')
       showRejoinPrompt()
@@ -504,7 +506,11 @@ function updateShowdownBar(meta) {
   document.getElementById('btn-skip-showdown').style.display = amHost() ? '' : 'none'
 
   // Show/Muck row in the action bar — visible when this player must decide.
-  const myPS       = meta.playerStates?.[state.sessionId] || {}
+  const allPS      = meta.playerStates || {}
+  const myPS       = allPS[state.sessionId] || {
+    status:           (meta.folded || {})[state.sessionId] ? 'folded' : 'active',
+    showdownDecision: (meta.showdownDecisions || {})[state.sessionId] || null,
+  }
   const folded     = myPS.status === 'folded'
   const myDecision = myPS.showdownDecision
   const canDecide  = myDecision === 'pending' ||
