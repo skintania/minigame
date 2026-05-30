@@ -18,6 +18,11 @@ Foundation layer — CSS variables, resets, global decorative elements.
 - Ambient glow blobs — `body::before/::after` positioned pseudo-elements (pink/blue)
 - Custom scrollbar — thin, uses `--surface` track
 
+**Themes:**
+- Default (Casino): dark navy bg, pink/blue accent, green poker felt
+- `html[data-theme="hangout"]` (Hangout House): warm dark brown bg (`#0f0a04`), amber/gold accents, cognac felt; set via `document.documentElement.dataset.theme`; persisted to `localStorage('sk_theme')`
+- Switching: `applyTheme(name)` in `views/game.js`; blank string = Casino, `"hangout"` = Hangout
+
 ---
 
 ## `src/styles/components.css`
@@ -201,7 +206,7 @@ Entry for active game page. Loads `src/pages/game.js` as ES module. Hosts both g
 - `#winner-overlay` — game-over full-screen overlay
 - `#between-rounds-overlay` — countdown overlay between hands
 - `#color-modal` — UNO wild color picker modal (`.overlay`)
-- `#room-dropdown` — slide-in room info panel
+- `#room-dropdown` — slide-in room info panel; contains `.rd-theme` with `#theme-btn-casino` / `#theme-btn-hangout`
 - `#toast`
 
 ---

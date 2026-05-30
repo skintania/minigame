@@ -131,7 +131,9 @@ Main game orchestrator (~700 lines). Manages polling, rendering dispatch, overla
 
 **Exports:** `initGame()`, `enterGame()`, `render()`, `stopPoll()`
 
-**`initGame()`** — binds overlay button listeners (back to room, end game, next round, switch role). Runs once on page load.
+**`initGame()`** — binds overlay button listeners (back to room, end game, next round, switch role) and theme picker buttons. Runs once on page load.
+
+**`applyTheme(name)`** — sets `document.documentElement.dataset.theme` (`''` = Casino, `'hangout'` = Hangout House), saves to `localStorage('sk_theme')`, updates `.rd-theme-btn.active` state. Each HTML page has an inline script in `<head>` to restore the theme before CSS renders (no flash).
 
 **`enterGame()`** — starts `state.poll` (2.2s game state) and `roomHeartbeatInterval` (15s room status).
 

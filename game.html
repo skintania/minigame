@@ -6,6 +6,7 @@
   <title>Skintania — Game</title>
   <link rel="icon" href="/sk-cu.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>const _t=localStorage.getItem('sk_theme');if(_t)document.documentElement.dataset.theme=_t;</script>
   <link rel="stylesheet" href="/src/styles/base.css">
   <link rel="stylesheet" href="/src/styles/components.css">
   <link rel="stylesheet" href="/src/styles/layout.css">
@@ -110,44 +111,34 @@
 
     <!-- UNO Board -->
     <div id="uno-board" class="game-board">
-      <!-- Dynamic opponents (N players) -->
-      <div class="g-section glass">
-        <div class="section-label" id="uno-opp-label">Players</div>
-        <div id="uno-opponents"></div>
-      </div>
-
-      <!-- Discard pile + direction -->
-      <div class="g-section glass" style="text-align:center">
-        <div class="section-label">Discard Pile</div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
-          <div id="uno-discard"></div>
-          <div style="display:flex;align-items:center;gap:16px;justify-content:center">
-            <div id="uno-direction" title="Turn order"></div>
-            <div>
-              <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Color</div>
-              <div id="uno-color-lbl" style="font-size:16px;font-weight:800;margin-top:3px">—</div>
+      <div class="uno-table-unit">
+        <div class="uno-table-area">
+          <!-- Opponent badges positioned around the table -->
+          <div class="uno-opponents-overlay" id="uno-opponents"></div>
+          <!-- Felt table -->
+          <div class="uno-table">
+            <div class="uno-table-center">
+              <div id="uno-direction" title="Turn order"></div>
+              <div id="uno-discard"></div>
+              <div class="uno-color-wrap">
+                <div class="uno-color-label">Color</div>
+                <div id="uno-color-lbl">—</div>
+              </div>
+            </div>
+            <div id="uno-reveal-bar" style="display:none">
+              Revealing — <span id="uno-reveal-countdown"></span>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Reveal countdown (shown during 10s window after last card played) -->
-      <div id="uno-reveal-bar" style="display:none">
-        <span>Revealing cards &mdash; winner in </span>
-        <span id="uno-reveal-countdown"></span>
-      </div>
-
-      <!-- My hand -->
-      <div class="g-section glass">
-        <div class="section-label" style="display:flex;align-items:center;gap:8px">
-          Your Hand
-          <span id="uno-my-uno" class="uno-uno-badge" style="display:none">UNO!</span>
+        <!-- Player zone at bottom -->
+        <div class="uno-player-zone">
+          <div class="hand-row" id="uno-hand"></div>
+          <div class="uno-hand-footer">
+            <span id="uno-my-uno" class="uno-uno-badge" style="display:none">UNO!</span>
+            <button class="btn btn-blue" id="btn-draw" style="width:auto">Draw Card</button>
+          </div>
+          <div class="last-action" id="uno-last"></div>
         </div>
-        <div class="hand-row" id="uno-hand"></div>
-        <div style="margin-top:14px">
-          <button class="btn btn-blue" id="btn-draw" style="width:auto">Draw Card</button>
-        </div>
-        <div class="last-action" id="uno-last"></div>
       </div>
     </div>
     <!-- Spectator panel (top-left, always visible when in a room) -->
@@ -235,6 +226,17 @@
     </div>
     <div class="rd-actions">
       <button class="btn btn-ghost" id="wr-leave-room" style="width:100%;padding:9px 20px;font-size:12px;color:var(--muted)">Leave Room</button>
+    </div>
+    <div class="rd-theme">
+      <div class="rd-theme-title">Theme</div>
+      <div class="rd-theme-btns">
+        <button class="rd-theme-btn" id="theme-btn-casino"   data-theme="">🎰 Casino</button>
+        <button class="rd-theme-btn" id="theme-btn-classic" data-theme="classic">💗 Classic</button>
+        <button class="rd-theme-btn" id="theme-btn-hangout" data-theme="hangout">🏠 Hangout</button>
+        <button class="rd-theme-btn" id="theme-btn-ocean"   data-theme="ocean">🌊 Ocean</button>
+        <button class="rd-theme-btn" id="theme-btn-sakura"  data-theme="sakura">🌸 Sakura</button>
+        <button class="rd-theme-btn" id="theme-btn-neon"    data-theme="neon">⚡ Neon</button>
+      </div>
     </div>
     <div id="wr-settings" class="rd-settings" style="display:none">
       <div class="host-settings-title">Room Settings</div>

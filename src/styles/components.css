@@ -8,6 +8,13 @@
   border-radius: 20px;
 }
 
+/* Hangout House: light wood-tinted glass panels */
+html[data-theme="hangout"] .glass {
+  background:
+    linear-gradient(rgba(255,225,160,0.05) 0 0) padding-box,
+    linear-gradient(145deg, rgba(200,136,42,0.20), rgba(80,128,64,0.12)) border-box;
+}
+
 /* ── Buttons ── */
 .btn {
   display: inline-flex;
@@ -291,4 +298,90 @@
 @keyframes sd-bar-in {
   from { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.96); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1);    }
+}
+
+/* ── Hangout: override hardcoded dark-blue casino colors ── */
+html[data-theme="hangout"] #winner-overlay,
+html[data-theme="hangout"] #between-rounds-overlay {
+  background: rgba(28, 18, 8, 0.96);
+  border-top-color: rgba(200, 136, 42, 0.40);
+}
+html[data-theme="hangout"] .modal-box {
+  background: linear-gradient(#1c1208, #1c1208) padding-box, var(--grad-border) border-box;
+}
+html[data-theme="hangout"] #showdown-bar {
+  background: rgba(28, 18, 8, 0.92);
+}
+
+/* ── Classic ── */
+html[data-theme="classic"] .glass {
+  background:
+    linear-gradient(rgba(255,255,255,0.04) 0 0) padding-box,
+    linear-gradient(145deg, rgba(255,61,130,0.20), rgba(61,139,255,0.16)) border-box;
+}
+html[data-theme="classic"] #winner-overlay,
+html[data-theme="classic"] #between-rounds-overlay {
+  background: rgba(8, 6, 14, 0.96);
+  border-top-color: rgba(255, 61, 130, 0.40);
+}
+html[data-theme="classic"] .modal-box {
+  background: linear-gradient(#08060e, #08060e) padding-box, var(--grad-border) border-box;
+}
+html[data-theme="classic"] #showdown-bar {
+  background: rgba(8, 6, 14, 0.92);
+}
+
+/* ── Ocean ── */
+html[data-theme="ocean"] .glass {
+  background:
+    linear-gradient(rgba(0,220,240,0.04) 0 0) padding-box,
+    linear-gradient(145deg, rgba(0,196,196,0.20), rgba(24,128,192,0.14)) border-box;
+}
+html[data-theme="ocean"] #winner-overlay,
+html[data-theme="ocean"] #between-rounds-overlay {
+  background: rgba(4, 14, 26, 0.96);
+  border-top-color: rgba(0, 196, 196, 0.40);
+}
+html[data-theme="ocean"] .modal-box {
+  background: linear-gradient(#04101e, #04101e) padding-box, var(--grad-border) border-box;
+}
+html[data-theme="ocean"] #showdown-bar {
+  background: rgba(4, 14, 26, 0.92);
+}
+
+/* ── Sakura ── */
+html[data-theme="sakura"] .glass {
+  background:
+    linear-gradient(rgba(224,88,136,0.04) 0 0) padding-box,
+    linear-gradient(145deg, rgba(224,88,136,0.18), rgba(184,72,160,0.12)) border-box;
+}
+html[data-theme="sakura"] #winner-overlay,
+html[data-theme="sakura"] #between-rounds-overlay {
+  background: rgba(12, 6, 16, 0.96);
+  border-top-color: rgba(224, 88, 136, 0.40);
+}
+html[data-theme="sakura"] .modal-box {
+  background: linear-gradient(#100810, #100810) padding-box, var(--grad-border) border-box;
+}
+html[data-theme="sakura"] #showdown-bar {
+  background: rgba(12, 6, 16, 0.92);
+}
+
+/* ── Neon ── */
+html[data-theme="neon"] .glass {
+  background:
+    linear-gradient(rgba(184,32,232,0.05) 0 0) padding-box,
+    linear-gradient(145deg, rgba(184,32,232,0.22), rgba(0,232,192,0.14)) border-box;
+}
+html[data-theme="neon"] #winner-overlay,
+html[data-theme="neon"] #between-rounds-overlay {
+  background: rgba(6, 4, 10, 0.97);
+  border-top-color: rgba(184, 32, 232, 0.50);
+}
+html[data-theme="neon"] .modal-box {
+  background: linear-gradient(#080410, #080410) padding-box, var(--grad-border) border-box;
+}
+html[data-theme="neon"] #showdown-bar {
+  background: rgba(6, 4, 10, 0.93);
+  border-color: rgba(184, 32, 232, 0.45);
 }

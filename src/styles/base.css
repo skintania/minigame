@@ -29,26 +29,31 @@ html {
 body {
   font-family: 'Inter', system-ui, sans-serif;
   background-color: var(--bg);
-  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
-  background-size: 30px 30px;
+  /* Luxury brocade: micro-texture + bold diamond trellis + accent dots */
+  background-image:
+    radial-gradient(circle, rgba(232, 82, 154, 0.20) 1.5px, transparent 1.5px),
+    repeating-linear-gradient( 45deg, rgba(232,82,154,0.07) 0px, rgba(232,82,154,0.07) 1px, transparent 1px, transparent 36px),
+    repeating-linear-gradient(-45deg, rgba(60,180,230,0.06)  0px, rgba(60,180,230,0.06)  1px, transparent 1px, transparent 36px),
+    repeating-linear-gradient( 45deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 9px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.015)0px, rgba(255,255,255,0.015)1px, transparent 1px, transparent 9px);
+  background-size: 51px 51px, auto, auto, auto, auto;
+  background-position: 25px 25px, 0 0, 0 0, 0 0, 0 0;
   color: var(--text);
   height: 100%;
   overflow: hidden;
 }
 
-/* Ambient glow blobs */
+/* Ambient glow blobs — full-viewport so no element edge is ever visible */
 body::before {
   content: '';
-  position: fixed; top: -30%; left: -15%;
-  width: 55%; height: 55%;
-  background: radial-gradient(circle, rgba(232, 82, 154, 0.18) 0%, transparent 65%);
+  position: fixed; inset: 0;
+  background: radial-gradient(circle at 10% -5%, rgba(232, 82, 154, 0.22) 0%, rgba(232, 82, 154, 0) 52%);
   pointer-events: none; z-index: 0;
 }
 body::after {
   content: '';
-  position: fixed; bottom: -30%; right: -15%;
-  width: 55%; height: 55%;
-  background: radial-gradient(circle, rgba(60, 180, 230, 0.18) 0%, transparent 65%);
+  position: fixed; inset: 0;
+  background: radial-gradient(circle at 90% 105%, rgba(60, 180, 230, 0.22) 0%, rgba(60, 180, 230, 0) 52%);
   pointer-events: none; z-index: 0;
 }
 
@@ -57,3 +62,177 @@ body::after {
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+
+/* ── Hangout House theme — light wood / modern living room ── */
+html[data-theme="hangout"] {
+  --pink:        #c8882a;     /* light maple / honey wood */
+  --pink-light:  #dca048;
+  --pink-dim:    rgba(200, 136, 42, 0.18);
+  --blue:        #508040;     /* plant / natural green */
+  --blue-light:  #6aa058;
+  --blue-dim:    rgba(80, 128, 64, 0.18);
+  --bg:          #1c1810;     /* warm dark room — table stands out */
+  --surface:     rgba(255, 220, 150, 0.05);
+  --border:      rgba(220, 180, 110, 0.18);
+  --border-h:    rgba(220, 180, 110, 0.36);
+  --text:        #f4ead8;     /* warm cream */
+  --muted:       rgba(244, 234, 216, 0.44);
+  --grad:        linear-gradient(135deg, #c8882a, #508040);
+  --grad-border: linear-gradient(135deg, rgba(200,136,42,0.5), rgba(80,128,64,0.45));
+}
+html[data-theme="hangout"] body {
+  /* herringbone crosshatch — parquet floor / woven fabric */
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      rgba(180, 130, 50, 0.06) 0px, rgba(180, 130, 50, 0.06) 1px,
+      transparent 1px, transparent 14px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(180, 130, 50, 0.045) 0px, rgba(180, 130, 50, 0.045) 1px,
+      transparent 1px, transparent 14px
+    );
+}
+/* Honey glow top-left, green bottom-right */
+html[data-theme="hangout"] body::before {
+  background: radial-gradient(circle at 10% -5%, rgba(200, 140, 40, 0.22) 0%, rgba(200, 140, 40, 0) 52%);
+}
+html[data-theme="hangout"] body::after {
+  background: radial-gradient(circle at 90% 105%, rgba(60, 100, 40, 0.18) 0%, rgba(60, 100, 40, 0) 52%);
+}
+
+/* ── Classic Pink-Blue theme ─────────────────────────── */
+html[data-theme="classic"] {
+  --pink:        #ff3d82;
+  --pink-light:  #ff6fa8;
+  --pink-dim:    rgba(255, 61, 130, 0.18);
+  --blue:        #3d8bff;
+  --blue-light:  #70aaff;
+  --blue-dim:    rgba(61, 139, 255, 0.18);
+  --bg:          #08060e;
+  --surface:     rgba(255, 255, 255, 0.03);
+  --border:      rgba(255, 255, 255, 0.08);
+  --border-h:    rgba(255, 255, 255, 0.18);
+  --text:        #f0ecff;
+  --muted:       rgba(240, 236, 255, 0.38);
+  --grad:        linear-gradient(135deg, #ff3d82, #3d8bff);
+  --grad-border: linear-gradient(135deg, rgba(255,61,130,0.5), rgba(61,139,255,0.5));
+}
+html[data-theme="classic"] body {
+  /* diagonal pinstripes — luxury suit fabric */
+  background-image: repeating-linear-gradient(
+    -60deg,
+    transparent 0px, transparent 9px,
+    rgba(255, 61, 130, 0.032) 9px, rgba(255, 61, 130, 0.032) 10px
+  );
+}
+html[data-theme="classic"] body::before {
+  background: radial-gradient(circle at 10% -5%, rgba(255, 61, 130, 0.25) 0%, rgba(255, 61, 130, 0) 52%);
+}
+html[data-theme="classic"] body::after {
+  background: radial-gradient(circle at 90% 105%, rgba(61, 139, 255, 0.25) 0%, rgba(61, 139, 255, 0) 52%);
+}
+
+/* ── Ocean theme ─────────────────────────────────────── */
+html[data-theme="ocean"] {
+  --pink:        #00c4c4;
+  --pink-light:  #20dcdc;
+  --pink-dim:    rgba(0, 196, 196, 0.18);
+  --blue:        #1880c0;
+  --blue-light:  #30a0d8;
+  --blue-dim:    rgba(24, 128, 192, 0.18);
+  --bg:          #04101c;
+  --surface:     rgba(0, 200, 220, 0.04);
+  --border:      rgba(0, 190, 210, 0.16);
+  --border-h:    rgba(0, 190, 210, 0.34);
+  --text:        #dff4f8;
+  --muted:       rgba(223, 244, 248, 0.40);
+  --grad:        linear-gradient(135deg, #00c4c4, #1880c0);
+  --grad-border: linear-gradient(135deg, rgba(0,196,196,0.5), rgba(24,128,192,0.5));
+}
+html[data-theme="ocean"] body {
+  /* angled horizontal bands — ocean current / water surface */
+  background-image: repeating-linear-gradient(
+    -8deg,
+    transparent 0px, transparent 16px,
+    rgba(0, 196, 196, 0.045) 16px, rgba(0, 196, 196, 0.045) 17px,
+    transparent 17px, transparent 30px,
+    rgba(0, 140, 180, 0.025) 30px, rgba(0, 140, 180, 0.025) 31px
+  );
+}
+html[data-theme="ocean"] body::before {
+  background: radial-gradient(circle at 10% -5%, rgba(0, 200, 210, 0.24) 0%, rgba(0, 200, 210, 0) 52%);
+}
+html[data-theme="ocean"] body::after {
+  background: radial-gradient(circle at 90% 105%, rgba(10, 80, 160, 0.22) 0%, rgba(10, 80, 160, 0) 52%);
+}
+
+/* ── Sakura theme ────────────────────────────────────── */
+html[data-theme="sakura"] {
+  --pink:        #e05888;
+  --pink-light:  #f078a8;
+  --pink-dim:    rgba(224, 88, 136, 0.18);
+  --blue:        #b848a0;
+  --blue-light:  #d068b8;
+  --blue-dim:    rgba(184, 72, 160, 0.18);
+  --bg:          #0c0610;
+  --surface:     rgba(224, 88, 136, 0.04);
+  --border:      rgba(224, 88, 136, 0.15);
+  --border-h:    rgba(224, 88, 136, 0.32);
+  --text:        #f8e8f2;
+  --muted:       rgba(248, 232, 242, 0.40);
+  --grad:        linear-gradient(135deg, #e05888, #b848a0);
+  --grad-border: linear-gradient(135deg, rgba(224,88,136,0.5), rgba(184,72,160,0.5));
+}
+html[data-theme="sakura"] body {
+  /* diamond lattice — traditional Japanese asanoha-inspired grid */
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      rgba(224, 88, 136, 0.055) 0px, rgba(224, 88, 136, 0.055) 1px,
+      transparent 1px, transparent 22px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(224, 88, 136, 0.055) 0px, rgba(224, 88, 136, 0.055) 1px,
+      transparent 1px, transparent 22px
+    );
+}
+html[data-theme="sakura"] body::before {
+  background: radial-gradient(circle at 10% -5%, rgba(224, 88, 136, 0.22) 0%, rgba(224, 88, 136, 0) 52%);
+}
+html[data-theme="sakura"] body::after {
+  background: radial-gradient(circle at 90% 105%, rgba(160, 48, 130, 0.18) 0%, rgba(160, 48, 130, 0) 52%);
+}
+
+/* ── Neon theme ──────────────────────────────────────── */
+html[data-theme="neon"] {
+  --pink:        #b820e8;
+  --pink-light:  #d040ff;
+  --pink-dim:    rgba(184, 32, 232, 0.18);
+  --blue:        #00e8c0;
+  --blue-light:  #20ffd8;
+  --blue-dim:    rgba(0, 232, 192, 0.18);
+  --bg:          #060608;
+  --surface:     rgba(184, 32, 232, 0.04);
+  --border:      rgba(184, 32, 232, 0.18);
+  --border-h:    rgba(184, 32, 232, 0.38);
+  --text:        #f0e8ff;
+  --muted:       rgba(240, 232, 255, 0.38);
+  --grad:        linear-gradient(135deg, #b820e8, #00e8c0);
+  --grad-border: linear-gradient(135deg, rgba(184,32,232,0.5), rgba(0,232,192,0.5));
+}
+html[data-theme="neon"] body {
+  /* square grid — cyberpunk circuit board */
+  background-image:
+    linear-gradient(rgba(0, 232, 192, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(184, 32, 232, 0.055) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+html[data-theme="neon"] body::before {
+  background: radial-gradient(circle at 10% -5%, rgba(184, 32, 232, 0.28) 0%, rgba(184, 32, 232, 0) 52%);
+}
+html[data-theme="neon"] body::after {
+  background: radial-gradient(circle at 90% 105%, rgba(0, 232, 192, 0.22) 0%, rgba(0, 232, 192, 0) 52%);
+}

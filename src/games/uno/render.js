@@ -4,6 +4,17 @@ const UNO_BASE  = () => `${cfg.url}/assets/cards/uno-deck`
 const COLOR_HEX = { red: '#ff4757', blue: '#3AABDE', green: '#2ed573', yellow: '#ffd32a' }
 const VAL_LABEL = { skip: '⊘', reverse: '↺', draw2: '+2' }
 
+const SEAT_MAP = [
+  [],
+  ['top-center'],
+  ['top-left', 'top-right'],
+  ['top-left', 'top-center', 'top-right'],
+  ['top-left', 'top-center', 'top-right', 'right'],
+  ['top-left', 'top-center', 'top-right', 'mid-left', 'mid-right'],
+  ['top-left', 'top-center', 'top-right', 'left', 'mid-right', 'right'],
+  ['left', 'top-left', 'top-center', 'top-right', 'right', 'mid-left', 'mid-right'],
+]
+
 export function renderBoard(meta, mine, onPlay) {
   const players    = state.gameState.players || []
   const opponents  = players.filter(p => p !== state.sessionId)
@@ -12,35 +23,33 @@ export function renderBoard(meta, mine, onPlay) {
   const isFinished = meta.phase === 'finished'
   const revealSec  = state.gameState.revealRemainingSec ?? null
 
-  // ── Opponents zone ───────────────────────────────────────
-  const labelEl = document.getElementById('uno-opp-label')
-  if (labelEl) {
-    labelEl.textContent = opponents.length === 1
-      ? (names[opponents[0]] || 'Opponent')
-      : `${opponents.length} Players`
-  }
-
+  // ── Opponents — positioned badges around the table ───────
   const oppContainer = document.getElementById('uno-opponents')
   if (oppContainer) {
-    oppContainer.innerHTML = opponents.map(id => {
-      const name       = names[id] || id.slice(0, 8)
-      const hand       = hands[id] || []
-      const isCurrent  = meta.currentPlayer === id && !isFinished
-      const isUno      = hand.length === 1 && !isFinished
-      const isWinner   = isFinished && hand.length === 0
+    const seats = SEAT_MAP[Math.min(opponents.length, 7)] || SEAT_MAP[7]
+    oppContainer.innerHTML = opponents.slice(0, 7).map((id, i) => {
+      const name        = names[id] || id.slice(0, 8)
+      const hand        = hands[id] || []
+      const isCurrent   = meta.currentPlayer === id && !isFinished
+      const isUno       = hand.length === 1 && !isFinished
+      const isWinner    = isFinished && hand.length === 0
       const hasRevealed = isFinished && hand.length > 0 && hand.every(c => c !== 'hidden')
+      const seat        = seats[i] || 'top-center'
 
       const cardsHTML = hasRevealed
-        ? hand.map(c => unoCardHTML(c, false, false, 'small')).join('')
-        : Array(Math.min(hand.length, 8)).fill('<div class="mini-card"></div>').join('')
+        ? hand.slice(0, 6).map(c => unoCardHTML(c, false, false, 'small')).join('')
+        : Array(Math.min(hand.length, 5)).fill('<div class="mini-card"></div>').join('')
 
-      return `<div class="uno-opp-slot${isCurrent ? ' current-player' : ''}${isWinner ? ' winner-slot' : ''}">
-        <div class="uno-opp-info">
-          <span class="uno-opp-name">${name}</span>
+      const cls = ['uno-opp-slot', isCurrent ? 'turn-active' : '', isWinner ? 'winner-flash' : '']
+        .filter(Boolean).join(' ')
+
+      return `<div class="${cls}" data-seat="${seat}">
+        <div class="uno-opp-badge">
           ${isCurrent ? '<span class="uno-turn-dot"></span>' : ''}
+          <span class="uno-opp-name">${name}</span>
           ${isUno    ? '<span class="uno-uno-badge">UNO!</span>' : ''}
-          ${isWinner ? '<span class="uno-winner-tag">🏆 Winner!</span>' : ''}
-          <span class="uno-opp-count">${isWinner ? 'No cards' : `${hand.length} card${hand.length !== 1 ? 's' : ''}`}</span>
+          ${isWinner ? '<span class="uno-winner-tag">🏆</span>' : ''}
+          <span class="uno-opp-count-pill">${hand.length}</span>
         </div>
         <div class="uno-opp-cards${hasRevealed ? '' : ' mini'}">${cardsHTML}</div>
       </div>`

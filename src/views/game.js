@@ -66,6 +66,19 @@ function applyServerState(gs) {
   }
 }
 
+// ── Theme ─────────────────────────────────────────────────
+function applyTheme(name) {
+  if (name) {
+    document.documentElement.dataset.theme = name
+  } else {
+    delete document.documentElement.dataset.theme
+  }
+  localStorage.setItem('sk_theme', name || '')
+  document.querySelectorAll('.rd-theme-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === (name || ''))
+  })
+}
+
 // ── Init ──────────────────────────────────────────────────
 export function initGame() {
   document.getElementById('btn-continue-match').addEventListener('click', continueMatch)
@@ -126,6 +139,13 @@ export function initGame() {
   document.getElementById('wr-players-inner').addEventListener('click', e => {
     const btn = e.target.closest('[data-kick]')
     if (btn) wrKickPlayer(btn.dataset.kick)
+  })
+
+  // Theme picker — init active state + bind clicks
+  const savedTheme = localStorage.getItem('sk_theme') || ''
+  document.querySelectorAll('.rd-theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === savedTheme)
+    btn.addEventListener('click', () => applyTheme(btn.dataset.theme))
   })
 
   document.addEventListener('game:move', async e => {
