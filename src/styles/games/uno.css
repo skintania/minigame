@@ -466,6 +466,14 @@ html[data-theme="classic"] .uno-opp-badge {
 .uno-card.small .cv { font-size: 16px; }
 .uno-card.small .cl { font-size: 7px;  }
 
+/* ── Mini card size for opponent back-cards ── */
+.uno-card-img.mini {
+  width: 26px;
+  height: 38px;
+  border-radius: 5px;
+  opacity: 1;
+}
+
 /* ── Direction indicator (on felt) ── */
 #uno-direction {
   font-size: 22px;

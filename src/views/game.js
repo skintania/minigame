@@ -164,6 +164,12 @@ export function enterGame() {
   document.getElementById('g-name').textContent        = gameId === 'poker' ? 'Poker' : 'UNO'
   document.getElementById('poker-board').style.display = gameId === 'poker' ? 'flex' : 'none'
   document.getElementById('uno-board').style.display   = gameId === 'uno'   ? 'flex' : 'none'
+
+  // Move join-wrap into whichever board is active (it lives in poker board by default)
+  if (gameId === 'uno') {
+    const wrap = document.getElementById('wr-join-wrap')
+    document.querySelector('.uno-player-zone')?.appendChild(wrap)
+  }
   document.getElementById('btn-end-game').style.display =
     (state.roomCode && amHost()) ? 'inline-flex' : 'none'
 
@@ -268,6 +274,7 @@ export function render() {
 
   if (isWaiting) {
     document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
+    document.querySelector('.uno-hand-footer')?.style.setProperty('display', 'none')
     updateWaitingPanel(meta)
     registry[state.gameId]?.render(meta, false)
     return
@@ -285,6 +292,7 @@ export function render() {
   if (meta.phase === 'between-rounds') {
     document.getElementById('g-phase').textContent = 'Between Rounds'
     document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
+    document.querySelector('.uno-hand-footer')?.style.setProperty('display', 'none')
     showBetweenRounds(meta)
     registry[state.gameId]?.render(meta, false)
     return
@@ -292,6 +300,8 @@ export function render() {
 
   hideBetweenRounds()
   document.querySelector('.pk-action-bar')?.style.setProperty('display',
+    curRole() === 'spectator' ? 'none' : '')
+  document.querySelector('.uno-hand-footer')?.style.setProperty('display',
     curRole() === 'spectator' ? 'none' : '')
 
   const isSpectator = curRole() === 'spectator'

@@ -38,7 +38,9 @@ export function renderBoard(meta, mine, onPlay) {
 
       const cardsHTML = hasRevealed
         ? hand.slice(0, 6).map(c => unoCardHTML(c, false, false, 'small')).join('')
-        : Array(Math.min(hand.length, 5)).fill('<div class="mini-card"></div>').join('')
+        : Array(Math.min(hand.length, 5)).fill(
+            `<img class="uno-card-img mini" src="${UNO_BASE()}/back.svg" alt="back" onerror="this.outerHTML='<div class=&quot;mini-card&quot;></div>'">`
+          ).join('')
 
       const cls = ['uno-opp-slot', isCurrent ? 'turn-active' : '', isWinner ? 'winner-flash' : '']
         .filter(Boolean).join(' ')
