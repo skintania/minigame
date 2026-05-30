@@ -678,6 +678,22 @@
   border: 1px solid rgba(255,255,255,0.15);
 }
 
+/* Folded card art — greyed-out back shown when server sends ["fold","fold"] */
+.p-card.fold {
+  background: linear-gradient(135deg, #2a2a36 0%, #1e1e28 100%);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+  opacity: 0.38;
+}
+.p-card.fold::before {
+  content: '';
+  position: absolute; inset: 5px;
+  border-radius: 6px;
+  background: repeating-linear-gradient(
+    45deg, rgba(150,150,170,0.08) 0, rgba(150,150,170,0.08) 2px, transparent 2px, transparent 8px
+  );
+  border: 1px solid rgba(255,255,255,0.07);
+}
+
 /* Empty placeholder slot */
 .p-card.placeholder {
   background: rgba(255,255,255,0.03);

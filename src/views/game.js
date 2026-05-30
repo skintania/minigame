@@ -10,6 +10,7 @@ let showdownInterval      = null
 let turnTimerInterval     = null
 let betweenRoundsInterval = null
 let roomHeartbeatInterval = null
+let localTurnRemaining    = null
 let roomData              = null
 let prevCommunityCount    = 0
 let prevMyRole            = null
@@ -34,14 +35,14 @@ function applyServerState(gs) {
 
   // Detect role change player → spectator during an active match
   if (prevMyRole === 'player' && gs.myRole === 'spectator' && gs.matchStatus === 'active') {
-    document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
-    const myChips = gs.metadata?.chips?.[state.sessionId] ?? 0
+    const myChips = gs.metadata?.playerStates?.[state.sessionId]?.chips ?? 0
     if (myChips > 0) {
-      // Still has chips — kicked for inactivity, not chip bust
-      showToast('You were removed due to inactivity. Rejoin during between-rounds.')
+      showToast('You were removed due to inactivity.')
+      showRejoinPrompt()
     }
-    // myChips === 0: natural elimination — winner overlay / hand result handles messaging
+    // myChips === 0: natural chip bust — winner overlay / hand result handles messaging
   }
+  if (gs.myRole === 'player') hideRejoinPrompt()
   prevMyRole = gs.myRole ?? prevMyRole
 
   // Sync host button visibility from every server response
@@ -64,6 +65,7 @@ export function initGame() {
   document.getElementById('btn-skip-showdown').addEventListener('click', hostNextRound)
   document.getElementById('btn-show-cards').addEventListener('click', showCards)
   document.getElementById('btn-muck-cards').addEventListener('click', muckCards)
+  document.getElementById('btn-rejoin-inactivity').addEventListener('click', wrJoinTable)
   document.getElementById('btn-switch-role').addEventListener('click', switchRole)
 
   const roomMenuBtn  = document.getElementById('room-menu-btn')
@@ -502,12 +504,9 @@ function updateShowdownBar(meta) {
   document.getElementById('btn-skip-showdown').style.display = amHost() ? '' : 'none'
 
   // Show/Muck row in the action bar — visible when this player must decide.
-  // Fall back to "pending" if showdownDecisions field is absent but we are a
-  // non-folded, non-winner active player (handles servers that omit the field).
-  const folded     = !!(meta.folded || {})[state.sessionId]
-  const isWinner   = meta.handWinner === state.sessionId
-  const decisions  = meta.showdownDecisions
-  const myDecision = decisions?.[state.sessionId]
+  const myPS       = meta.playerStates?.[state.sessionId] || {}
+  const folded     = myPS.status === 'folded'
+  const myDecision = myPS.showdownDecision
   const canDecide  = myDecision === 'pending' ||
     (myDecision == null && !folded && curRole() === 'player')
   const actionBar       = document.querySelector('.pk-action-bar')
@@ -519,7 +518,7 @@ function updateShowdownBar(meta) {
 
   if (!bar.classList.contains('open')) {
     // Start local 1s countdown from server value on first open
-    let remaining = meta.showdownRemainingSec ?? 5
+    let remaining = meta.showdownRemainingSec ?? 10
     document.getElementById('sd-countdown').textContent = remaining
     showdownInterval = setInterval(() => {
       remaining = Math.max(0, remaining - 1)
@@ -534,6 +533,7 @@ function hideShowdownBar() {
   document.getElementById('showdown-bar')?.classList.remove('open')
   clearInterval(showdownInterval); showdownInterval = null
   // Restore normal action row for the next active phase
+  hideRejoinPrompt()
   const normalActions   = document.getElementById('pk-normal-actions')
   const showdownActions = document.getElementById('pk-showdown-actions')
   if (normalActions)   normalActions.style.display   = ''
@@ -587,24 +587,38 @@ async function showHandResult(meta) {
 
 // ── Turn timer ────────────────────────────────────────────
 function updateTurnTimer(meta, mine) {
-  const bar = document.getElementById('turn-timer-bar')
+  const bar     = document.getElementById('turn-timer-bar')
   if (!bar) return
-  if (!mine || !meta.turnTimeLimit || !meta.turnStartedAt) {
-    bar.style.display = 'none'; clearInterval(turnTimerInterval); turnTimerInterval = null; return
+  const svrLeft = meta.turnRemainingSec ?? null
+  const limit   = meta.turnTimeLimit   ?? 0
+  if (!mine || svrLeft == null) {
+    bar.style.display = 'none'
+    clearInterval(turnTimerInterval); turnTimerInterval = null
+    localTurnRemaining = null
+    return
   }
   bar.style.display = ''
-  tickTurnTimer(meta)
-  if (!turnTimerInterval) turnTimerInterval = setInterval(() => tickTurnTimer(meta), 1000)
+  // Resync local countdown when server value differs by > 2s (new player's turn)
+  if (localTurnRemaining == null || Math.abs(localTurnRemaining - svrLeft) > 2) {
+    clearInterval(turnTimerInterval); turnTimerInterval = null
+    localTurnRemaining = svrLeft
+  }
+  if (!turnTimerInterval) {
+    turnTimerInterval = setInterval(() => {
+      localTurnRemaining = Math.max(0, (localTurnRemaining ?? 0) - 1)
+      _renderTurnTimer(limit || localTurnRemaining)
+      if (localTurnRemaining <= 0) { clearInterval(turnTimerInterval); turnTimerInterval = null }
+    }, 1000)
+  }
+  _renderTurnTimer(limit || svrLeft)
 }
 
-function tickTurnTimer(meta) {
-  const elapsed = (Date.now() - new Date(meta.turnStartedAt)) / 1000
-  const left    = Math.max(0, meta.turnTimeLimit - elapsed)
+function _renderTurnTimer(limit) {
+  const left = localTurnRemaining ?? 0
   const fill = document.getElementById('turn-timer-fill')
   const secs = document.getElementById('turn-timer-secs')
-  if (fill) fill.style.width = (left / meta.turnTimeLimit * 100) + '%'
-  if (secs) secs.textContent = Math.ceil(left) + 's'
-  if (left <= 0) { clearInterval(turnTimerInterval); turnTimerInterval = null }
+  if (fill) fill.style.width = (limit > 0 ? left / limit * 100 : 0) + '%'
+  if (secs) secs.textContent = Math.ceil(Math.max(0, left)) + 's'
 }
 
 // ── Between-rounds overlay ────────────────────────────────
@@ -655,6 +669,20 @@ function tickBetweenRounds(meta) {
 function hideBetweenRounds() {
   document.getElementById('between-rounds-overlay')?.classList.remove('open')
   clearInterval(betweenRoundsInterval); betweenRoundsInterval = null
+}
+
+// ── Inactivity rejoin prompt ──────────────────────────────
+function showRejoinPrompt() {
+  if (!state.roomCode) return
+  const bar = document.querySelector('.pk-action-bar')
+  if (bar) bar.style.removeProperty('display')
+  document.getElementById('pk-normal-actions').style.display   = 'none'
+  document.getElementById('pk-showdown-actions').style.display = 'none'
+  document.getElementById('pk-rejoin-actions').style.display   = ''
+}
+
+function hideRejoinPrompt() {
+  document.getElementById('pk-rejoin-actions').style.display = 'none'
 }
 
 // ── Showdown decisions ────────────────────────────────────
@@ -737,6 +765,7 @@ export function stopPoll() {
   clearInterval(betweenRoundsInterval); betweenRoundsInterval = null
   clearInterval(showdownInterval);      showdownInterval      = null
   clearInterval(roomHeartbeatInterval); roomHeartbeatInterval = null
+  localTurnRemaining = null
 }
 
 function continueMatch() {

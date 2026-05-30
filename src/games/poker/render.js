@@ -171,7 +171,7 @@ function animateFoldCards(containerId) {
 function animateReveal(containerId) {
   const container = document.getElementById(containerId)
   if (!container) return
-  const cards = [...container.querySelectorAll('.p-card-img, .p-card:not(.placeholder):not(.back)')]
+  const cards = [...container.querySelectorAll('.p-card-img, .p-card:not(.placeholder):not(.back):not(.fold)')]
   cards.forEach((card, i) => {
     card.style.animation = `card-reveal 0.45s ${i * 150}ms cubic-bezier(0.34,1.56,0.64,1) both`
   })
@@ -180,6 +180,7 @@ function animateReveal(containerId) {
 export function renderBoard(meta, mine) {
   const players   = state.gameState.players || []
   const opponents = players.filter(p => p !== state.sessionId)
+  const ps        = meta.playerStates || {}
 
   const curPhaseEarly = meta.phase || ''
 
@@ -188,7 +189,7 @@ export function renderBoard(meta, mine) {
   // Also persist to sessionStorage so a hard-refresh during between-rounds
   // can restore the revealed hands (server sends hidden for all in that phase).
   if (curPhaseEarly === 'showdown') {
-    cachedHands     = { ...(meta.hands || {}) }
+    players.forEach(id => { cachedHands[id] = ps[id]?.cards || [] })
     cachedCommunity = [...(meta.community || [])]
     if (state.matchId) {
       try {
@@ -212,9 +213,9 @@ export function renderBoard(meta, mine) {
         }
       } catch {}
     }
-    const h = meta.hands || {}
-    Object.entries(h).forEach(([id, cards]) => {
-      if (Array.isArray(cards) && cards.some(c => c !== 'hidden' && c !== 'back')) {
+    players.forEach(id => {
+      const cards = ps[id]?.cards || []
+      if (cards.some(c => c !== 'hidden' && c !== 'back' && c !== 'fold')) {
         cachedHands[id] = cards
       }
     })
@@ -233,9 +234,10 @@ export function renderBoard(meta, mine) {
   }
 
   // During between-rounds, fall back to cached revealed data so cards stay visible
-  const isBetween    = curPhaseEarly === 'between-rounds'
-  const effectHands  = (isBetween && Object.keys(cachedHands).length) ? cachedHands : (meta.hands || {})
-  const effectComm   = (isBetween && cachedCommunity.length) ? cachedCommunity : (meta.community || [])
+  const isBetween   = curPhaseEarly === 'between-rounds'
+  const handsFromPS = Object.fromEntries(players.map(id => [id, ps[id]?.cards || []]))
+  const effectHands = (isBetween && Object.keys(cachedHands).length) ? cachedHands : handsFromPS
+  const effectComm  = (isBetween && cachedCommunity.length) ? cachedCommunity : (meta.community || [])
 
   // My avatar (once)
   maybeSetAvatar(
@@ -255,31 +257,29 @@ export function renderBoard(meta, mine) {
   // Blind info shown under pot during preflop so players know where those chips came from
   const blindInfoEl = document.getElementById('pk-blind-info')
   if (blindInfoEl) {
-    if (meta.phase === 'preflop' && (meta.sbIndex != null || meta.bbIndex != null)) {
-      const totalBets = meta.totalBets || {}
-      const sbAmt     = totalBets[players[meta.sbIndex]] ?? 0
-      const bbAmt     = totalBets[players[meta.bbIndex]] ?? 0
+    if (meta.phase === 'preflop') {
+      const sbId  = players.find(id => ps[id]?.isSB)
+      const bbId  = players.find(id => ps[id]?.isBB)
+      const sbAmt = sbId ? (ps[sbId]?.totalBet ?? 0) : 0
+      const bbAmt = bbId ? (ps[bbId]?.totalBet ?? 0) : 0
       blindInfoEl.textContent = sbAmt || bbAmt ? `SB ${sbAmt} · BB ${bbAmt}` : ''
     } else {
       blindInfoEl.textContent = ''
     }
   }
 
-  // SB/BB roles
-  const sbId = players[meta.sbIndex]
-  const bbId = players[meta.bbIndex]
-  const blindTag = id => id === sbId ? ' (SB)' : id === bbId ? ' (BB)' : ''
+  // SB/BB/Dealer roles from playerStates flags
+  const blindTag = id => ps[id]?.isSB ? ' (SB)' : ps[id]?.isBB ? ' (BB)' : ''
 
   // My chip count + my label with SB/BB
-  const chips = meta.chips || {}
-  document.getElementById('pk-my-chips').textContent = chips[state.sessionId] ?? '—'
+  document.getElementById('pk-my-chips').textContent = ps[state.sessionId]?.chips ?? '—'
   const myLabelEl = document.querySelector('#pk-my-badge .pk-badge-label')
   if (myLabelEl) myLabelEl.textContent = `You${blindTag(state.sessionId)}`
 
   // Opponent chip counts + name labels with SB/BB
   opponents.forEach((id, idx) => {
     const chipsEl = document.getElementById(`pk-opp-chips-${id}`)
-    if (chipsEl) chipsEl.textContent = chips[id] ?? '—'
+    if (chipsEl) chipsEl.textContent = ps[id]?.chips ?? '—'
     const labelEl = document.querySelector(`#pk-opp-badge-${id} .pk-badge-label`)
     if (labelEl) labelEl.textContent = oppLabel(id, idx, opponents.length) + blindTag(id)
   })
@@ -292,10 +292,10 @@ export function renderBoard(meta, mine) {
       : ''
   }
 
-  // Fold / phase for this render
-  const curFolded = meta.folded || {}
-  const curPhase  = meta.phase  || ''
-  const myFolded  = !!curFolded[state.sessionId]
+  // Fold / phase for this render — status comes from playerStates
+  const curPhase  = meta.phase || ''
+  const curFolded = Object.fromEntries(players.map(id => [id, (ps[id]?.status || 'active') === 'folded']))
+  const myFolded  = curFolded[state.sessionId]
 
   // Detect NEW folds — capture positions BEFORE clearing innerHTML
   if (prevPot >= 0) {
@@ -308,42 +308,41 @@ export function renderBoard(meta, mine) {
   // Folded badges
   document.getElementById('pk-my-badge')?.classList.toggle('folded', myFolded)
   opponents.forEach(id => {
-    document.getElementById(`pk-opp-badge-${id}`)?.classList.toggle('folded', !!curFolded[id])
+    document.getElementById(`pk-opp-badge-${id}`)?.classList.toggle('folded', curFolded[id])
   })
 
   // Muck: animate fold cards on first muck decision, then keep badge dimmed
-  const showDec = meta.showdownDecisions || {}
+  const myDecision = ps[state.sessionId]?.showdownDecision
   if (prevPot >= 0 && (curPhase === 'showdown' || curPhase === 'between-rounds')) {
-    if (showDec[state.sessionId] === 'muck' && prevShowdownDecisions[state.sessionId] !== 'muck') {
+    if (myDecision === 'muck' && prevShowdownDecisions[state.sessionId] !== 'muck') {
       animateFoldCards('pk-hand')
     }
     opponents.forEach(id => {
-      if (showDec[id] === 'muck' && prevShowdownDecisions[id] !== 'muck') {
+      const dec = ps[id]?.showdownDecision
+      if (dec === 'muck' && prevShowdownDecisions[id] !== 'muck') {
         animateFoldCards(`pk-opp-hand-${id}`)
       }
     })
   }
-  document.getElementById('pk-my-badge')?.classList.toggle('mucked', showDec[state.sessionId] === 'muck')
+  document.getElementById('pk-my-badge')?.classList.toggle('mucked', myDecision === 'muck')
   opponents.forEach(id => {
-    document.getElementById(`pk-opp-badge-${id}`)?.classList.toggle('mucked', showDec[id] === 'muck')
+    document.getElementById(`pk-opp-badge-${id}`)?.classList.toggle('mucked', ps[id]?.showdownDecision === 'muck')
   })
 
   // Turn highlight: pink pulse on my badge, blue pulse on current opponent
-  const activeBetting  = ['preflop', 'flop', 'turn', 'river'].includes(curPhase)
-  const currentPlayer  = meta.currentPlayer || null
+  const activeBetting = ['preflop', 'flop', 'turn', 'river'].includes(curPhase)
   document.getElementById('pk-my-badge')?.classList.toggle('turn-active', activeBetting && mine)
   opponents.forEach(id => {
     document.getElementById(`pk-opp-badge-${id}`)?.classList.toggle(
-      'turn-active', activeBetting && currentPlayer === id
+      'turn-active', activeBetting && !!(ps[id]?.isCurrentPlayer)
     )
   })
 
   // Check vs Call label
-  // In preflop, blind amounts live in totalBets even if bets is empty.
-  // Use max(bets, totalBets) so the BB isn't charged their blind twice.
-  const streetBet = (meta.bets || {})[state.sessionId] || 0
+  // In preflop, use totalBet so the BB isn't charged their blind twice.
+  const streetBet = ps[state.sessionId]?.bet ?? 0
   const myBet     = meta.phase === 'preflop'
-    ? Math.max(streetBet, (meta.totalBets || {})[state.sessionId] || 0)
+    ? Math.max(streetBet, ps[state.sessionId]?.totalBet ?? 0)
     : streetBet
   const callAmt = Math.max(0, (meta.currentBet || 0) - myBet)
   document.getElementById('pk-mbet').textContent = myBet
@@ -362,16 +361,14 @@ export function renderBoard(meta, mine) {
     effectComm.map(cardHTML).join('') +
     Array(Math.max(0, 5 - effectComm.length)).fill('<div class="p-card placeholder"></div>').join('')
 
-  // My hand (use cached during between-rounds)
-  const myHand = (effectHands[state.sessionId]) || []
-  document.getElementById('pk-hand').innerHTML =
-    myFolded ? '' : myHand.map(cardHTML).join('')
+  // My hand — ['fold','fold'] from server renders as fold art via cardHTML
+  const myHand = effectHands[state.sessionId] || []
+  document.getElementById('pk-hand').innerHTML = myHand.map(cardHTML).join('')
 
-  // Each opponent's hand (use cached during between-rounds)
+  // Each opponent's hand
   opponents.forEach(id => {
     const handEl = document.getElementById(`pk-opp-hand-${id}`)
     if (!handEl) return
-    if (curFolded[id]) { handEl.innerHTML = ''; return }
     const hand = effectHands[id]
     handEl.innerHTML = hand?.length
       ? hand.map(cardHTML).join('')
@@ -393,7 +390,7 @@ export function renderBoard(meta, mine) {
     if (!rankEl) return
     if (!showOppRanks || curFolded[id]) { rankEl.textContent = ''; return }
     const hand = effectHands[id] || []
-    const hasRealCards = hand.length > 0 && hand.every(c => c !== 'hidden' && c !== 'back')
+    const hasRealCards = hand.length > 0 && hand.every(c => c !== 'hidden' && c !== 'back' && c !== 'fold')
     rankEl.textContent = hasRealCards ? getBestHandName([...hand, ...effectComm]) : ''
   })
 
@@ -403,7 +400,7 @@ export function renderBoard(meta, mine) {
     && (curPhase === 'showdown' || curPhase === 'between-rounds')
   if (enteringReveal) {
     opponents.forEach(id => { if (!curFolded[id]) animateReveal(`pk-opp-hand-${id}`) })
-    animateReveal('pk-hand')
+    if (!myFolded) animateReveal('pk-hand')
   }
 
   ;['btn-fold', 'btn-check', 'btn-bet'].forEach(id => {
@@ -415,8 +412,8 @@ export function renderBoard(meta, mine) {
   document.getElementById('poker-board')?.classList.toggle('turn-mine', mine)
 
   // Chip / pot animations
-  const curPot    = meta.pot    ?? 0
-  const curBets   = meta.bets   || {}
+  const curPot    = meta.pot ?? 0
+  const curBets   = Object.fromEntries(players.map(id => [id, ps[id]?.bet || 0]))
   const curWinner = meta.handWinner ?? meta.winner ?? null
 
   if (prevPot >= 0) {
@@ -437,11 +434,12 @@ export function renderBoard(meta, mine) {
   prevWinner            = curWinner
   prevFolded            = { ...curFolded }
   prevPhase             = curPhase
-  prevShowdownDecisions = { ...showDec }
+  prevShowdownDecisions = Object.fromEntries(players.map(id => [id, ps[id]?.showdownDecision]))
 }
 
 export function cardHTML(str) {
   if (!str || str === 'hidden') return '<div class="p-card back"></div>'
+  if (str === 'fold') return '<div class="p-card fold"></div>'
 
   // Back of card
   if (str === 'back') {

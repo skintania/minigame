@@ -557,8 +557,10 @@ Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/be
 | `myRole` | Your current role: `"player"` or `"spectator"` |
 | `matchStatus` | Overall match state: `"waiting"`, `"active"`, or `"finished"` |
 | `isMyTurn` | `true` if it is currently your turn to act |
-| `showdownRemainingSec` | Seconds until the showdown display auto-closes (always 5s). Only present during Poker `showdown` phase. `undefined` otherwise. |
+| `showdownRemainingSec` | Seconds until the showdown display auto-closes (always 10s). Only present during Poker `showdown` phase. `undefined` otherwise. |
 | `betweenRoundsRemainingSec` | Seconds until the next hand auto-starts. Only present during Poker `between-rounds` when `betweenRoundsSec > 0`. `undefined` otherwise. |
+| `turnRemainingSec` | Seconds remaining for the current player's turn. Only present during Poker when `turnTimeLimit > 0` and a turn is in progress. `undefined` otherwise. |
+| `playerStates` | Per-player display map (Poker only, absent during `waiting` phase). See [Player States](#player-states-poker-only) below. |
 | `status` | Action result string (see table below) |
 | `message` | Human-readable description of the last event |
 
@@ -570,9 +572,69 @@ Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/be
 | `"ok"` | Move accepted, waiting for next player |
 | `"started"` | Game just started |
 | `"phase-updated"` | Poker: betting round ended, community cards dealt |
-| `"round-complete"` | Poker hand finished; game is now in `showdown` phase — cards visible, 5-second display |
+| `"round-complete"` | Poker hand finished; game is now in `showdown` phase — cards visible, 10-second display |
 | `"finished"` | Game over — check `metadata.winner` for the winner |
 | `"reset"` | All players busted out; room reset to `waiting` — everyone moved to spectator, fresh game state, settings preserved. `matchStatus` becomes `"waiting"`. |
+
+---
+
+### Player States (Poker only)
+
+`playerStates` is a map of `sessionId → PlayerState`. It is present on every Poker response when `metadata.phase !== "waiting"`. It gives the frontend a single pre-computed object per seat — no need to cross-reference multiple metadata fields.
+
+```json
+{
+  "playerStates": {
+    "sessionId1": {
+      "cards": ["A♠", "J♣"],
+      "chips": 1010,
+      "bet": 50,
+      "totalBet": 120,
+      "status": "active",
+      "isCurrentPlayer": true,
+      "isDealer": false,
+      "isSB": true,
+      "isBB": false,
+      "showdownDecision": "pending"
+    },
+    "sessionId2": {
+      "cards": ["fold", "fold"],
+      "chips": 850,
+      "bet": 0,
+      "totalBet": 150,
+      "status": "folded",
+      "isCurrentPlayer": false,
+      "isDealer": false,
+      "isSB": false,
+      "isBB": true
+    },
+    "sessionId3": {
+      "cards": ["hidden", "hidden"],
+      "chips": 0,
+      "bet": 200,
+      "totalBet": 200,
+      "status": "allin",
+      "isCurrentPlayer": false,
+      "isDealer": true,
+      "isSB": false,
+      "isBB": false
+    }
+  }
+}
+```
+
+| Field | Description |
+|---|---|
+| `cards` | `["A♠","J♣"]` — your own cards or opponent cards that were shown. `["hidden","hidden"]` — opponent's cards, still in hand but not yet revealed. `["fold","fold"]` — player folded, cards permanently hidden. |
+| `chips` | Current chip stack (after this hand's payouts). |
+| `bet` | Chips bet on the **current street only** (resets each street). |
+| `totalBet` | Total chips committed across **all streets** this hand — use this for side-pot display. |
+| `status` | `"active"` in hand with chips. `"folded"` folded this hand. `"allin"` still in hand but chips = 0. |
+| `isCurrentPlayer` | `true` if it is currently this player's turn. |
+| `isDealer` | `true` if this player is the dealer button this hand. |
+| `isSB` | `true` if this player posted the small blind this hand. |
+| `isBB` | `true` if this player posted the big blind this hand. |
+| `showdownDecision` | Only present during `showdown` phase. `"show"` cards revealed. `"muck"` cards hidden. `"pending"` player hasn't decided yet. |
 
 ---
 
@@ -584,23 +646,10 @@ Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/be
 {
   "phase": "waiting | preflop | flop | turn | river | showdown | between-rounds",
   "community": ["A♠", "10♥", "3♣"],
-  "hands": {
-    "sessionId1": ["K♦", "Q♠"],
-    "sessionId2": ["hidden", "hidden"]
-  },
   "pot": 150,
-  "bets": { "sessionId1": 50, "sessionId2": 100 },
-  "totalBets": { "sessionId1": 70, "sessionId2": 100 },
-  "chips": { "sessionId1": 880, "sessionId2": 850 },
-  "folded": { "sessionId1": false, "sessionId2": false },
-  "currentPlayer": "sessionId1",
   "currentBet": 100,
   "lastRaiseAmount": 20,
-  "dealerIndex": 0,
-  "sbIndex": 0,
-  "bbIndex": 1,
   "turnTimeLimit": 30,
-  "turnStartedAt": "2026-05-21T10:00:00.000Z",
   "roundLimit": 10,
   "betweenRoundsSec": 30,
   "betweenRoundsUntil": "2026-05-21T10:01:00.000Z",
@@ -611,18 +660,15 @@ Both `GET /:matchId/state` and all action endpoints (`POST /:matchId/fold`, `/be
 }
 ```
 
+Per-player data (chips, bets, cards, fold state, blind roles, showdown decisions) is in `playerStates` — see [Player States](#player-states-poker-only) above. Use `playerStates[id].*` for all seat rendering; the individual flat maps (`hands`, `chips`, `bets`, etc.) are no longer sent.
+
 | Field | Description |
 |---|---|
-| `chips` | Each player's current chip stack |
-| `bets` | Chips put in during the **current street only** — resets at each new street |
-| `totalBets` | Cumulative chips put in across **all streets** this hand — used for side pot calculation |
+| `currentBet` | Highest bet on the current street — used to compute the call amount |
 | `lastRaiseAmount` | Size of the last raise this street; next raise must be at least this large (all-in exempt) |
-| `sbIndex` / `bbIndex` | Index into `players` of the small and big blind for this hand |
 | `handWinner` | Player who won the most recent hand. `null` before first hand ends |
 | `winner` | Overall game winner. Only set when the game is `finished`. `null` while ongoing |
 | `betweenRoundsUntil` | ISO timestamp when the between-rounds countdown ends and the next hand auto-starts. `null` outside `between-rounds` phase |
-
-Opponent `hands` entries show `["hidden", "hidden"]` until `showdown`. Pass `sessionId` to the state endpoint so the server knows which hand is yours.
 
 **Blinds:** SB = `startingChips / 100`, BB = `startingChips / 50`. For 1000-chip games: SB = 10, BB = 20. Preflop action starts at UTG (seat after BB). In heads-up the dealer posts the SB and acts first preflop.
 
@@ -632,7 +678,7 @@ Opponent `hands` entries show `["hidden", "hidden"]` until `showdown`. Pass `ses
 
 **Phases:** `waiting → preflop → flop → turn → river → showdown → between-rounds → preflop → …`
 
-`showdown` is a stable display phase — `handWinner` is set and chips are already awarded. The phase lasts 5 seconds (`showdownRemainingSec`), then auto-advances to `between-rounds`. The host can skip it early with `POST /:matchId/next-round`.
+`showdown` is a stable display phase — `handWinner` is set and chips are already awarded. The phase lasts 10 seconds (`showdownRemainingSec`), then auto-advances to `between-rounds`. The host can skip it early with `POST /:matchId/next-round`.
 
 **Mucking:** During showdown, non-winning players can choose to hide their cards (`POST /:matchId/muck`) or reveal them (`POST /:matchId/show`). The winner is always required to show. `metadata.showdownDecisions` shows each player's decision: `"show"`, `"muck"`, or `"pending"`. Only cards with `"show"` are revealed in the response — all others remain `["hidden", "hidden"]`. When all players have decided, the phase advances to `between-rounds` immediately (no need to wait for the 5-second timer). If the timer expires or the host presses `next-round`, remaining `"pending"` players are auto-mucked.
 
