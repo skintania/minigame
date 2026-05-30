@@ -50,8 +50,11 @@ Thin fetch wrapper around the Cloudflare Worker API.
 
 All calls use `cfg.url` as base. Non-2xx responses throw `Error(d.error)`.
 
-**Unified Game Response** — all game state and action endpoints return a flat object:
-`{ players, metadata, playerNames, spectatorNames, hostId, myRole, matchStatus, isMyTurn, betweenRoundsRemainingSec?, status, message }`
+**Unified Game Response** — `GET /games/{gid}/{mid}/state` returns the full state. All action endpoints (`fold`, `bet`, `play`, etc.) return `{ "ok": true }` only — always follow with `api.getState()` to refresh state after any action.
+
+State shape: `{ players, metadata, playerNames, spectatorNames, hostId, myRole, matchStatus, isMyTurn, turnRemainingSec?, showdownRemainingSec?, betweenRoundsRemainingSec?, playerStates? }`
+
+Top-level timer fields (NOT in metadata): `turnRemainingSec`, `showdownRemainingSec`, `betweenRoundsRemainingSec`.
 
 ---
 
@@ -150,12 +153,13 @@ Main game orchestrator (~700 lines). Manages polling, rendering dispatch, overla
 - `pollRoomHeartbeat()` — updates `roomData` for `members[]`/settings; syncs host from room response when game state hasn't arrived yet
 - `updateWaitingPanel()` — render waiting-phase UI (player list, chips, join/start/settings)
 - `updateSpectatorPanel()` — reads `state.gameState.spectatorNames` directly; no client-side deduplication needed
-- `updateShowdownBar(meta)` / `hideShowdownBar()` — open/close `#showdown-bar` pill; starts 1s countdown interval on first open
-- `showBetweenRounds(meta)` — open `#between-rounds-overlay`; start countdown from `betweenRoundsUntil`
+- `updateShowdownBar(meta)` / `hideShowdownBar()` — open/close `#showdown-bar` pill; starts 1s countdown from `state.gameState.showdownRemainingSec` (top-level) on first open
+- `showBetweenRounds(meta)` — open `#between-rounds-overlay`; start countdown from `state.gameState.betweenRoundsRemainingSec` (top-level); stored in `localBetweenRoundsRemaining`
 - `showHandResult(meta)` — game-over only: brief hand winner banner → `showWinner()` after 2.5s
 - `showWinner(winnerId)` — game-over overlay
-- `handleMoveResult(res)` — called from `game:move` event; assigns `res` as `state.gameState`; only stops poll on `meta.winner`
-- `stopPoll()` — clears all intervals including `showdownInterval`
+- `handleMoveResult(res)` — called from `game:move` event; assigns `res` as `state.gameState`; stops poll on `matchStatus === 'finished'` or `meta.winner`
+- `stopPoll()` — clears all intervals; resets `localTurnRemaining`, `localBetweenRoundsRemaining`, `prevMatchStatus`
+- `applyServerState(gs)` — detects `prevMatchStatus === 'active' → 'waiting'` transition (room reset) and shows toast
 
 **Role and host changes:** After `switchRole`, `wrJoinTable`, `wrLeaveTable` — calls `api.getState()` immediately to refresh `myRole` and `hostId` from server before re-rendering.
 
@@ -184,12 +188,12 @@ Poker action dispatchers.
 
 **Exports:** `pkAction(type)`, `pkCall()`, `pkBet()`
 
-- `pkAction(type)` — calls `api.pokerFold` or `api.pokerCheck` by type
-- `pkCall()` — calls `api.pokerCall` (no amount needed; server computes it)
-- `pkBet()` — reads amount from `#bet-amt`, calls `api.pokerBet(matchId, sessionId, amount)`
-- `dispatch(res)` — fires `CustomEvent('game:move', { detail: res })` on `document`
+- `act(fn)` — internal: calls `fn()` (action), then fetches state via `api.getState()`, fires `CustomEvent('game:move', { detail: stateRes })` on `document`
+- `pkAction(type)` — calls `api.pokerFold` or `api.pokerCheck` via `act()`
+- `pkCall()` — calls `api.pokerCall` via `act()`
+- `pkBet()` — reads amount from `#bet-amt`, calls `api.pokerBet` via `act()`
 
-Errors caught and shown via `showToast()`.
+All action endpoints return `{ ok: true }` — state is fetched separately after each action. Errors caught and shown via `showToast()`.
 
 ---
 
@@ -236,10 +240,10 @@ UNO action dispatchers.
 
 **Exports:** `unoAct(action)`, `unoPlay(card)`, `pickColor(color)`
 
+- `act(fn)` — internal: calls action, fetches state, fires `game:move` event (same pattern as poker/actions.js)
 - `unoPlay(card)` — if wild: set `state.pendingWild`, `openModal('color-modal')`; else call `unoAct` immediately
 - `pickColor(color)` — `closeModal()` → `unoAct({ type:'play', card: pendingWild, color })`
-- `unoAct(action)` — calls `api.unoDraw` or `api.unoPlay` based on `action.type`
-- `dispatch(res)` — fires `CustomEvent('game:move', { detail: res })` on `document`
+- `unoAct(action)` — calls `api.unoDraw` or `api.unoPlay` via `act()`
 
 ---
 

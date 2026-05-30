@@ -5,17 +5,19 @@ import registry from '../games/registry.js'
 
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
-let handResultActive      = false
-let showdownInterval      = null
-let turnTimerInterval     = null
-let betweenRoundsInterval = null
-let roomHeartbeatInterval = null
-let localTurnRemaining    = null
-let roomData              = null
-let prevCommunityCount    = 0
-let prevMyRole            = null
-let wrSettings            = { maxPlayers: 8, startingChips: 1000, turnTimeLimit: 0, roundLimit: 0 }
-let wrDebounce            = {}
+let handResultActive            = false
+let showdownInterval            = null
+let turnTimerInterval           = null
+let betweenRoundsInterval       = null
+let roomHeartbeatInterval       = null
+let localTurnRemaining          = null
+let localBetweenRoundsRemaining = null
+let roomData                    = null
+let prevCommunityCount          = 0
+let prevMyRole                  = null
+let prevMatchStatus             = null
+let wrSettings                  = { maxPlayers: 8, startingChips: 1000, turnTimeLimit: 0, roundLimit: 0 }
+let wrDebounce                  = {}
 
 // ── Server-authoritative helpers ──────────────────────────
 // Use these everywhere instead of reading state.isHost / state.role directly.
@@ -46,6 +48,15 @@ function applyServerState(gs) {
   }
   if (gs.myRole === 'player') hideRejoinPrompt()
   prevMyRole = gs.myRole ?? prevMyRole
+
+  // Detect room reset: active game → waiting (all players busted)
+  if (prevMatchStatus === 'active' && gs.matchStatus === 'waiting') {
+    hideBetweenRounds()
+    hideShowdownBar()
+    document.getElementById('winner-overlay')?.classList.remove('open')
+    showToast('All players busted out. Room reset.')
+  }
+  prevMatchStatus = gs.matchStatus ?? prevMatchStatus
 
   // Sync host button visibility from every server response
   if (gs.hostId) {
@@ -166,13 +177,7 @@ export function enterGame() {
       applyServerState(gs)
       saveSession()
       render()
-      if (gs.status === 'reset') {
-        // All players busted — room wiped back to waiting, matchId stays valid
-        hideBetweenRounds()
-        hideShowdownBar()
-        document.getElementById('winner-overlay')?.classList.remove('open')
-        showToast('All players busted out. Room reset.')
-      } else if (gs.metadata?.winner) {
+      if (gs.matchStatus === 'finished' || gs.metadata?.winner) {
         stopPoll()
         prevCommunityCount = commBefore
         onHandEnd(gs.metadata)
@@ -436,9 +441,10 @@ async function wrStartRound() {
   const btn = document.getElementById('wr-start-round')
   btn.disabled = true; btn.textContent = 'Starting…'
   try {
-    const fn  = state.gameId === 'poker' ? api.pokerStart : api.unoStart
-    const res = await fn(state.matchId, state.sessionId)
-    state.gameState = res; applyServerState(res); saveSession()
+    const fn = state.gameId === 'poker' ? api.pokerStart : api.unoStart
+    await fn(state.matchId, state.sessionId)
+    const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+    state.gameState = gs; applyServerState(gs); saveSession()
     if (!state.poll) enterGame()
     else render()
   } catch (e) {
@@ -469,17 +475,11 @@ async function wrKickPlayer(targetId) {
 // ── Move result handler ───────────────────────────────────
 async function handleMoveResult(res) {
   const commBefore = state.gameState?.metadata?.community?.length ?? 0
-  // Action endpoints return the full unified game response directly
   state.gameState = res
   applyServerState(res)
   saveSession()
   render()
-  if (res.status === 'reset') {
-    hideBetweenRounds()
-    hideShowdownBar()
-    document.getElementById('winner-overlay')?.classList.remove('open')
-    showToast('All players busted out. Room reset.')
-  } else if (res.status === 'finished' || res.metadata?.winner) {
+  if (res.matchStatus === 'finished' || res.metadata?.winner) {
     stopPoll()
     prevCommunityCount = commBefore
     onHandEnd(res.metadata)
@@ -523,8 +523,7 @@ function updateShowdownBar(meta) {
   if (showdownActions) showdownActions.style.display = canDecide ? '' : 'none'
 
   if (!bar.classList.contains('open')) {
-    // Start local 1s countdown from server value on first open
-    let remaining = meta.showdownRemainingSec ?? 10
+    let remaining = state.gameState?.showdownRemainingSec ?? 10
     document.getElementById('sd-countdown').textContent = remaining
     showdownInterval = setInterval(() => {
       remaining = Math.max(0, remaining - 1)
@@ -595,8 +594,8 @@ async function showHandResult(meta) {
 function updateTurnTimer(meta, mine) {
   const bar     = document.getElementById('turn-timer-bar')
   if (!bar) return
-  const svrLeft = meta.turnRemainingSec ?? null
-  const limit   = meta.turnTimeLimit   ?? 0
+  const svrLeft = state.gameState?.turnRemainingSec ?? null
+  const limit   = meta.turnTimeLimit ?? 0
   if (!mine || svrLeft == null) {
     bar.style.display = 'none'
     clearInterval(turnTimerInterval); turnTimerInterval = null
@@ -658,23 +657,26 @@ function showBetweenRounds(meta) {
   document.getElementById('btn-next-round').style.display = amHost() ? '' : 'none'
   overlay.classList.add('open')
 
-  if (!betweenRoundsInterval && meta.betweenRoundsUntil) {
-    tickBetweenRounds(meta)
-    betweenRoundsInterval = setInterval(() => tickBetweenRounds(meta), 1000)
+  const remSec = state.gameState?.betweenRoundsRemainingSec ?? null
+  if (!betweenRoundsInterval && remSec != null) {
+    localBetweenRoundsRemaining = remSec
+    tickBetweenRounds()
+    betweenRoundsInterval = setInterval(tickBetweenRounds, 1000)
   }
 }
 
-function tickBetweenRounds(meta) {
-  if (!meta.betweenRoundsUntil) return
-  const left = Math.ceil((new Date(meta.betweenRoundsUntil) - Date.now()) / 1000)
-  const el   = document.getElementById('br-countdown')
-  if (el) el.textContent = Math.max(0, left)
-  if (left <= 0) { clearInterval(betweenRoundsInterval); betweenRoundsInterval = null }
+function tickBetweenRounds() {
+  if (localBetweenRoundsRemaining == null) return
+  const el = document.getElementById('br-countdown')
+  if (el) el.textContent = Math.max(0, Math.ceil(localBetweenRoundsRemaining))
+  localBetweenRoundsRemaining = Math.max(0, localBetweenRoundsRemaining - 1)
+  if (localBetweenRoundsRemaining <= 0) { clearInterval(betweenRoundsInterval); betweenRoundsInterval = null }
 }
 
 function hideBetweenRounds() {
   document.getElementById('between-rounds-overlay')?.classList.remove('open')
   clearInterval(betweenRoundsInterval); betweenRoundsInterval = null
+  localBetweenRoundsRemaining = null
 }
 
 // ── Inactivity rejoin prompt ──────────────────────────────
@@ -696,7 +698,8 @@ async function showCards() {
   const btn = document.getElementById('btn-show-cards')
   btn.disabled = true
   try {
-    const res = await api.pokerShow(state.matchId, state.sessionId)
+    await api.pokerShow(state.matchId, state.sessionId)
+    const res = await api.getState(state.gameId, state.matchId, state.sessionId)
     document.dispatchEvent(new CustomEvent('game:move', { detail: res }))
   } catch (e) { showToast(e.message) }
   finally { btn.disabled = false }
@@ -706,7 +709,8 @@ async function muckCards() {
   const btn = document.getElementById('btn-muck-cards')
   btn.disabled = true
   try {
-    const res = await api.pokerMuck(state.matchId, state.sessionId)
+    await api.pokerMuck(state.matchId, state.sessionId)
+    const res = await api.getState(state.gameId, state.matchId, state.sessionId)
     document.dispatchEvent(new CustomEvent('game:move', { detail: res }))
   } catch (e) { showToast(e.message) }
   finally { btn.disabled = false }
@@ -719,8 +723,9 @@ async function hostNextRound() {
   if (btn)     btn.disabled     = true
   if (skipBtn) skipBtn.disabled = true
   try {
-    const res = await api.pokerNextRound(state.matchId, state.sessionId)
-    state.gameState = res; applyServerState(res); saveSession(); render()
+    await api.pokerNextRound(state.matchId, state.sessionId)
+    const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+    state.gameState = gs; applyServerState(gs); saveSession(); render()
   } catch (e) { showToast(e.message) }
   finally {
     if (btn)     btn.disabled     = false
@@ -766,12 +771,14 @@ function showWinner(winnerId) {
 
 // ── Poll stop / navigation ────────────────────────────────
 export function stopPoll() {
-  clearInterval(state.poll);            state.poll            = null
-  clearInterval(turnTimerInterval);     turnTimerInterval     = null
-  clearInterval(betweenRoundsInterval); betweenRoundsInterval = null
-  clearInterval(showdownInterval);      showdownInterval      = null
-  clearInterval(roomHeartbeatInterval); roomHeartbeatInterval = null
-  localTurnRemaining = null
+  clearInterval(state.poll);            state.poll                    = null
+  clearInterval(turnTimerInterval);     turnTimerInterval             = null
+  clearInterval(betweenRoundsInterval); betweenRoundsInterval         = null
+  clearInterval(showdownInterval);      showdownInterval              = null
+  clearInterval(roomHeartbeatInterval); roomHeartbeatInterval         = null
+  localTurnRemaining          = null
+  localBetweenRoundsRemaining = null
+  prevMatchStatus             = null
 }
 
 function continueMatch() {

@@ -3,24 +3,22 @@ import { state } from '../../state.js'
 import { showToast } from '../../ui/toast.js'
 import { openModal, closeModal } from '../../ui/modal.js'
 
-function dispatch(res) {
-  document.dispatchEvent(new CustomEvent('game:move', { detail: res }))
-}
-
-export async function unoAct(action) {
+async function act(actionFn) {
   try {
-    let res
-    if (action.type === 'draw') {
-      res = await api.unoDraw(state.matchId, state.sessionId)
-    } else {
-      res = await api.unoPlay(state.matchId, state.sessionId, action.card, action.color)
-    }
-    dispatch(res)
+    await actionFn()
+    const res = await api.getState(state.gameId, state.matchId, state.sessionId)
+    document.dispatchEvent(new CustomEvent('game:move', { detail: res }))
   } catch (e) {
-    console.error('[uno] action failed:', action, e)
+    console.error('[uno] action failed:', e)
     showToast(e.message)
   }
 }
+
+export const unoAct = action => act(
+  action.type === 'draw'
+    ? () => api.unoDraw(state.matchId, state.sessionId)
+    : () => api.unoPlay(state.matchId, state.sessionId, action.card, action.color)
+)
 
 export function unoPlay(card) {
   if (card === 'wild' || card === 'wild_draw4') {

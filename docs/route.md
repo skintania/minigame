@@ -112,11 +112,11 @@ enterGame() sets state.poll = setInterval(2200ms)
 ```
 click Fold/Check/Bet [poker/index.js button listener]
   → pkAction('fold') or pkCall() or pkBet() [poker/actions.js]
-  → api.pokerFold / api.pokerCheck / api.pokerCall / api.pokerBet
-  → res = unified game response (flat)
-  → fires CustomEvent('game:move', { detail: res }) on document
-  → game.js listener: handleMoveResult(res)
-  → state.gameState = res → applyServerState(res) → render()
+  → api.pokerFold / api.pokerCheck / api.pokerCall / api.pokerBet  → { ok: true }
+  → api.getState()  → full unified game state
+  → fires CustomEvent('game:move', { detail: stateRes }) on document
+  → game.js listener: handleMoveResult(stateRes)
+  → state.gameState = stateRes → applyServerState(stateRes) → render()
 ```
 
 ### Player Action (UNO)
@@ -124,23 +124,24 @@ click Fold/Check/Bet [poker/index.js button listener]
 click card [uno/render.js onPlay callback]
   → unoPlay(card) [uno/actions.js]
   → if wild: state.pendingWild = card → openModal('color-modal')
-  → else: api.unoPlay() → fires 'game:move' → handleMoveResult()
+  → else: api.unoPlay() → { ok: true } → api.getState() → fires 'game:move'
 
 click color in modal
   → pickColor(color) [uno/actions.js]
   → closeModal()
-  → api.unoPlay(matchId, sessionId, pendingWild, color) → fires 'game:move'
+  → api.unoPlay(matchId, sessionId, pendingWild, color) → { ok: true } → api.getState() → fires 'game:move'
 ```
 
 ### Showdown → Between-rounds → Next Hand
 ```
-round ends (status=round-complete)
+round ends
   → poll keeps running; render() detects phase=showdown
-  → updateShowdownBar() opens pill with winner name + 5s countdown
-  → host can click "Skip" → hostNextRound() → api.pokerNextRound()
-  → server auto-transitions to between-rounds after 5s
+  → updateShowdownBar() opens pill with winner name + 10s countdown (from state.showdownRemainingSec)
+  → host can click "Skip" → hostNextRound() → api.pokerNextRound() → api.getState() → render()
+  → server auto-transitions to between-rounds after 10s
   → poll detects phase=between-rounds → showBetweenRounds() opens overlay
-  → host "Start Next Round" → hostNextRound() → api.pokerNextRound()
+  → if betweenRoundsRemainingSec present: local countdown from that value
+  → host "Start Next Round" → hostNextRound() → api.pokerNextRound() → api.getState() → render()
   → server starts new hand → poll detects active phase → hideBetweenRounds()
 
 Game over (meta.winner set):
