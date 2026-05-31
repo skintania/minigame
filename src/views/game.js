@@ -697,15 +697,16 @@ function showUnoRoundOverlay(meta, isGameOver) {
   const overlay = document.getElementById('uno-round-overlay')
   if (!overlay) return
 
-  const names      = state.gameState?.playerNames || {}
-  const roundWins  = meta.roundWins || {}
-  const winnerId   = meta.winner
-  const isMe       = winnerId === state.sessionId
-  const winnerName = isMe ? (state.username || 'You') : (names[winnerId] || 'Opponent')
+  const names       = state.gameState?.playerNames || {}
+  const roundWins   = meta.roundWins   || {}
+  const finishOrder = meta.finishOrder || []
+  const winnerId    = finishOrder[0]   || meta.winner
+  const isMe        = winnerId === state.sessionId
+  const winnerName  = isMe ? (state.username || 'You') : (names[winnerId] || 'Opponent')
 
   if (isGameOver) {
-    const top   = Object.entries(roundWins).sort(([, a], [, b]) => b - a)[0]
-    const topId = top?.[0]
+    const top     = Object.entries(roundWins).sort(([, a], [, b]) => b - a)[0]
+    const topId   = top?.[0]
     const topIsMe = topId === state.sessionId
     document.getElementById('uro-emoji').textContent = '🎉'
     document.getElementById('uro-title').textContent = 'Game Over!'
@@ -718,18 +719,31 @@ function showUnoRoundOverlay(meta, isGameOver) {
     document.getElementById('uro-sub').textContent   = ''
   }
 
-  // Scoreboard
+  // Scoreboard: sorted by cumulative wins; show this round's finish position as a badge
   const sbEl = document.getElementById('uro-scoreboard')
   if (sbEl) {
-    const entries = Object.entries(roundWins).sort(([, a], [, b]) => b - a)
-    sbEl.innerHTML = entries.map(([id, wins], i) => {
-      const n       = id === state.sessionId ? (state.username || names[id] || 'You') : (names[id] || id.slice(0, 8))
-      const meRow   = id === state.sessionId
-      const medals  = ['🥇', '🥈', '🥉']
-      const rank    = medals[i] ?? `${i + 1}`
+    const posMap  = Object.fromEntries(finishOrder.map((id, i) => [id, i]))
+    const allIds  = [...new Set([...Object.keys(roundWins), ...finishOrder])]
+    const entries = allIds
+      .map(id => ({ id, wins: roundWins[id] || 0, pos: posMap[id] ?? 999 }))
+      .sort((a, b) => b.wins - a.wins || a.pos - b.pos)
+
+    const standMedals = ['🥇', '🥈', '🥉']
+    const roundLabels = ['🥇', '🥈', '🥉']
+
+    sbEl.innerHTML = entries.map(({ id, wins, pos }, i) => {
+      const n      = id === state.sessionId ? (state.username || names[id] || 'You') : (names[id] || id.slice(0, 8))
+      const meRow  = id === state.sessionId
+      const rank   = standMedals[i] ?? `${i + 1}`
+      const rLabel = !isGameOver && pos < 999
+        ? (pos === finishOrder.length - 1 && finishOrder.length > 1
+            ? '💀'
+            : (roundLabels[pos] ?? `#${pos + 1}`))
+        : ''
       return `<div class="uro-row${meRow ? ' me' : ''}">
         <span class="uro-rank">${rank}</span>
         <span class="uro-name">${n}</span>
+        ${rLabel ? `<span class="uro-round-pos">${rLabel}</span>` : ''}
         <span class="uro-wins">${wins} win${wins !== 1 ? 's' : ''}</span>
       </div>`
     }).join('')

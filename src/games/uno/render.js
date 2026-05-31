@@ -35,12 +35,13 @@ const SEAT_MAP = [
 ]
 
 export function renderBoard(meta, mine, onPlay) {
-  const players    = state.gameState.players || []
-  const opponents  = players.filter(p => p !== state.sessionId)
-  const names      = state.gameState.playerNames || {}
-  const hands      = meta.hands || {}
-  const isFinished = meta.phase === 'finished'
-  const revealSec  = state.gameState.revealRemainingSec ?? null
+  const players     = state.gameState.players || []
+  const opponents   = players.filter(p => p !== state.sessionId)
+  const names       = state.gameState.playerNames || {}
+  const hands       = meta.hands || {}
+  const isFinished  = meta.phase === 'finished'
+  const revealSec   = state.gameState.revealRemainingSec ?? null
+  const finishOrder = meta.finishOrder || []
 
   // ── Opponents — positioned badges around the table ───────
   const oppContainer = document.getElementById('uno-opponents')
@@ -51,9 +52,14 @@ export function renderBoard(meta, mine, onPlay) {
       const hand        = hands[id] || []
       const isCurrent   = meta.currentPlayer === id && !isFinished
       const isUno       = hand.length === 1 && !isFinished
-      const isWinner    = isFinished && hand.length === 0
+      const finishPos   = isFinished ? finishOrder.indexOf(id) : -1
       const hasRevealed = isFinished && hand.length > 0 && hand.every(c => c !== 'hidden')
       const seat        = seats[i] || 'top-center'
+
+      const POS_LABEL   = ['🥇', '🥈', '🥉']
+      const posTag      = finishPos === finishOrder.length - 1 && finishOrder.length > 1
+        ? '💀'
+        : (POS_LABEL[finishPos] ?? (finishPos >= 0 ? `#${finishPos + 1}` : ''))
 
       const cardsHTML = hasRevealed
         ? hand.slice(0, 6).map(c => unoCardHTML(c, false, false, 'small')).join('')
@@ -61,15 +67,15 @@ export function renderBoard(meta, mine, onPlay) {
             `<img class="uno-card-img mini" src="${UNO_BASE()}/back.svg" alt="back" onerror="this.outerHTML='<div class=&quot;mini-card&quot;></div>'">`
           ).join('')
 
-      const cls = ['uno-opp-slot', isCurrent ? 'turn-active' : '', isWinner ? 'winner-flash' : '']
+      const cls = ['uno-opp-slot', isCurrent ? 'turn-active' : '', finishPos === 0 ? 'winner-flash' : '']
         .filter(Boolean).join(' ')
 
       return `<div class="${cls}" data-seat="${seat}">
         <div class="uno-opp-badge">
           ${isCurrent ? '<span class="uno-turn-dot"></span>' : ''}
           <span class="uno-opp-name">${name}</span>
-          ${isUno    ? '<span class="uno-uno-badge">UNO!</span>' : ''}
-          ${isWinner ? '<span class="uno-winner-tag">🏆</span>' : ''}
+          ${isUno   ? '<span class="uno-uno-badge">UNO!</span>' : ''}
+          ${posTag  ? `<span class="uno-winner-tag">${posTag}</span>` : ''}
           <span class="uno-opp-count-pill">${hand.length}</span>
         </div>
         <div class="uno-opp-cards${hasRevealed ? '' : ' mini'}">${cardsHTML}</div>
@@ -222,9 +228,11 @@ function parseCard(card) {
 }
 
 export function canPlay(card, meta, cardIdx = -1) {
-  // Draw stacking: only draw2 / wild_draw4 can counter a pending penalty
+  // Draw stacking: wild_draw4 always counters; draw2 only if its color matches currentColor
   if (meta.pendingDraw > 0) {
-    return card === 'wild_draw4' || card.endsWith('_draw2')
+    if (card === 'wild_draw4') return true
+    if (card.endsWith('_draw2')) return card.split('_')[0] === meta.currentColor
+    return false
   }
 
   // Multi-select in progress: only same-number cards remain playable
