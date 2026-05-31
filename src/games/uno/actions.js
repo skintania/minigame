@@ -1,7 +1,47 @@
 import { api } from '../../api/client.js'
 import { state } from '../../state.js'
 import { showToast } from '../../ui/toast.js'
-import { openModal, closeModal } from '../../ui/modal.js'
+
+const openColorOverlay  = () => document.getElementById('uno-color-overlay')?.classList.add('open')
+const closeColorOverlay = () => document.getElementById('uno-color-overlay')?.classList.remove('open')
+
+// ── Card flight helpers ───────────────────────────────────
+function _fly(fromRect, toRect, cloneEl, delay = 0) {
+  if (!fromRect || !toRect) return
+  setTimeout(() => {
+    const fly = cloneEl ? cloneEl.cloneNode(true) : document.createElement('div')
+    fly.className       = 'uno-flying-card'
+    fly.style.cssText   = `width:${fromRect.width}px;height:${fromRect.height}px;` +
+                          `left:${fromRect.left}px;top:${fromRect.top}px;` +
+                          `opacity:1;transform:none;` +
+                          (!cloneEl ? 'background:linear-gradient(135deg,#e8529a,#3aabde);' : '')
+    document.body.appendChild(fly)
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const tx = toRect.left + toRect.width  / 2 - fromRect.left - fromRect.width  / 2
+      const ty = toRect.top  + toRect.height / 2 - fromRect.top  - fromRect.height / 2
+      fly.style.transition = 'transform 0.38s cubic-bezier(0.25,1.1,0.5,1), opacity 0.22s 0.16s'
+      fly.style.transform  = `translate(${tx}px,${ty}px) scale(0.6) rotate(8deg)`
+      fly.style.opacity    = '0'
+      setTimeout(() => fly.remove(), 480)
+    }))
+  }, delay)
+}
+
+export function animatePlayCards(indices) {
+  const toRect = document.getElementById('uno-discard')?.getBoundingClientRect()
+  if (!toRect) return
+  indices.forEach((idx, i) => {
+    const el = document.querySelector(`#uno-hand [data-idx="${idx}"]`)
+    if (el) _fly(el.getBoundingClientRect(), toRect, el, i * 80)
+  })
+}
+
+export function animateDraw() {
+  const drawEl = document.getElementById('uno-draw-pile')
+  const handEl = document.getElementById('uno-hand')
+  if (!drawEl || !handEl) return
+  _fly(drawEl.getBoundingClientRect(), handEl.getBoundingClientRect(), null)
+}
 
 let _selected = []  // cards staged for multi-card play
 
@@ -70,9 +110,11 @@ export function unoPlay(card, handIdx) {
     _selected = []
     _saveSelected()
     if (card === 'wild' || card === 'wild_draw4') {
+      animatePlayCards([handIdx])
       state.pendingWild = card
-      openModal('color-modal')
+      setTimeout(openColorOverlay, 160)
     } else {
+      animatePlayCards([handIdx])
       act(() => api.unoPlay(state.matchId, state.sessionId, card))
     }
     return
@@ -103,6 +145,7 @@ export function confirmPlay() {
   if (_selected.length === 0) return
   const hand  = state.gameState?.metadata?.hands?.[state.sessionId] || []
   const cards = _selected.map(idx => hand[idx]).filter(Boolean)
+  animatePlayCards([..._selected])
   if (cards.length === 1) {
     act(() => api.unoPlay(state.matchId, state.sessionId, cards[0]))
   } else {
@@ -117,7 +160,7 @@ export const unoAct = action => act(
 )
 
 export function pickColor(color) {
-  closeModal('color-modal')
+  closeColorOverlay()
   if (state.pendingWild) {
     unoAct({ type: 'play', card: state.pendingWild, color })
     state.pendingWild = null

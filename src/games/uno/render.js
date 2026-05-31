@@ -3,6 +3,7 @@ import { state, cfg } from '../../state.js'
 const UNO_BASE  = () => `${cfg.url}/assets/cards/uno-deck`
 let _lastHandKey    = ''
 let _lastDiscardKey = ''
+let _prevDiscardLen = 0
 
 const VAL_ASSET = { draw2: 'draw-two', draw4: 'draw-four' }
 function cardSrc(card) {
@@ -87,22 +88,32 @@ export function renderBoard(meta, mine, onPlay) {
   const pile   = meta.discard || []
   const discEl = document.getElementById('uno-discard')
   if (discEl) {
-    const discKey = pile.slice(-4).join(',') + '|' + (meta.lastCard || '')
+    const effectiveLen = pile.length + (state.pendingWild ? 1 : 0)
+    const discKey = pile.slice(-6).join(',') + '|' + (meta.lastCard || '') + '|' + (state.pendingWild || '')
     if (discKey !== _lastDiscardKey) {
+      const newCount  = Math.max(0, effectiveLen - _prevDiscardLen)
       _lastDiscardKey = discKey
-      const recent = pile.length ? pile.slice(-4) : (meta.lastCard ? [meta.lastCard] : [])
-      // fixed rotations/offsets per layer so the pile looks thrown down
+      _prevDiscardLen = effectiveLen
+      let recent = pile.length ? pile.slice(-5) : (meta.lastCard ? [meta.lastCard] : [])
+      if (state.pendingWild) recent = [...recent.slice(-5), state.pendingWild]
+      // 6-slot messy rotation table (oldest → newest)
       const TRANSFORMS = [
-        'rotate(-11deg) translate(-4px, 3px)',
-        'rotate(7deg)  translate(3px, -2px)',
-        'rotate(-5deg) translate(-2px, -3px)',
-        'rotate(4deg)  translate(1px, 0)',
+        'rotate(-12deg) translate(-7px,  5px)',
+        'rotate( 9deg)  translate( 6px, -4px)',
+        'rotate(-7deg)  translate(-4px,  3px)',
+        'rotate( 6deg)  translate( 3px, -2px)',
+        'rotate(-3deg)  translate(-1px,  2px)',
+        'rotate( 4deg)  translate( 1px,  0)',
       ]
-      const start = 4 - recent.length
+      const maxSlots = TRANSFORMS.length
+      const start    = maxSlots - recent.length
       discEl.innerHTML = recent.map((card, i) => {
         const isTop    = i === recent.length - 1
         const effClass = isTop ? cardEffClass(card) : ''
-        return `<div class="discard-layer ${effClass}" style="transform:${TRANSFORMS[start + i]};z-index:${i + 1}">` +
+        const isNew    = newCount > 0 && i >= recent.length - newCount
+        const tx       = TRANSFORMS[start + i] || TRANSFORMS[maxSlots - 1]
+        return `<div class="discard-layer${isNew ? ' new-card' : ''} ${effClass}" ` +
+               `style="--dtx:${tx};transform:${tx};z-index:${i + 1}">` +
           unoCardHTML(card, null, false) + '</div>'
       }).join('')
     }
