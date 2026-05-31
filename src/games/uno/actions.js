@@ -1,5 +1,5 @@
 import { api } from '../../api/client.js'
-import { state } from '../../state.js'
+import { state, cfg } from '../../state.js'
 import { showToast } from '../../ui/toast.js'
 
 const openColorOverlay = () => {
@@ -9,8 +9,19 @@ const openColorOverlay = () => {
   const ring = overlay.querySelector('.uco-ring')
   if (disc && ring) {
     const r = disc.getBoundingClientRect()
-    ring.style.left = (r.left + r.width  / 2) + 'px'
-    ring.style.top  = (r.top  + r.height / 2) + 'px'
+    const cx = r.left + r.width  / 2
+    const cy = r.top  + r.height / 2
+    ring.style.left = cx + 'px'
+    ring.style.top  = cy + 'px'
+    // Show wild card in the ring center so it stays visible above petals
+    const preview = ring.querySelector('.uco-card-preview')
+    if (preview && state.pendingWild) {
+      const base = `${cfg.url}/assets/cards/uno-deck`
+      const src  = state.pendingWild === 'wild'
+        ? `${base}/wild.svg`
+        : `${base}/wild-draw-four.svg`
+      preview.innerHTML = `<img src="${src}" alt="${state.pendingWild}">`
+    }
   }
   overlay.classList.add('open')
 }
