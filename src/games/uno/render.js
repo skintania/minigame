@@ -83,11 +83,13 @@ export function renderBoard(meta, mine, onPlay) {
     }).join('')
   }
 
-  // ── Direction arrow ──────────────────────────────────────
+  // ── Direction indicator ──────────────────────────────────
   const dirEl = document.getElementById('uno-direction')
   if (dirEl) {
-    dirEl.textContent = meta.direction === -1 ? '↺' : '↻'
-    dirEl.title = meta.direction === -1 ? 'Counter-clockwise' : 'Clockwise'
+    const ccw   = meta.direction === -1
+    dirEl.innerHTML = `<span class="dir-arrow">${ccw ? '↺' : '↻'}</span>` +
+                      `<span class="dir-label">${ccw ? 'Counter-CW' : 'Clockwise'}</span>`
+    dirEl.dataset.dir = ccw ? 'ccw' : 'cw'
   }
 
   // ── Discard pile (messy stack) ───────────────────────────

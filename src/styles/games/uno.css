@@ -527,11 +527,28 @@ html[data-theme="classic"] .uno-opp-badge {
 
 /* ── Direction indicator (on felt) ── */
 #uno-direction {
-  font-size: 22px;
-  color: rgba(255,255,255,0.55);
-  width: 28px;
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+.dir-arrow {
+  font-size: 28px;
   line-height: 1;
+  color: rgba(255,255,255,0.85);
+  transition: transform 0.3s ease;
+}
+#uno-direction[data-dir="cw"]  .dir-arrow { animation: dir-spin-cw  2.4s linear infinite; }
+#uno-direction[data-dir="ccw"] .dir-arrow { animation: dir-spin-ccw 2.4s linear infinite; }
+@keyframes dir-spin-cw  { to { transform: rotate( 360deg); } }
+@keyframes dir-spin-ccw { to { transform: rotate(-360deg); } }
+.dir-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255,255,255,0.5);
+  white-space: nowrap;
 }
 
 /* ── Reveal countdown bar (inside table) ── */
