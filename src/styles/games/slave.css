@@ -327,21 +327,19 @@ html[data-theme="classic"] .slv-table {
   border-color: #1a3080;
 }
 
-/* ── Hand: horizontal scroll, never wrap ────────────────── */
+/* ── Hand: single row, fan spacing managed by JS ─────────── */
 #slave-board .hand-row {
   flex-wrap: nowrap;
   overflow-x: auto;
   overflow-y: visible;
   max-width: 100%;
   gap: 0;
-  padding: 4px 8px 28px;  /* bottom clearance for selected-card lift */
+  padding: 4px 8px 28px;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
   justify-content: center;
 }
 #slave-board .hand-row::-webkit-scrollbar { display: none; }
-#slave-board .slv-card-img            { margin-right: -14px; }
-#slave-board .slv-card-img:last-child { margin-right: 0; }
 
 @media (max-width: 640px) {
   #slave-board { padding: 0 8px 8px; gap: 6px; }
@@ -356,7 +354,6 @@ html[data-theme="classic"] .slv-table {
   .slv-table { width: min(78vw, 280px); }
   .slv-card-img { width: 48px; height: 70px; }
   .slv-card-img.trick { width: 42px; height: 62px; }
-  #slave-board .slv-card-img { margin-right: -20px; }
   .slv-trick-cards { min-height: 70px; }
   .slv-card-img.selected { transform: translateY(-14px) scale(1.05); }
   #slave-board .hand-row { padding-bottom: 22px; }

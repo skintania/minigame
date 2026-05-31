@@ -1,8 +1,10 @@
 import { state, cfg } from '../../state.js'
 import { orderedOpponents } from '../utils.js'
 
-const SUIT_NAMES = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs' }
+const SUIT_NAMES  = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs' }
 const RANK_EMOJIS = { President: '🥇', 'Vice President': '🥈', Citizen: '', 'Vice Slave': '🔴', Slave: '💀' }
+const RANK_ORDER  = { '3':0,'4':1,'5':2,'6':3,'7':4,'8':5,'9':6,'10':7,'J':8,'Q':9,'K':10,'A':11,'2':12 }
+const SUIT_ORDER  = { '♣':0,'♦':1,'♥':2,'♠':3 }
 
 const SEAT_MAP = [
   [],
@@ -32,6 +34,34 @@ function cardImgHTML(card, extraCls = '') {
   const src = cardSrc(card)
   const cls = ['slv-card-img', extraCls].filter(Boolean).join(' ')
   return `<img class="${cls}" src="${src}" alt="${card}">`
+}
+
+// Return original hand indices sorted by rank then suit (3 lowest → 2 highest)
+function sortedHandIndices(hand) {
+  return hand
+    .map((_, i) => i)
+    .sort((a, b) => {
+      const ca = parseCard(hand[a]), cb = parseCard(hand[b])
+      const rv = (RANK_ORDER[ca.rank] ?? 99) - (RANK_ORDER[cb.rank] ?? 99)
+      return rv !== 0 ? rv : (SUIT_ORDER[ca.suit] ?? 0) - (SUIT_ORDER[cb.suit] ?? 0)
+    })
+}
+
+// Fan-hand margins: center cards spread further apart, edge cards overlap more.
+// Returns array of margin-right values (px) for each card in display order.
+function computeFanMargins(total) {
+  if (total <= 1) return Array(total).fill(0)
+  const w     = window.innerWidth
+  const cardW = w <= 480 ? 48 : w <= 640 ? 58 : 72
+  const viewW = w - (w <= 640 ? 32 : 64)
+  const maxStep = cardW + (w <= 640 ? 14 : 32)
+  const avgStep = Math.min(maxStep, Math.max(cardW * 0.18, (viewW - cardW) / (total - 1)))
+  const maxDist = (total - 1) / 2
+  return Array.from({ length: total }, (_, i) => {
+    if (i === total - 1) return 0
+    const t = Math.abs(i - maxDist) / Math.max(1, maxDist)
+    return Math.round(avgStep * (1 + 0.4 * (1 - 2 * t)) - cardW)
+  })
 }
 
 export function renderBoard(meta, mine, onPlay, onPass) {
@@ -129,7 +159,8 @@ export function renderBoard(meta, mine, onPlay, onPass) {
   const myHand = hands[state.sessionId] || []
   const handEl = document.getElementById('slv-hand')
   if (handEl) {
-    const handKey = myHand.join(',') + '|' + mine
+    const bw      = window.innerWidth <= 480 ? 'sm' : window.innerWidth <= 640 ? 'md' : 'lg'
+    const handKey = myHand.join(',') + '|' + mine + '|' + bw
     if (handKey !== _lastHandKey) {
       _lastHandKey     = handKey
       _selectedIndices = []
@@ -159,13 +190,19 @@ export function renderBoard(meta, mine, onPlay, onPass) {
 }
 
 function renderHand(handEl, myHand, mine, isFinished) {
+  const sortedIdxs = sortedHandIndices(myHand)
   if (isFinished) {
-    handEl.innerHTML = myHand.map(c => cardImgHTML(c, 'slv-hand-card')).join('')
+    handEl.innerHTML = sortedIdxs.map(i => cardImgHTML(myHand[i], 'slv-hand-card')).join('')
     return
   }
-  handEl.innerHTML = myHand.map((card, idx) => {
-    const cls = ['slv-card-img', 'slv-hand-card', mine ? 'selectable' : ''].filter(Boolean).join(' ')
-    return `<img class="${cls}" src="${cardSrc(card)}" alt="${card}" data-slv-idx="${idx}" data-slv-card="${card}">`
+  const margins = computeFanMargins(sortedIdxs.length)
+  handEl.innerHTML = sortedIdxs.map((origIdx, di) => {
+    const card  = myHand[origIdx]
+    const mr    = margins[di] ?? 0
+    const style = mr !== 0 ? ` style="margin-right:${mr}px"` : ''
+    const cls   = ['slv-card-img', 'slv-hand-card', mine ? 'selectable' : ''].filter(Boolean).join(' ')
+    return `<img class="${cls}"${style} src="${cardSrc(card)}" alt="${card}" ` +
+           `data-slv-idx="${origIdx}" data-slv-card="${card}">`
   }).join('')
 }
 
