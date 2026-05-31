@@ -2,7 +2,18 @@ import { api } from '../../api/client.js'
 import { state } from '../../state.js'
 import { showToast } from '../../ui/toast.js'
 
-const openColorOverlay  = () => document.getElementById('uno-color-overlay')?.classList.add('open')
+const openColorOverlay = () => {
+  const overlay = document.getElementById('uno-color-overlay')
+  if (!overlay) return
+  const disc = document.getElementById('uno-discard')
+  const ring = overlay.querySelector('.uco-ring')
+  if (disc && ring) {
+    const r = disc.getBoundingClientRect()
+    ring.style.left = (r.left + r.width  / 2) + 'px'
+    ring.style.top  = (r.top  + r.height / 2) + 'px'
+  }
+  overlay.classList.add('open')
+}
 const closeColorOverlay = () => document.getElementById('uno-color-overlay')?.classList.remove('open')
 
 // ── Card flight helpers ───────────────────────────────────

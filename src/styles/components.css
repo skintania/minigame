@@ -187,30 +187,40 @@ html[data-theme="hangout"] .glass {
 .color-btn.green  { background: linear-gradient(135deg, #2ed573, #1a7a40); }
 .color-btn.yellow { background: linear-gradient(135deg, #ffd32a, #c09200); color: #222; }
 
-/* ── UNO wild color overlay — 4-quadrant fullscreen ── */
+/* ── UNO wild color overlay — ring around wild card ── */
 #uno-color-overlay {
   position: fixed; inset: 0; z-index: 500;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.25s;
+  transition: opacity 0.2s;
 }
-#uno-color-overlay.open { opacity: 1; pointer-events: all; }
+#uno-color-overlay.open { opacity: 1; pointer-events: none; }
+
+.uco-ring {
+  position: absolute;
+  width: 0; height: 0;
+  pointer-events: none;
+  /* left/top set by JS to center of discard pile */
+}
 .uco-btn {
+  position: absolute;
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 3px solid rgba(255,255,255,0.45);
   display: flex; align-items: center; justify-content: center;
-  font-size: clamp(28px, 5vw, 56px);
-  font-weight: 800; font-family: inherit;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  border: none; cursor: pointer; color: #fff;
+  font-size: 10px; font-weight: 800; font-family: inherit;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  cursor: pointer; pointer-events: all;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  transform: translate(-50%, -50%);
   transition: filter 0.12s, transform 0.12s;
 }
-.uco-btn:hover  { filter: brightness(1.18); }
-.uco-btn:active { transform: scale(0.97); }
-.uco-btn.blue   { background: rgba(58,  171, 222, 0.88); }
-.uco-btn.red    { background: rgba(255,  71,  87, 0.88); }
-.uco-btn.yellow { background: rgba(255, 211,  42, 0.88); color: #1a1a2e; }
-.uco-btn.green  { background: rgba(46,  213, 115, 0.88); }
+.uco-btn:hover  { filter: brightness(1.2); }
+.uco-btn:active { transform: translate(-50%, -50%) scale(0.88); }
+/* diagonal corners: ~72px from card center */
+.uco-btn.blue   { top: -72px; left: -72px; background: #3AABDE; color: #fff; }
+.uco-btn.red    { top: -72px; left:  72px; background: #ff4757; color: #fff; }
+.uco-btn.yellow { top:  72px; left: -72px; background: #ffd32a; color: #1a1a2e; }
+.uco-btn.green  { top:  72px; left:  72px; background: #2ed573; color: #fff; }
 
 
 /* ── Winner overlay (bottom bar) ── */
