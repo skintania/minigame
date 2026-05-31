@@ -112,7 +112,7 @@ export function renderBoard(meta, mine, onPlay) {
 }
 
 function unoCardHTML(card, playable, isDiscard = false, size = '') {
-  const src     = `${UNO_BASE()}/${card}.svg`
+  const src     = `${UNO_BASE()}/${card.replace(/_/g, '-')}.svg`
   const classes = ['uno-card-img', playable ? 'playable' : 'not-playable',
     isDiscard ? 'discard' : '', size].filter(Boolean).join(' ')
   const safe = cssUnoCard(card, playable, size).replace(/'/g, '&#39;')
