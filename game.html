@@ -199,12 +199,29 @@
     </div>
   </div>
 
+  <!-- UNO round-end / game-over overlay -->
+  <div id="uno-round-overlay">
+    <div class="uro-card glass">
+      <span id="uro-emoji">🏆</span>
+      <div id="uro-title" class="uro-title"></div>
+      <div id="uro-sub"   class="uro-sub"></div>
+      <div id="uro-scoreboard" class="uro-scoreboard"></div>
+      <div class="uro-actions" id="uro-host-actions" style="display:none">
+        <button class="btn btn-primary" id="btn-uno-next-round" style="width:auto;padding:9px 20px">Next Round</button>
+        <button class="btn btn-ghost"   id="btn-uno-end-game"   style="width:auto;padding:9px 20px;font-size:12px;color:var(--muted)">End Game</button>
+      </div>
+      <div class="uro-actions" id="uro-leave-actions" style="display:none">
+        <button class="btn btn-primary" id="btn-uno-leave-final" style="width:auto;padding:9px 20px">Leave Room</button>
+      </div>
+      <p id="uro-waiting" class="uro-sub" style="display:none">Waiting for host to start next round…</p>
+    </div>
+  </div>
+
   <!-- Between-rounds bar (slides up from bottom, board stays visible) -->
   <div id="between-rounds-overlay">
     <div class="br-info">
       <div class="br-round-info" id="br-round-info">Hand complete</div>
       <div class="br-next">Next round in <span id="br-countdown">—</span></div>
-      <div id="br-round-wins" style="display:none"></div>
     </div>
     <div class="br-actions">
       <button class="btn btn-pink"    id="btn-switch-role"   style="display:none;width:auto;padding:9px 20px">Join Table</button>

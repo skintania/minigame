@@ -84,9 +84,20 @@ export function initGame() {
   document.getElementById('btn-continue-match').addEventListener('click', continueMatch)
   document.getElementById('btn-leave-room-win').addEventListener('click', () => leaveRoom())
   document.getElementById('btn-leave-room-br').addEventListener('click',  () => leaveRoom())
-  document.getElementById('btn-end-game').addEventListener('click', () => {
-    if (confirm('End the game for everyone?')) leaveRoom()
+  document.getElementById('btn-end-game').addEventListener('click', async () => {
+    if (!confirm('End the game for everyone?')) return
+    if (state.gameId === 'uno' && state.matchId) {
+      try { await api.unoEndGame(state.matchId, state.sessionId) } catch (e) { showToast(e.message) }
+    } else {
+      leaveRoom()
+    }
   })
+  document.getElementById('btn-uno-next-round')?.addEventListener('click', unoHostNextRound)
+  document.getElementById('btn-uno-end-game')?.addEventListener('click', async () => {
+    if (!confirm('End the game for everyone?')) return
+    try { await api.unoEndGame(state.matchId, state.sessionId) } catch (e) { showToast(e.message) }
+  })
+  document.getElementById('btn-uno-leave-final')?.addEventListener('click', () => leaveRoom())
   document.getElementById('btn-next-round').addEventListener('click', hostNextRound)
   document.getElementById('btn-skip-showdown').addEventListener('click', hostNextRound)
   document.getElementById('btn-show-cards').addEventListener('click', showCards)
@@ -203,7 +214,10 @@ export function enterGame() {
       applyServerState(gs)
       saveSession()
       render()
-      if (gs.metadata?.winner && gs.revealRemainingSec == null && state.gameId !== 'uno') {
+      if (state.gameId === 'uno' && gs.matchStatus === 'finished') {
+        stopPoll()
+        showUnoRoundOverlay(gs.metadata, true)
+      } else if (gs.metadata?.winner && gs.revealRemainingSec == null && state.gameId !== 'uno') {
         stopPoll()
         prevCommunityCount = commBefore
         onHandEnd(gs.metadata)
@@ -300,16 +314,19 @@ export function render() {
     return
   }
 
-  // UNO finished phase: 10-second reveal window then round result overlay
+  // UNO finished phase: reveal window, then round-end overlay
   if (state.gameId === 'uno' && meta.phase === 'finished') {
     document.getElementById('g-phase').textContent = 'Round Over'
     document.querySelector('.uno-hand-footer')?.style.setProperty('display', 'none')
     registry['uno']?.render(meta, false)
-    if (state.gameState?.revealRemainingSec == null) showUnoRoundResult(meta)
+    if (state.gameState?.revealRemainingSec == null && state.gameState?.matchStatus !== 'finished') {
+      showUnoRoundOverlay(meta, false)
+    }
     return
   }
 
   hideBetweenRounds()
+  hideUnoRoundOverlay()
   document.querySelector('.pk-action-bar')?.style.setProperty('display',
     curRole() === 'spectator' ? 'none' : '')
   document.querySelector('.uno-hand-footer')?.style.setProperty('display',
@@ -675,39 +692,85 @@ function _renderTurnTimer(limit) {
   if (secs) secs.textContent = Math.ceil(Math.max(0, left)) + 's'
 }
 
-// ── UNO round result (finished phase) ────────────────────
-function showUnoRoundResult(meta) {
-  const overlay = document.getElementById('between-rounds-overlay')
-  if (!overlay || overlay.classList.contains('open')) return
+// ── UNO round-end / game-over overlay ────────────────────
+function showUnoRoundOverlay(meta, isGameOver) {
+  const overlay = document.getElementById('uno-round-overlay')
+  if (!overlay) return
 
-  const names    = state.gameState?.playerNames || {}
-  const winnerId = meta.winner
-  const isMe     = winnerId === state.sessionId
-  const name     = isMe ? (state.username || 'You') : (names[winnerId] || 'Opponent')
-  document.getElementById('br-round-info').textContent = isMe ? 'You won the round!' : `${name} won the round!`
+  const names      = state.gameState?.playerNames || {}
+  const roundWins  = meta.roundWins || {}
+  const winnerId   = meta.winner
+  const isMe       = winnerId === state.sessionId
+  const winnerName = isMe ? (state.username || 'You') : (names[winnerId] || 'Opponent')
 
-  const roundWinsEl = document.getElementById('br-round-wins')
-  if (roundWinsEl) {
-    const roundWins = meta.roundWins || {}
-    const entries   = Object.entries(roundWins).sort(([, a], [, b]) => b - a)
-    if (entries.length > 0) {
-      roundWinsEl.innerHTML = entries.map(([id, wins]) => {
-        const n    = id === state.sessionId ? (state.username || names[id] || 'You') : (names[id] || id.slice(0, 8))
-        const cls  = id === state.sessionId ? 'br-standing me' : 'br-standing'
-        return `<div class="${cls}">${n} — ${wins} win${wins !== 1 ? 's' : ''}</div>`
-      }).join('')
-      roundWinsEl.style.display = ''
-    } else {
-      roundWinsEl.style.display = 'none'
-    }
+  if (isGameOver) {
+    const top   = Object.entries(roundWins).sort(([, a], [, b]) => b - a)[0]
+    const topId = top?.[0]
+    const topIsMe = topId === state.sessionId
+    document.getElementById('uro-emoji').textContent = '🎉'
+    document.getElementById('uro-title').textContent = 'Game Over!'
+    document.getElementById('uro-sub').textContent   = topId
+      ? `${topIsMe ? 'You win' : (names[topId] || 'Opponent') + ' wins'} the session!`
+      : ''
+  } else {
+    document.getElementById('uro-emoji').textContent = isMe ? '🏆' : '🎴'
+    document.getElementById('uro-title').textContent = isMe ? 'You Won the Round!' : `${winnerName} Won the Round!`
+    document.getElementById('uro-sub').textContent   = ''
   }
 
-  document.getElementById('btn-switch-role').style.display = 'none'
-  const brNextEl = document.querySelector('#between-rounds-overlay .br-next')
-  if (brNextEl) brNextEl.style.display = 'none'
-  document.getElementById('btn-next-round').style.display = amHost() ? '' : 'none'
+  // Scoreboard
+  const sbEl = document.getElementById('uro-scoreboard')
+  if (sbEl) {
+    const entries = Object.entries(roundWins).sort(([, a], [, b]) => b - a)
+    sbEl.innerHTML = entries.map(([id, wins], i) => {
+      const n       = id === state.sessionId ? (state.username || names[id] || 'You') : (names[id] || id.slice(0, 8))
+      const meRow   = id === state.sessionId
+      const medals  = ['🥇', '🥈', '🥉']
+      const rank    = medals[i] ?? `${i + 1}`
+      return `<div class="uro-row${meRow ? ' me' : ''}">
+        <span class="uro-rank">${rank}</span>
+        <span class="uro-name">${n}</span>
+        <span class="uro-wins">${wins} win${wins !== 1 ? 's' : ''}</span>
+      </div>`
+    }).join('')
+  }
+
+  // Buttons
+  const hostActions  = document.getElementById('uro-host-actions')
+  const leaveActions = document.getElementById('uro-leave-actions')
+  const waitingEl    = document.getElementById('uro-waiting')
+  if (isGameOver) {
+    hostActions.style.display  = 'none'
+    leaveActions.style.display = ''
+    waitingEl.style.display    = 'none'
+  } else if (amHost()) {
+    hostActions.style.display  = ''
+    leaveActions.style.display = 'none'
+    waitingEl.style.display    = 'none'
+  } else {
+    hostActions.style.display  = 'none'
+    leaveActions.style.display = 'none'
+    waitingEl.style.display    = ''
+  }
 
   overlay.classList.add('open')
+}
+
+function hideUnoRoundOverlay() {
+  document.getElementById('uno-round-overlay')?.classList.remove('open')
+}
+
+async function unoHostNextRound() {
+  const btn = document.getElementById('btn-uno-next-round')
+  if (btn) btn.disabled = true
+  try {
+    await api.unoNextRound(state.matchId, state.sessionId)
+    const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+    state.gameState = gs; applyServerState(gs); saveSession()
+    hideUnoRoundOverlay()
+    render()
+  } catch (e) { showToast(e.message) }
+  finally { if (btn) btn.disabled = false }
 }
 
 // ── Between-rounds overlay ────────────────────────────────
@@ -739,8 +802,6 @@ function showBetweenRounds(meta) {
   }
 
   document.getElementById('btn-next-round').style.display = amHost() ? '' : 'none'
-  const roundWinsEl = document.getElementById('br-round-wins')
-  if (roundWinsEl) roundWinsEl.style.display = 'none'
   overlay.classList.add('open')
 
   const remSec   = state.gameState?.betweenRoundsRemainingSec ?? null
@@ -812,11 +873,9 @@ async function hostNextRound() {
   if (btn)     btn.disabled     = true
   if (skipBtn) skipBtn.disabled = true
   try {
-    const fn = state.gameId === 'uno' ? api.unoNextRound : api.pokerNextRound
-    await fn(state.matchId, state.sessionId)
+    await api.pokerNextRound(state.matchId, state.sessionId)
     const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
     state.gameState = gs; applyServerState(gs); saveSession()
-    handResultActive = false
     hideBetweenRounds()
     render()
   } catch (e) { showToast(e.message) }
@@ -884,10 +943,5 @@ async function continueMatch() {
   state.matchId   = null
   state.gameState = null
   saveSession()
-  // UNO: auto-rejoin as player so losers don't end up stuck as spectators
-  if (state.gameId === 'uno' && state.roomCode) {
-    try { await api.switchRole(state.roomCode, state.sessionId, 'player') } catch { /* ignore — room may not be ready yet */ }
-  }
-  // Re-enter; room heartbeat keeps the waiting panel live
   enterGame()
 }
