@@ -240,15 +240,16 @@ export function canPlay(card, meta, cardIdx = -1) {
     return false
   }
 
-  // Multi-select in progress: only same-number cards remain playable
+  // Multi-select in progress: only same-value non-wild cards remain selectable
   const sel = state.unoSelected || []
   if (sel.length > 0) {
-    if (cardIdx >= 0 && sel.includes(cardIdx)) return true  // this instance is selected → deselectable
-    const [, val]     = card.split('_')
-    const myHand      = (meta.hands || {})[state.sessionId] || []
-    const firstCard   = myHand[sel[0]] || ''
-    const selVal      = firstCard.split('_')[1]
-    return val && /^\d$/.test(val) && val === selVal
+    if (cardIdx >= 0 && sel.includes(cardIdx)) return true  // already selected → deselectable
+    if (card === 'wild') return false                        // plain wild cannot be grouped
+    const [, val]   = card.split('_')
+    const myHand    = (meta.hands || {})[state.sessionId] || []
+    const firstCard = myHand[sel[0]] || ''
+    const selVal    = firstCard.split('_')[1]
+    return !!val && val === selVal
   }
 
   if (card === 'wild' || card === 'wild_draw4') return true

@@ -95,10 +95,10 @@ function _syncUI() {
   const selVal  = selCard ? selCard.split('_')[1] : null
 
   document.querySelectorAll('#uno-hand [data-card]').forEach(el => {
-    const elIdx = parseInt(el.dataset.idx ?? '-1')
-    const inSel = _selected.includes(elIdx)
-    const [, val] = el.dataset.card.split('_')
-    const isNum = val && /^\d$/.test(val)
+    const elIdx   = parseInt(el.dataset.idx ?? '-1')
+    const inSel   = _selected.includes(elIdx)
+    const card    = el.dataset.card
+    const [, val] = card.split('_')
 
     el.classList.toggle('selected', inSel)
 
@@ -107,7 +107,7 @@ function _syncUI() {
     if (inSel) {
       el.classList.add('playable')
       el.classList.remove('not-playable')
-    } else if (isNum && val === selVal) {
+    } else if (val && val === selVal && card !== 'wild') {
       el.classList.add('playable')
       el.classList.remove('not-playable')
     } else {
@@ -125,24 +125,17 @@ export function clearSelection() {
 
 export function unoPlay(card, handIdx) {
   const [, val] = card.split('_')
-  const isNum   = val && /^\d$/.test(val)
 
-  if (!isNum) {
-    // Action / wild cards play immediately — clear any pending selection first
-    _selected = []
-    _saveSelected()
-    if (card === 'wild' || card === 'wild_draw4') {
-      animatePlayCards([handIdx])
-      state.pendingWild = card
-      setTimeout(openColorOverlay, 160)
-    } else {
-      animatePlayCards([handIdx])
-      act(() => api.unoPlay(state.matchId, state.sessionId, card))
-    }
+  // Plain wild: always immediate — cannot be grouped
+  if (card === 'wild') {
+    _selected = []; _saveSelected()
+    animatePlayCards([handIdx])
+    state.pendingWild = card
+    setTimeout(openColorOverlay, 160)
     return
   }
 
-  // Number card: toggle by hand index so duplicate cards are handled correctly
+  // All other cards (numbers, skip, reverse, draw2, wild_draw4): toggle selection
   const pos = _selected.indexOf(handIdx)
   if (pos !== -1) {
     _selected.splice(pos, 1)
@@ -153,7 +146,7 @@ export function unoPlay(card, handIdx) {
     const selCard = hand[_selected[0]] || ''
     const selVal  = selCard.split('_')[1]
     if (val !== selVal) {
-      showToast('All cards must share the same number')
+      showToast('All cards must share the same value')
       return
     }
     _selected.push(handIdx)
@@ -167,6 +160,16 @@ export function confirmPlay() {
   if (_selected.length === 0) return
   const hand  = state.gameState?.metadata?.hands?.[state.sessionId] || []
   const cards = _selected.map(idx => hand[idx]).filter(Boolean)
+  if (!cards.length) return
+
+  // wild_draw4 plays always need a color — open color picker before submitting
+  if (cards.every(c => c === 'wild_draw4')) {
+    animatePlayCards([..._selected])
+    state.pendingWild = 'wild_draw4'
+    setTimeout(openColorOverlay, 160)
+    return
+  }
+
   animatePlayCards([..._selected])
   if (cards.length === 1) {
     act(() => api.unoPlay(state.matchId, state.sessionId, cards[0]))
@@ -183,8 +186,15 @@ export const unoAct = action => act(
 
 export function pickColor(color) {
   closeColorOverlay()
-  if (state.pendingWild) {
-    unoAct({ type: 'play', card: state.pendingWild, color })
-    state.pendingWild = null
+  const pending = state.pendingWild
+  state.pendingWild = null
+  if (!pending) return
+
+  const hand  = state.gameState?.metadata?.hands?.[state.sessionId] || []
+  const cards = _selected.length > 1 ? _selected.map(i => hand[i]).filter(Boolean) : null
+  if (cards) {
+    act(() => api.unoPlayMulti(state.matchId, state.sessionId, cards, color))
+  } else {
+    unoAct({ type: 'play', card: pending, color })
   }
 }

@@ -55,7 +55,7 @@ export const api = {
   unoNextRound: (mid, sid)               => request('POST', `/games/uno/${mid}/next-round`, { sessionId: sid }),
   unoEndGame:   (mid, sid)               => request('POST', `/games/uno/${mid}/end-game`,   { sessionId: sid }),
   unoPlay:      (mid, sid, card, color)  => request('POST', `/games/uno/${mid}/play`,       color ? { sessionId: sid, card, color } : { sessionId: sid, card }),
-  unoPlayMulti: (mid, sid, cards)        => request('POST', `/games/uno/${mid}/play`,        { sessionId: sid, cards }),
+  unoPlayMulti: (mid, sid, cards, color) => request('POST', `/games/uno/${mid}/play`, color ? { sessionId: sid, cards, color } : { sessionId: sid, cards }),
   unoDraw:      (mid, sid)               => request('POST', `/games/uno/${mid}/draw`,        { sessionId: sid }),
   unoPass:      (mid, sid)               => request('POST', `/games/uno/${mid}/pass`,        { sessionId: sid }),
 }
