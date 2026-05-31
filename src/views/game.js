@@ -799,13 +799,16 @@ async function leaveRoom() {
 
 // ── Winner overlay ────────────────────────────────────────
 function showWinner(winnerId) {
+  if (handResultActive) return
+  handResultActive = true
   const won = winnerId === state.sessionId
   document.getElementById('w-emoji').textContent = won ? '🏆' : '😔'
   document.getElementById('w-title').textContent = won ? 'You Win!' : 'You Lose'
   document.getElementById('w-title').className   = 'winner-title ' + (won ? 'win' : 'lose')
   document.getElementById('w-sub').textContent   = won ? 'Congratulations!' : 'Better luck next time.'
-  // Winner goes back to the room; loser stays to spectate
-  document.getElementById('btn-continue-match').textContent = won ? 'Back to Room' : 'Continue Match'
+  // UNO: everyone stays as players — "Play Again" makes sense for both outcomes
+  const btnLabel = state.gameId === 'uno' ? 'Play Again' : (won ? 'Back to Room' : 'Continue Match')
+  document.getElementById('btn-continue-match').textContent = btnLabel
   document.getElementById('winner-overlay').classList.add('open')
 }
 
@@ -821,13 +824,17 @@ export function stopPoll() {
   prevMatchStatus             = null
 }
 
-function continueMatch() {
+async function continueMatch() {
   document.getElementById('winner-overlay').classList.remove('open')
   handResultActive = false
   // Clear match so the poll doesn't re-detect meta.winner and loop the overlay
   state.matchId   = null
   state.gameState = null
   saveSession()
-  // Re-enter the page as a spectator; room heartbeat keeps the waiting panel live
+  // UNO: auto-rejoin as player so losers don't end up stuck as spectators
+  if (state.gameId === 'uno' && state.roomCode) {
+    try { await api.switchRole(state.roomCode, state.sessionId, 'player') } catch { /* ignore — room may not be ready yet */ }
+  }
+  // Re-enter; room heartbeat keeps the waiting panel live
   enterGame()
 }
