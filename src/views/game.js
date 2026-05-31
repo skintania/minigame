@@ -87,9 +87,9 @@ function _applyExitRow(prefix, isGameOver) {
   if (!row) return
   if (isGameOver) { row.style.display = 'none'; return }
   row.style.display = ''
-  // Backend allows switchRole only when matchStatus !== 'active'
-  // (phase=finished still counts as active server-side — needs backend fix to loosen this)
-  const canSwitch = state.gameState?.matchStatus !== 'active'
+  // Backend allows switchRole when not active, or during between-rounds phase
+  const phase     = state.gameState?.metadata?.phase
+  const canSwitch = state.gameState?.matchStatus !== 'active' || phase === 'between-rounds'
   const isPlayer  = curRole() === 'player'
   const joinBtn   = document.getElementById(`${prefix}-btn-join-table`)
   const leaveBtn  = document.getElementById(`${prefix}-btn-leave-table`)
@@ -372,16 +372,16 @@ export function render() {
     return
   }
 
-  // Slave finished phase: round-end overlay
-  if (state.gameId === 'slave' && meta.phase === 'finished') {
+  // Slave between-rounds phase: round-end overlay
+  if (state.gameId === 'slave' && meta.phase === 'between-rounds') {
     document.getElementById('g-phase').textContent = 'Round Over'
     registry['slave']?.render(meta, false)
     if (state.gameState?.matchStatus !== 'finished') showSlaveRoundOverlay(meta, false)
     return
   }
 
-  // UNO finished phase: reveal window, then round-end overlay
-  if (state.gameId === 'uno' && meta.phase === 'finished') {
+  // UNO between-rounds phase: reveal window, then round-end overlay
+  if (state.gameId === 'uno' && meta.phase === 'between-rounds') {
     document.getElementById('g-phase').textContent = 'Round Over'
     document.querySelector('.uno-hand-footer')?.style.setProperty('display', 'none')
     registry['uno']?.render(meta, false)

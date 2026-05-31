@@ -54,7 +54,7 @@ export function renderBoard(meta, mine, onPlay, onPass) {
   const trick           = meta.trick || null
   const finishOrder     = meta.finishOrder || []
   const ranks           = meta.ranks || {}
-  const isFinished      = meta.phase === 'finished'
+  const isFinished      = meta.phase === 'between-rounds'
   const turnOrder       = meta.turnOrder || state.gameState.turnOrder || []
   const currentPlayer   = turnOrder[0] || null
   const passedThisTrick = meta.passedThisTrick || []
@@ -207,7 +207,7 @@ function refreshHandClasses(handEl, myHand) {
 
 function updateActionButtons(meta, mine, onPlay, onPass, myHand, iHavePassed = false) {
   const trick      = meta.trick || null
-  const isFinished = meta.phase === 'finished'
+  const isFinished = meta.phase === 'between-rounds'
   const canAct     = mine && !isFinished && !iHavePassed
 
   const playBtn = document.getElementById('btn-slave-play')

@@ -40,7 +40,7 @@ const SEAT_MAP = [
 export function renderBoard(meta, mine, onPlay) {
   const names       = state.gameState.playerNames || {}
   const hands       = meta.hands || {}
-  const isFinished  = meta.phase === 'finished'
+  const isFinished  = meta.phase === 'between-rounds'
   const revealSec   = state.gameState.revealRemainingSec ?? null
   const finishOrder = meta.finishOrder || []
 
