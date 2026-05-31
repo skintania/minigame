@@ -327,23 +327,23 @@ html[data-theme="classic"] .slv-table {
   border-color: #1a3080;
 }
 
-@media (max-width: 640px) {
+/* Mobile + tablet (up to iPad landscape): scrollable single row */
+@media (max-width: 1024px) {
   #slave-board { padding: 0 8px 8px; gap: 6px; }
   .slv-table-area { padding: 48px 56px; }
-  .slv-table { width: min(74vw, 300px); }
+  .slv-table { width: min(68vw, 340px); }
   .slv-card-img { width: 58px; height: 86px; }
   .slv-card-img.trick { width: 52px; height: 76px; }
 
-  /* Mobile: single scrollable row so cards are fully spread */
   #slave-board .hand-row {
     flex-wrap: nowrap;
     overflow-x: auto;
-    overflow-y: visible;
+    width: 100%;          /* required — parent align-items:center shrinks to content otherwise */
     justify-content: flex-start;
-    gap: 7px;
+    gap: 8px;
     padding: 4px 8px 28px;
     scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;  /* let browser know this element handles horizontal swipe */
   }
   #slave-board .hand-row::-webkit-scrollbar { display: none; }
 }
