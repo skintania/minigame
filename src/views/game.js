@@ -72,6 +72,16 @@ function applyServerState(gs) {
   }
 }
 
+// ── Role buttons (dropdown, always in sync) ───────────────
+function updateRoleButtons() {
+  if (!state.roomCode) return
+  const isPlayer = curRole() === 'player'
+  const join  = document.getElementById('rd-join-table')
+  const leave = document.getElementById('rd-leave-table')
+  if (join)  join.style.display  = isPlayer ? 'none' : ''
+  if (leave) leave.style.display = isPlayer ? ''     : 'none'
+}
+
 // ── Theme ─────────────────────────────────────────────────
 function applyTheme(name) {
   if (name) {
@@ -143,6 +153,8 @@ export function initGame() {
   })
   document.getElementById('wr-join-table').addEventListener('click',  wrJoinTable)
   document.getElementById('wr-leave-table').addEventListener('click', wrLeaveTable)
+  document.getElementById('rd-join-table')?.addEventListener('click',  wrJoinTable)
+  document.getElementById('rd-leave-table')?.addEventListener('click', wrLeaveTable)
   document.getElementById('wr-start-round').addEventListener('click', wrStartRound)
   document.getElementById('wr-leave-room').addEventListener('click',  () => leaveRoom())
   document.getElementById('wr-max-minus').addEventListener('click', () => {
@@ -295,6 +307,8 @@ export function render() {
   if (!state.gameState) return
   const meta = state.gameState.metadata
   if (!meta) return
+
+  updateRoleButtons()
 
   const isWaiting = state.gameState.matchStatus === 'waiting' || meta.phase === 'waiting'
 
@@ -505,31 +519,33 @@ function updateWaitingPanel(meta) {
 
 // ── Waiting panel actions ─────────────────────────────────
 async function wrJoinTable() {
-  const btn = document.getElementById('wr-join-table')
-  btn.disabled = true
+  const btns = ['wr-join-table', 'rd-join-table'].map(id => document.getElementById(id)).filter(Boolean)
+  btns.forEach(b => b.disabled = true)
   try {
     await api.switchRole(state.roomCode, state.sessionId, 'player')
     const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
     state.gameState = gs; applyServerState(gs); saveSession()
     showToast('You joined the table!')
+    updateRoleButtons()
     updateWaitingPanel(gs.metadata || null)
     updateSpectatorPanel()
   } catch (e) { showToast(e.message) }
-  finally { btn.disabled = false }
+  finally { btns.forEach(b => b.disabled = false) }
 }
 
 async function wrLeaveTable() {
-  const btn = document.getElementById('wr-leave-table')
-  btn.disabled = true
+  const btns = ['wr-leave-table', 'rd-leave-table'].map(id => document.getElementById(id)).filter(Boolean)
+  btns.forEach(b => b.disabled = true)
   try {
     await api.switchRole(state.roomCode, state.sessionId, 'spectator')
     const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
     state.gameState = gs; applyServerState(gs); saveSession()
     showToast('You left the table.')
+    updateRoleButtons()
     updateWaitingPanel(gs.metadata || null)
     updateSpectatorPanel()
   } catch (e) { showToast(e.message) }
-  finally { btn.disabled = false }
+  finally { btns.forEach(b => b.disabled = false) }
 }
 
 async function wrStartRound() {
