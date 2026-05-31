@@ -72,7 +72,7 @@ function applyServerState(gs) {
   }
 }
 
-// ── Role buttons (dropdown, always in sync) ───────────────
+// ── Role buttons (dropdown + overlay exit rows, always in sync) ──────────
 function updateRoleButtons() {
   if (!state.roomCode) return
   const isPlayer = curRole() === 'player'
@@ -80,6 +80,18 @@ function updateRoleButtons() {
   const leave = document.getElementById('rd-leave-table')
   if (join)  join.style.display  = isPlayer ? 'none' : ''
   if (leave) leave.style.display = isPlayer ? ''     : 'none'
+}
+
+function _applyExitRow(prefix, isGameOver) {
+  const row = document.getElementById(`${prefix}-exit-row`)
+  if (!row) return
+  if (isGameOver) { row.style.display = 'none'; return }
+  row.style.display = ''
+  const isPlayer = curRole() === 'player'
+  const joinBtn  = document.getElementById(`${prefix}-btn-join-table`)
+  const leaveBtn = document.getElementById(`${prefix}-btn-leave-table`)
+  if (joinBtn)  joinBtn.style.display  = (!isPlayer && state.roomCode) ? '' : 'none'
+  if (leaveBtn) leaveBtn.style.display = (isPlayer  && state.roomCode) ? '' : 'none'
 }
 
 // ── Theme ─────────────────────────────────────────────────
@@ -122,6 +134,14 @@ export function initGame() {
     try { await api.slaveEndGame(state.matchId, state.sessionId) } catch (e) { showToast(e.message) }
   })
   document.getElementById('btn-slave-leave-final')?.addEventListener('click', () => leaveRoom())
+
+  // Overlay exit rows (Leave Room + Join/Leave Table — visible to everyone during round-end)
+  document.getElementById('uro-btn-join-table')?.addEventListener('click',  wrJoinTable)
+  document.getElementById('uro-btn-leave-table')?.addEventListener('click', wrLeaveTable)
+  document.getElementById('uro-btn-leave-room')?.addEventListener('click',  () => leaveRoom())
+  document.getElementById('slv-btn-join-table')?.addEventListener('click',  wrJoinTable)
+  document.getElementById('slv-btn-leave-table')?.addEventListener('click', wrLeaveTable)
+  document.getElementById('slv-btn-leave-room')?.addEventListener('click',  () => leaveRoom())
   document.getElementById('btn-next-round').addEventListener('click', hostNextRound)
   document.getElementById('btn-skip-showdown').addEventListener('click', hostNextRound)
   document.getElementById('btn-show-cards').addEventListener('click', showCards)
@@ -815,6 +835,7 @@ function showUnoRoundOverlay(meta, isGameOver) {
     waitingEl.style.display    = ''
   }
 
+  _applyExitRow('uro', isGameOver)
   overlay.classList.add('open')
 }
 
@@ -881,6 +902,7 @@ function showSlaveRoundOverlay(meta, isGameOver) {
     waitingEl.style.display    = ''
   }
 
+  _applyExitRow('slv', isGameOver)
   overlay.classList.add('open')
 }
 

@@ -366,6 +366,12 @@ html[data-theme="hangout"] .glass {
 .uro-row.me .uro-wins { color: #fff; }
 .uro-round-pos { font-size: 14px; margin-right: 4px; }
 .uro-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.uro-exit-row {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  width: 100%;
+}
 
 /* ── Showdown bar ── */
 #showdown-bar {
