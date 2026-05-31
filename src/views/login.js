@@ -29,6 +29,7 @@ export async function initLogin() {
   document.getElementById('create-back-btn').addEventListener('click', () => showView('view-home'))
   document.getElementById('btn-create-poker').addEventListener('click', () => doCreateRoom('poker'))
   document.getElementById('btn-create-uno').addEventListener('click',   () => doCreateRoom('uno'))
+  document.getElementById('btn-create-slave').addEventListener('click', () => doCreateRoom('slave'))
 
   // Auto-reconnect
   if (state.sessionId) {
@@ -132,7 +133,7 @@ async function doJoinRoom() {
 }
 
 async function doCreateRoom(gameId) {
-  const btnId = gameId === 'poker' ? 'btn-create-poker' : 'btn-create-uno'
+  const btnId = `btn-create-${gameId}`
   const btn = document.getElementById(btnId)
   btn.style.opacity = '0.6'
   btn.style.pointerEvents = 'none'
