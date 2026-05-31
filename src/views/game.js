@@ -37,14 +37,20 @@ function applyServerState(gs) {
 
   // Detect role change player → spectator during an active match
   if (prevMyRole === 'player' && gs.myRole === 'spectator' && gs.matchStatus === 'active') {
-    const myChips = (gs.metadata?.playerStates?.[state.sessionId]?.chips
-      ?? gs.metadata?.chips?.[state.sessionId]
-      ?? 0)
-    if (myChips > 0) {
-      showToast('You were removed due to inactivity.')
-      showRejoinPrompt()
+    if (state.gameId === 'uno') {
+      // UNO has no bust — keep the player at the table and silently re-join
+      gs.myRole = 'player'
+      api.switchRole(state.roomCode, state.sessionId, 'player').catch(() => {})
+    } else {
+      const myChips = (gs.metadata?.playerStates?.[state.sessionId]?.chips
+        ?? gs.metadata?.chips?.[state.sessionId]
+        ?? 0)
+      if (myChips > 0) {
+        showToast('You were removed due to inactivity.')
+        showRejoinPrompt()
+      }
+      // myChips === 0: natural chip bust — winner overlay / hand result handles messaging
     }
-    // myChips === 0: natural chip bust — winner overlay / hand result handles messaging
   }
   if (gs.myRole === 'player') hideRejoinPrompt()
   prevMyRole = gs.myRole ?? prevMyRole
