@@ -28,11 +28,15 @@ function _syncUI() {
     btn.textContent   = _selected.length > 1 ? `Play ${_selected.length} cards` : 'Play'
   }
 
-  const selVal = _selected.length > 0 ? _selected[0].split('_')[1] : null
+  const hand    = state.gameState?.metadata?.hands?.[state.sessionId] || []
+  const selCard = _selected.length > 0 ? (hand[_selected[0]] || '') : ''
+  const selVal  = selCard ? selCard.split('_')[1] : null
+
   document.querySelectorAll('#uno-hand [data-card]').forEach(el => {
+    const elIdx = parseInt(el.dataset.idx ?? '-1')
+    const inSel = _selected.includes(elIdx)
     const [, val] = el.dataset.card.split('_')
-    const inSel   = _selected.includes(el.dataset.card)
-    const isNum   = val && /^\d$/.test(val)
+    const isNum = val && /^\d$/.test(val)
 
     el.classList.toggle('selected', inSel)
 
@@ -57,7 +61,7 @@ export function clearSelection() {
   _syncUI()
 }
 
-export function unoPlay(card) {
+export function unoPlay(card, handIdx) {
   const [, val] = card.split('_')
   const isNum   = val && /^\d$/.test(val)
 
@@ -74,20 +78,21 @@ export function unoPlay(card) {
     return
   }
 
-  // Number card: toggle in/out of multi-select staging
-  const idx = _selected.indexOf(card)
-  if (idx !== -1) {
-    _selected.splice(idx, 1)
+  // Number card: toggle by hand index so duplicate cards are handled correctly
+  const pos = _selected.indexOf(handIdx)
+  if (pos !== -1) {
+    _selected.splice(pos, 1)
   } else if (_selected.length === 0) {
-    // First card — caller guarantees it's playable (click only fires on .playable)
-    _selected.push(card)
+    _selected.push(handIdx)
   } else {
-    const selVal = _selected[0].split('_')[1]
+    const hand    = state.gameState?.metadata?.hands?.[state.sessionId] || []
+    const selCard = hand[_selected[0]] || ''
+    const selVal  = selCard.split('_')[1]
     if (val !== selVal) {
       showToast('All cards must share the same number')
       return
     }
-    _selected.push(card)
+    _selected.push(handIdx)
   }
 
   _saveSelected()
@@ -96,7 +101,8 @@ export function unoPlay(card) {
 
 export function confirmPlay() {
   if (_selected.length === 0) return
-  const cards = [..._selected]
+  const hand  = state.gameState?.metadata?.hands?.[state.sessionId] || []
+  const cards = _selected.map(idx => hand[idx]).filter(Boolean)
   if (cards.length === 1) {
     act(() => api.unoPlay(state.matchId, state.sessionId, cards[0]))
   } else {

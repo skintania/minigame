@@ -148,12 +148,12 @@ export function renderBoard(meta, mine, onPlay) {
                     (meta.currentColor || '') + '|' + (meta.pendingDraw || 0) + '|' + sel.join(',')
     if (handKey !== _lastHandKey) {
       _lastHandKey = handKey
-      handEl.innerHTML = myHand.map(card =>
-        unoCardHTML(card, mine ? canPlay(card, meta) : null, false, '', sel.includes(card))
+      handEl.innerHTML = myHand.map((card, idx) =>
+        unoCardHTML(card, mine ? canPlay(card, meta, idx) : null, false, '', sel.includes(idx), idx)
       ).join('')
       handEl.onclick = mine ? e => {
         const el = e.target.closest('[data-card].playable')
-        if (el) onPlay(el.dataset.card)
+        if (el) onPlay(el.dataset.card, parseInt(el.dataset.idx))
       } : null
     }
   }
@@ -181,14 +181,15 @@ export function renderBoard(meta, mine, onPlay) {
   }
 }
 
-function unoCardHTML(card, playable, isDiscard = false, size = '', isSelected = false) {
+function unoCardHTML(card, playable, isDiscard = false, size = '', isSelected = false, idx = -1) {
   const src       = cardSrc(card)
   // null = neutral (full opacity, no click); true = playable; false = not-playable (dimmed)
   const playClass = playable === true ? 'playable' : playable === false ? 'not-playable' : ''
   const classes   = ['uno-card-img', playClass, isDiscard ? 'discard' : '', size, isSelected ? 'selected' : ''].filter(Boolean).join(' ')
+  const idxAttr   = idx >= 0 ? ` data-idx="${idx}"` : ''
   const safe      = cssUnoCard(card, playable === true, size)
     .replace(/'/g, '&#39;').replace(/"/g, '&quot;')
-  return `<img class="${classes}" src="${src}" alt="${card}" data-card="${card}"
+  return `<img class="${classes}" src="${src}" alt="${card}" data-card="${card}"${idxAttr}
     onerror="this.outerHTML='${safe}'">`
 }
 
@@ -209,7 +210,7 @@ function parseCard(card) {
   return { cls: color, display: VAL_LABEL[val] ?? val, label: null }
 }
 
-export function canPlay(card, meta) {
+export function canPlay(card, meta, cardIdx = -1) {
   // Draw stacking: only draw2 / wild_draw4 can counter a pending penalty
   if (meta.pendingDraw > 0) {
     return card === 'wild_draw4' || card.endsWith('_draw2')
@@ -218,9 +219,11 @@ export function canPlay(card, meta) {
   // Multi-select in progress: only same-number cards remain playable
   const sel = state.unoSelected || []
   if (sel.length > 0) {
-    if (sel.includes(card)) return true  // already selected — clickable to deselect
-    const [, val]   = card.split('_')
-    const selVal    = sel[0].split('_')[1]
+    if (cardIdx >= 0 && sel.includes(cardIdx)) return true  // this instance is selected → deselectable
+    const [, val]     = card.split('_')
+    const myHand      = (meta.hands || {})[state.sessionId] || []
+    const firstCard   = myHand[sel[0]] || ''
+    const selVal      = firstCard.split('_')[1]
     return val && /^\d$/.test(val) && val === selVal
   }
 
