@@ -47,22 +47,6 @@ function sortedHandIndices(hand) {
     })
 }
 
-// Fan-hand margins: center cards spread further apart, edge cards overlap more.
-// Returns array of margin-right values (px) for each card in display order.
-function computeFanMargins(total) {
-  if (total <= 1) return Array(total).fill(0)
-  const w     = window.innerWidth
-  const cardW = w <= 480 ? 48 : w <= 640 ? 58 : 72
-  const viewW = w - (w <= 640 ? 32 : 64)
-  const maxStep = cardW + (w <= 640 ? 14 : 32)
-  const avgStep = Math.min(maxStep, Math.max(cardW * 0.18, (viewW - cardW) / (total - 1)))
-  const maxDist = (total - 1) / 2
-  return Array.from({ length: total }, (_, i) => {
-    if (i === total - 1) return 0
-    const t = Math.abs(i - maxDist) / Math.max(1, maxDist)
-    return Math.round(avgStep * (1 + 0.4 * (1 - 2 * t)) - cardW)
-  })
-}
 
 export function renderBoard(meta, mine, onPlay, onPass) {
   const names         = state.gameState.playerNames || {}
@@ -159,8 +143,7 @@ export function renderBoard(meta, mine, onPlay, onPass) {
   const myHand = hands[state.sessionId] || []
   const handEl = document.getElementById('slv-hand')
   if (handEl) {
-    const bw      = window.innerWidth <= 480 ? 'sm' : window.innerWidth <= 640 ? 'md' : 'lg'
-    const handKey = myHand.join(',') + '|' + mine + '|' + bw
+    const handKey = myHand.join(',') + '|' + mine
     if (handKey !== _lastHandKey) {
       _lastHandKey     = handKey
       _selectedIndices = []
@@ -195,13 +178,10 @@ function renderHand(handEl, myHand, mine, isFinished) {
     handEl.innerHTML = sortedIdxs.map(i => cardImgHTML(myHand[i], 'slv-hand-card')).join('')
     return
   }
-  const margins = computeFanMargins(sortedIdxs.length)
-  handEl.innerHTML = sortedIdxs.map((origIdx, di) => {
-    const card  = myHand[origIdx]
-    const mr    = margins[di] ?? 0
-    const style = mr !== 0 ? ` style="margin-right:${mr}px"` : ''
-    const cls   = ['slv-card-img', 'slv-hand-card', mine ? 'selectable' : ''].filter(Boolean).join(' ')
-    return `<img class="${cls}"${style} src="${cardSrc(card)}" alt="${card}" ` +
+  handEl.innerHTML = sortedIdxs.map(origIdx => {
+    const card = myHand[origIdx]
+    const cls  = ['slv-card-img', 'slv-hand-card', mine ? 'selectable' : ''].filter(Boolean).join(' ')
+    return `<img class="${cls}" src="${cardSrc(card)}" alt="${card}" ` +
            `data-slv-idx="${origIdx}" data-slv-card="${card}">`
   }).join('')
 }
