@@ -87,8 +87,9 @@ function _applyExitRow(prefix, isGameOver) {
   if (!row) return
   if (isGameOver) { row.style.display = 'none'; return }
   row.style.display = ''
-  // Role switching is only allowed when match is not active (backend rejects it otherwise)
-  const canSwitch = state.gameState?.matchStatus !== 'active'
+  // Allow switching when not active, or between rounds (phase=finished)
+  const phase     = state.gameState?.metadata?.phase
+  const canSwitch = state.gameState?.matchStatus !== 'active' || phase === 'finished'
   const isPlayer  = curRole() === 'player'
   const joinBtn   = document.getElementById(`${prefix}-btn-join-table`)
   const leaveBtn  = document.getElementById(`${prefix}-btn-leave-table`)
