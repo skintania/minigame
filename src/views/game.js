@@ -211,7 +211,9 @@ export function enterGame() {
     } catch (e) {
       console.error('[game] poll error:', e)
       if (e.message.includes('invalid session')) {
-        stopPoll(); showToast('Session expired'); window.location.href = 'index.html'
+        stopPoll(); showToast('Session expired.'); window.location.href = 'index.html'
+      } else if (e.message.includes('not found')) {
+        stopPoll(); showToast('Room has closed.'); window.location.href = 'index.html'
       }
     } finally {
       fetching = false
