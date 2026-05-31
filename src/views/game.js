@@ -37,8 +37,8 @@ function applyServerState(gs) {
 
   // Detect role change player → spectator during an active match
   if (prevMyRole === 'player' && gs.myRole === 'spectator' && gs.matchStatus === 'active') {
-    if (state.gameId === 'uno') {
-      // UNO has no bust — keep the player at the table and silently re-join
+    if (state.gameId === 'uno' || state.gameId === 'slave') {
+      // These games have no bust — keep the player at the table and silently re-join
       gs.myRole = 'player'
       api.switchRole(state.roomCode, state.sessionId, 'player').catch(() => {})
     } else {
@@ -94,6 +94,8 @@ export function initGame() {
     if (!confirm('End the game for everyone?')) return
     if (state.gameId === 'uno' && state.matchId) {
       try { await api.unoEndGame(state.matchId, state.sessionId) } catch (e) { showToast(e.message) }
+    } else if (state.gameId === 'slave' && state.matchId) {
+      try { await api.slaveEndGame(state.matchId, state.sessionId) } catch (e) { showToast(e.message) }
     } else {
       leaveRoom()
     }
@@ -104,6 +106,12 @@ export function initGame() {
     try { await api.unoEndGame(state.matchId, state.sessionId) } catch (e) { showToast(e.message) }
   })
   document.getElementById('btn-uno-leave-final')?.addEventListener('click', () => leaveRoom())
+  document.getElementById('btn-slave-next-round')?.addEventListener('click', slaveHostNextRound)
+  document.getElementById('btn-slave-end-game')?.addEventListener('click', async () => {
+    if (!confirm('End the game for everyone?')) return
+    try { await api.slaveEndGame(state.matchId, state.sessionId) } catch (e) { showToast(e.message) }
+  })
+  document.getElementById('btn-slave-leave-final')?.addEventListener('click', () => leaveRoom())
   document.getElementById('btn-next-round').addEventListener('click', hostNextRound)
   document.getElementById('btn-skip-showdown').addEventListener('click', hostNextRound)
   document.getElementById('btn-show-cards').addEventListener('click', showCards)
@@ -178,14 +186,18 @@ export function enterGame() {
   stopPoll()
 
   const gameId = state.gameId
-  document.getElementById('g-name').textContent        = gameId === 'poker' ? 'Poker' : 'UNO'
+  document.getElementById('g-name').textContent        = gameId === 'poker' ? 'Poker' : gameId === 'uno' ? 'UNO' : 'Slave'
   document.getElementById('poker-board').style.display = gameId === 'poker' ? 'flex' : 'none'
   document.getElementById('uno-board').style.display   = gameId === 'uno'   ? 'flex' : 'none'
+  document.getElementById('slave-board').style.display = gameId === 'slave' ? 'flex' : 'none'
 
   // Move join-wrap into whichever board is active (it lives in poker board by default)
   if (gameId === 'uno') {
     const wrap = document.getElementById('wr-join-wrap')
     document.querySelector('.uno-player-zone')?.appendChild(wrap)
+  } else if (gameId === 'slave') {
+    const wrap = document.getElementById('wr-join-wrap')
+    document.querySelector('.slv-player-zone')?.appendChild(wrap)
   }
   document.getElementById('btn-end-game').style.display =
     (state.roomCode && amHost()) ? 'inline-flex' : 'none'
@@ -223,6 +235,9 @@ export function enterGame() {
       if (state.gameId === 'uno' && gs.matchStatus === 'finished') {
         stopPoll()
         showUnoRoundOverlay(gs.metadata, true)
+      } else if (state.gameId === 'slave' && gs.matchStatus === 'finished') {
+        stopPoll()
+        showSlaveRoundOverlay(gs.metadata, true)
       } else if (gs.metadata?.winner && gs.revealRemainingSec == null && state.gameId !== 'uno') {
         stopPoll()
         prevCommunityCount = commBefore
@@ -320,6 +335,14 @@ export function render() {
     return
   }
 
+  // Slave finished phase: round-end overlay
+  if (state.gameId === 'slave' && meta.phase === 'finished') {
+    document.getElementById('g-phase').textContent = 'Round Over'
+    registry['slave']?.render(meta, false)
+    if (state.gameState?.matchStatus !== 'finished') showSlaveRoundOverlay(meta, false)
+    return
+  }
+
   // UNO finished phase: reveal window, then round-end overlay
   if (state.gameId === 'uno' && meta.phase === 'finished') {
     document.getElementById('g-phase').textContent = 'Round Over'
@@ -333,6 +356,7 @@ export function render() {
 
   hideBetweenRounds()
   hideUnoRoundOverlay()
+  hideSlaveRoundOverlay()
   document.querySelector('.pk-action-bar')?.style.setProperty('display',
     curRole() === 'spectator' ? 'none' : '')
   document.querySelector('.uno-hand-footer')?.style.setProperty('display',
@@ -512,7 +536,9 @@ async function wrStartRound() {
   const btn = document.getElementById('wr-start-round')
   btn.disabled = true; btn.textContent = 'Starting…'
   try {
-    const fn = state.gameId === 'poker' ? api.pokerStart : api.unoStart
+    const fn = state.gameId === 'poker' ? api.pokerStart
+             : state.gameId === 'uno'   ? api.unoStart
+             : api.slaveStart
     await fn(state.matchId, state.sessionId)
     const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
     state.gameState = gs; applyServerState(gs); saveSession()
@@ -778,6 +804,86 @@ function showUnoRoundOverlay(meta, isGameOver) {
 
 function hideUnoRoundOverlay() {
   document.getElementById('uno-round-overlay')?.classList.remove('open')
+}
+
+// ── Slave round-end / game-over overlay ──────────────────
+function showSlaveRoundOverlay(meta, isGameOver) {
+  const overlay = document.getElementById('slave-round-overlay')
+  if (!overlay) return
+
+  const names       = state.gameState?.playerNames || {}
+  const ranks       = meta.ranks || {}
+  const roundWins   = meta.roundWins || {}
+  const finishOrder = meta.finishOrder || []
+  const RANK_ORDER  = ['President', 'Vice President', 'Citizen', 'Vice Slave', 'Slave']
+  const RANK_EMOJIS = { President: '🥇', 'Vice President': '🥈', Citizen: '', 'Vice Slave': '🔴', Slave: '💀' }
+
+  const presidentId = Object.entries(ranks).find(([, t]) => t === 'President')?.[0]
+  const winnerId    = presidentId || finishOrder[0]
+  const isMe        = winnerId === state.sessionId
+  const winnerName  = isMe ? (state.username || 'You') : (names[winnerId] || 'Opponent')
+
+  document.getElementById('slv-uro-emoji').textContent = isGameOver ? '🎉' : (isMe ? '🥇' : '🎴')
+  document.getElementById('slv-uro-title').textContent = isGameOver
+    ? 'Game Over!'
+    : (isMe ? "You're the President!" : `${winnerName} is the President!`)
+
+  const sbEl = document.getElementById('slv-uro-scoreboard')
+  if (sbEl) {
+    const allIds  = [...new Set([...(state.gameState?.players || []), ...Object.keys(ranks), ...Object.keys(roundWins)])]
+    const entries = allIds.map(id => ({
+      id, wins: roundWins[id] || 0, title: ranks[id] || '',
+    })).sort((a, b) => b.wins - a.wins || RANK_ORDER.indexOf(a.title) - RANK_ORDER.indexOf(b.title))
+
+    const standMedals = ['🥇', '🥈', '🥉']
+    sbEl.innerHTML = entries.map(({ id, wins, title }, i) => {
+      const n     = id === state.sessionId ? (state.username || names[id] || 'You') : (names[id] || id.slice(0, 8))
+      const emoji = RANK_EMOJIS[title] ?? ''
+      return `<div class="uro-row${id === state.sessionId ? ' me' : ''}">
+        <span class="uro-rank">${standMedals[i] ?? i + 1}</span>
+        <span class="uro-name">${n}</span>
+        ${title ? `<span class="slv-rank-pill">${emoji} ${title}</span>` : ''}
+        <span class="uro-wins">${wins} win${wins !== 1 ? 's' : ''}</span>
+      </div>`
+    }).join('')
+  }
+
+  const hostActions  = document.getElementById('slv-host-actions')
+  const leaveActions = document.getElementById('slv-leave-actions')
+  const waitingEl    = document.getElementById('slv-uro-waiting')
+  if (isGameOver) {
+    hostActions.style.display  = 'none'
+    leaveActions.style.display = ''
+    waitingEl.style.display    = 'none'
+  } else if (amHost()) {
+    hostActions.style.display  = ''
+    leaveActions.style.display = 'none'
+    waitingEl.style.display    = 'none'
+  } else {
+    hostActions.style.display  = 'none'
+    leaveActions.style.display = 'none'
+    waitingEl.style.display    = ''
+  }
+
+  overlay.classList.add('open')
+}
+
+function hideSlaveRoundOverlay() {
+  document.getElementById('slave-round-overlay')?.classList.remove('open')
+}
+
+async function slaveHostNextRound() {
+  const btn = document.getElementById('btn-slave-next-round')
+  if (btn) btn.disabled = true
+  try {
+    await api.slaveNextRound(state.matchId, state.sessionId)
+    const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+    state.gameState = gs; applyServerState(gs); saveSession()
+    hideSlaveRoundOverlay()
+    if (!state.poll) enterGame()
+    else render()
+  } catch (e) { showToast(e.message) }
+  finally { if (btn) btn.disabled = false }
 }
 
 async function unoHostNextRound() {

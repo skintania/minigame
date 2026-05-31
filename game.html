@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/src/styles/layout.css">
   <link rel="stylesheet" href="/src/styles/games/poker.css">
   <link rel="stylesheet" href="/src/styles/games/uno.css">
+  <link rel="stylesheet" href="/src/styles/games/slave.css">
 </head>
 <body>
   <div id="toast"></div>
@@ -151,6 +152,27 @@
         </div>
       </div>
     </div>
+    <!-- Slave Board -->
+    <div id="slave-board" class="game-board" style="display:none">
+      <div class="slv-table-unit">
+        <div class="slv-table-area">
+          <div class="slv-opponents-overlay" id="slv-opponents"></div>
+          <div class="slv-table">
+            <div id="slv-trick-info" class="slv-trick-info"></div>
+            <div id="slv-trick-cards" class="slv-trick-cards"></div>
+          </div>
+        </div>
+        <div class="slv-player-zone">
+          <div class="hand-row" id="slv-hand"></div>
+          <div class="slv-hand-footer">
+            <button class="btn btn-pink"  id="btn-slave-play" style="display:none;width:auto;padding:10px 28px">Play</button>
+            <button class="btn btn-ghost" id="btn-slave-pass" style="display:none;width:auto;padding:10px 22px">Pass</button>
+          </div>
+          <div class="last-action" id="slv-last"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Spectator panel (top-left, always visible when in a room) -->
     <div id="spectator-panel" style="display:none">
       <div class="spec-panel-hdr">👁 Spectators <span id="wr-spec-count">0</span></div>
@@ -212,6 +234,23 @@
         <button class="btn btn-primary" id="btn-uno-leave-final" style="width:auto;padding:9px 20px">Leave Room</button>
       </div>
       <p id="uro-waiting" class="uro-sub" style="display:none">Waiting for host to start next round…</p>
+    </div>
+  </div>
+
+  <!-- Slave round-end / game-over overlay -->
+  <div id="slave-round-overlay">
+    <div class="uro-card glass">
+      <span id="slv-uro-emoji">🥇</span>
+      <div id="slv-uro-title" class="uro-title"></div>
+      <div id="slv-uro-scoreboard" class="uro-scoreboard"></div>
+      <div class="uro-actions" id="slv-host-actions" style="display:none">
+        <button class="btn btn-primary" id="btn-slave-next-round" style="width:auto;padding:9px 20px">Next Round</button>
+        <button class="btn btn-ghost"   id="btn-slave-end-game"   style="width:auto;padding:9px 20px;font-size:12px;color:var(--muted)">End Game</button>
+      </div>
+      <div class="uro-actions" id="slv-leave-actions" style="display:none">
+        <button class="btn btn-primary" id="btn-slave-leave-final" style="width:auto;padding:9px 20px">Leave Room</button>
+      </div>
+      <p id="slv-uro-waiting" class="uro-sub" style="display:none">Waiting for host to start next round…</p>
     </div>
   </div>
 

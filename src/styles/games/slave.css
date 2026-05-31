@@ -1,0 +1,338 @@
+/* ── Slave Board Layout ─────────────────────────────────── */
+#slave-board {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 90px 8px;
+  gap: 14px;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.slv-table-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.slv-table-area {
+  position: relative;
+  padding: 80px 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.slv-opponents-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  overflow: visible;
+}
+
+/* Opponent badge slots */
+.slv-opp-slot {
+  position: absolute;
+  pointer-events: all;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  transform: translate(-50%, -50%);
+}
+
+.slv-opp-slot[data-seat="top-center"] { left: 50%; top: 17%; }
+.slv-opp-slot[data-seat="top-left"]   { left: 32%; top: 21%; }
+.slv-opp-slot[data-seat="top-right"]  { left: 68%; top: 21%; }
+.slv-opp-slot[data-seat="mid-left"]   { left: 19%; top: 34%; }
+.slv-opp-slot[data-seat="mid-right"]  { left: 81%; top: 34%; }
+.slv-opp-slot[data-seat="left"]       { left: 14%; top: 50%; }
+.slv-opp-slot[data-seat="right"]      { left: 86%; top: 50%; }
+
+.slv-opp-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(6, 3, 14, 0.80);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 5px 10px;
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+
+.slv-opp-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.slv-opp-count-pill {
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(255,255,255,0.09);
+  border-radius: 8px;
+  padding: 1px 6px;
+  color: var(--muted);
+}
+
+.slv-opp-slot.turn-active .slv-opp-badge {
+  border-color: rgba(232,82,154,0.7);
+  box-shadow: 0 0 16px rgba(232,82,154,0.4);
+  animation: slv-badge-pulse 1.5s ease-in-out infinite;
+}
+@keyframes slv-badge-pulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(232,82,154,0.4); }
+  50%       { box-shadow: 0 0 28px rgba(232,82,154,0.65); }
+}
+.slv-opp-slot.winner-flash .slv-opp-badge {
+  border-color: rgba(255,215,0,0.7);
+  box-shadow: 0 0 20px rgba(255,215,0,0.45);
+}
+
+.slv-turn-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pink);
+  flex-shrink: 0;
+  animation: slv-pulse 1.2s ease-in-out infinite;
+}
+@keyframes slv-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+
+.slv-rank-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  color: #ffd700;
+  background: rgba(255,215,0,0.10);
+  border: 1px solid rgba(255,215,0,0.30);
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+
+.slv-rank-badge.done {
+  color: rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.15);
+}
+
+.slv-done-mark {
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+}
+
+.slv-opp-cards {
+  display: flex;
+  gap: 0;
+  align-items: center;
+}
+
+/* Green felt oval table */
+.slv-table {
+  width: min(56vw, 500px);
+  aspect-ratio: 5 / 3;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(100,220,130,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #28784a 0%, #1a5432 50%, #0d3320 100%);
+  border-radius: 999px;
+  border: 12px solid #7a4520;
+  box-shadow:
+    inset 0 3px 10px rgba(255,255,255,0.07),
+    inset 0 -6px 24px rgba(0,0,0,0.55),
+    0 0 0 3px #3e2010,
+    0 10px 48px rgba(0,0,0,0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+}
+
+.slv-table::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.055);
+  pointer-events: none;
+}
+
+/* Trick area (center of table) */
+.slv-trick-info {
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+  text-align: center;
+  min-height: 18px;
+}
+
+.slv-lead-label {
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  font-size: 12px;
+}
+
+.slv-trick-label {
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+}
+
+.slv-trick-label strong {
+  color: #fff;
+  font-size: 13px;
+}
+
+.slv-trick-cards {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 96px;
+}
+
+/* Player zone */
+.slv-player-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  z-index: 4;
+  margin-top: -20px;
+  padding: 0 0 6px;
+}
+
+.slv-hand-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Standard playing card images ───────────────────────── */
+.slv-card-img {
+  width: 72px;
+  height: 104px;
+  border-radius: 10px;
+  object-fit: contain;
+  flex-shrink: 0;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  display: block;
+  cursor: default;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.slv-card-img.trick {
+  width: 64px;
+  height: 90px;
+}
+
+.slv-card-img.selectable {
+  cursor: pointer;
+}
+
+.slv-card-img.selectable:hover {
+  transform: translateY(-8px) scale(1.04);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.55);
+}
+
+.slv-card-img.selected {
+  outline: 3px solid #ffd700;
+  outline-offset: 3px;
+  transform: translateY(-18px) scale(1.06);
+  z-index: 10;
+  position: relative;
+  box-shadow: 0 0 16px rgba(255,215,0,0.5), 0 18px 32px rgba(0,0,0,0.55);
+}
+
+.slv-card-img.dimmed {
+  opacity: 0.38;
+}
+
+/* Mini opponent card backs */
+.slv-card-back {
+  border-radius: 5px;
+  background: linear-gradient(135deg, var(--pink), var(--blue));
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+  flex-shrink: 0;
+}
+
+.slv-card-back.mini {
+  width: 20px;
+  height: 28px;
+  margin-right: -8px;
+}
+
+/* ── Slave round overlay ─────────────────────────────────── */
+#slave-round-overlay {
+  position: fixed; inset: 0; z-index: 450;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s;
+}
+#slave-round-overlay.open { opacity: 1; pointer-events: all; }
+#slv-uro-emoji { font-size: 44px; line-height: 1; margin-bottom: 10px; }
+
+.slv-rank-pill {
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffd700;
+  background: rgba(255,215,0,0.10);
+  border: 1px solid rgba(255,215,0,0.25);
+  border-radius: 8px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+/* Theme variants for slave table */
+html[data-theme="hangout"] .slv-table {
+  background:
+    repeating-linear-gradient(88deg, rgba(80,40,0,0.06) 0px, rgba(80,40,0,0.06) 1px, transparent 1px, transparent 10px),
+    radial-gradient(ellipse at 55% 30%, #e0b060 0%, #c08838 50%, #8a5820 100%);
+  border-color: #5a3810;
+  box-shadow: inset 0 3px 18px rgba(255,230,140,0.20), inset 0 -5px 22px rgba(0,0,0,0.45), 0 0 0 3px #3a2208, 0 10px 48px rgba(0,0,0,0.65);
+}
+html[data-theme="ocean"] .slv-table {
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(0,220,230,0.14) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #0a8090 0%, #055060 50%, #022838 100%);
+  border-color: #083848;
+}
+html[data-theme="sakura"] .slv-table {
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(224,88,136,0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #3a1030 0%, #280820 50%, #160412 100%);
+  border-color: #581840;
+}
+html[data-theme="neon"] .slv-table {
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(184,32,232,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #180830 0%, #0e0520 50%, #060310 100%);
+  border-color: #4a10a0;
+}
+html[data-theme="classic"] .slv-table {
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(61,139,255,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #1a3a80 0%, #0e2258 50%, #060e30 100%);
+  border-color: #1a3080;
+}
+
+@media (max-width: 640px) {
+  #slave-board { padding: 0 16px 8px; }
+  .slv-table-area { padding: 60px 70px; }
+  .slv-table { width: min(74vw, 320px); }
+}
+
+@media (max-width: 480px) {
+  .slv-card-img { width: 58px; height: 86px; }
+}

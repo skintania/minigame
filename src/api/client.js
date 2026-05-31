@@ -43,6 +43,13 @@ export const api = {
   pokerShow:      (mid, sid)         => request('POST', `/games/poker/${mid}/show`,       { sessionId: sid }),
   pokerMuck:      (mid, sid)         => request('POST', `/games/poker/${mid}/muck`,       { sessionId: sid }),
 
+  // Slave actions
+  slaveStart:     (mid, sid)        => request('POST', `/games/slave/${mid}/start`,      { sessionId: sid }),
+  slaveNextRound: (mid, sid)        => request('POST', `/games/slave/${mid}/next-round`, { sessionId: sid }),
+  slaveEndGame:   (mid, sid)        => request('POST', `/games/slave/${mid}/end-game`,   { sessionId: sid }),
+  slavePlay:      (mid, sid, cards) => request('POST', `/games/slave/${mid}/play`,        { sessionId: sid, cards }),
+  slavePass:      (mid, sid)        => request('POST', `/games/slave/${mid}/pass`,        { sessionId: sid }),
+
   // UNO actions
   unoStart:     (mid, sid)               => request('POST', `/games/uno/${mid}/start`,      { sessionId: sid }),
   unoNextRound: (mid, sid)               => request('POST', `/games/uno/${mid}/next-round`, { sessionId: sid }),
