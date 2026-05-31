@@ -6,10 +6,18 @@ let _lastDiscardKey = ''
 
 const VAL_ASSET = { draw2: 'draw-two', draw4: 'draw-four' }
 function cardSrc(card) {
+  if (card === 'wild')       return `${UNO_BASE()}/wild.svg`
   if (card === 'wild_draw4') return `${UNO_BASE()}/wild-draw-four.svg`
   const [color, val] = card.split('_')
   const assetVal = VAL_ASSET[val] || val
-  return `${UNO_BASE()}/${color ? `${color}-${assetVal}` : card}.svg`
+  return `${UNO_BASE()}/${color}-${assetVal}.svg`
+}
+function cardEffClass(card) {
+  if (card === 'wild' || card === 'wild_draw4') return 'eff-wild'
+  if (card.endsWith('_draw2'))   return 'eff-draw2'
+  if (card.endsWith('_reverse')) return 'eff-reverse'
+  if (card.endsWith('_skip'))    return 'eff-skip'
+  return ''
 }
 const COLOR_HEX = { red: '#ff4757', blue: '#3AABDE', green: '#2ed573', yellow: '#ffd32a' }
 const VAL_LABEL = { skip: '⊘', reverse: '↺', draw2: '+2' }
@@ -91,10 +99,12 @@ export function renderBoard(meta, mine, onPlay) {
         'rotate(4deg)  translate(1px, 0)',
       ]
       const start = 4 - recent.length
-      discEl.innerHTML = recent.map((card, i) =>
-        `<div class="discard-layer" style="transform:${TRANSFORMS[start + i]};z-index:${i + 1}">` +
-        unoCardHTML(card, false, false) + '</div>'
-      ).join('')
+      discEl.innerHTML = recent.map((card, i) => {
+        const isTop    = i === recent.length - 1
+        const effClass = isTop ? cardEffClass(card) : ''
+        return `<div class="discard-layer ${effClass}" style="transform:${TRANSFORMS[start + i]};z-index:${i + 1}">` +
+          unoCardHTML(card, null, false) + '</div>'
+      }).join('')
     }
   }
 
