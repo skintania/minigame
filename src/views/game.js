@@ -87,11 +87,13 @@ function _applyExitRow(prefix, isGameOver) {
   if (!row) return
   if (isGameOver) { row.style.display = 'none'; return }
   row.style.display = ''
-  const isPlayer = curRole() === 'player'
-  const joinBtn  = document.getElementById(`${prefix}-btn-join-table`)
-  const leaveBtn = document.getElementById(`${prefix}-btn-leave-table`)
-  if (joinBtn)  joinBtn.style.display  = (!isPlayer && state.roomCode) ? '' : 'none'
-  if (leaveBtn) leaveBtn.style.display = (isPlayer  && state.roomCode) ? '' : 'none'
+  // Role switching is only allowed when match is not active (backend rejects it otherwise)
+  const canSwitch = state.gameState?.matchStatus !== 'active'
+  const isPlayer  = curRole() === 'player'
+  const joinBtn   = document.getElementById(`${prefix}-btn-join-table`)
+  const leaveBtn  = document.getElementById(`${prefix}-btn-leave-table`)
+  if (joinBtn)  joinBtn.style.display  = (canSwitch && !isPlayer && state.roomCode) ? '' : 'none'
+  if (leaveBtn) leaveBtn.style.display = (canSwitch && isPlayer  && state.roomCode) ? '' : 'none'
 }
 
 // ── Theme ─────────────────────────────────────────────────
