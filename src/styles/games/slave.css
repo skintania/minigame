@@ -327,18 +327,19 @@ html[data-theme="classic"] .slv-table {
   border-color: #1a3080;
 }
 
-/* Mobile + tablet (up to iPad landscape): scrollable single row */
-@media (max-width: 1024px) {
+/* Touch screens (phones + all iPads regardless of orientation) */
+@media (pointer: coarse) {
   #slave-board { padding: 0 8px 8px; gap: 6px; }
   .slv-table-area { padding: 48px 56px; }
   .slv-table { width: min(68vw, 340px); }
   .slv-card-img { width: 58px; height: 86px; }
   .slv-card-img.trick { width: 52px; height: 76px; }
 
+  /* Single scrollable row — cards never wrap, play button always visible */
   #slave-board .hand-row {
     flex-wrap: nowrap;
     overflow-x: auto;
-    width: 100%;          /* required — parent align-items:center shrinks to content otherwise */
+    width: 100%;    /* required: parent align-items:center shrinks to content otherwise */
     justify-content: flex-start;
     gap: 8px;
     padding: 4px 8px 28px;
@@ -348,7 +349,8 @@ html[data-theme="classic"] .slv-table {
   #slave-board .slv-card-img { touch-action: manipulation; }
 }
 
-@media (max-width: 480px) {
+/* Small phones */
+@media (pointer: coarse) and (max-width: 480px) {
   .slv-table-area { padding: 40px 46px; }
   .slv-table { width: min(78vw, 280px); }
   .slv-card-img { width: 48px; height: 70px; }
