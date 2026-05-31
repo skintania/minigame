@@ -273,7 +273,7 @@ export function enterGame() {
       } else if (state.gameId === 'slave' && gs.matchStatus === 'finished') {
         stopPoll()
         showSlaveRoundOverlay(gs.metadata, true)
-      } else if (gs.metadata?.winner && gs.revealRemainingSec == null && state.gameId !== 'uno') {
+      } else if (state.gameId === 'poker' && gs.metadata?.winner && gs.revealRemainingSec == null) {
         stopPoll()
         prevCommunityCount = commBefore
         onHandEnd(gs.metadata)
