@@ -343,9 +343,9 @@ html[data-theme="classic"] .slv-table {
     gap: 8px;
     padding: 4px 8px 28px;
     scrollbar-width: none;
-    touch-action: pan-x;  /* let browser know this element handles horizontal swipe */
   }
   #slave-board .hand-row::-webkit-scrollbar { display: none; }
+  #slave-board .slv-card-img { touch-action: manipulation; }
 }
 
 @media (max-width: 480px) {
