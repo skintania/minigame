@@ -80,6 +80,15 @@ function updateRoleButtons() {
   const leave = document.getElementById('rd-leave-table')
   if (join)  join.style.display  = isPlayer ? 'none' : ''
   if (leave) leave.style.display = isPlayer ? ''     : 'none'
+
+  // Slave overlay exit row — sync join/leave buttons whenever role changes
+  const phase      = state.gameState?.metadata?.phase
+  const isGameOver = state.gameState?.matchStatus === 'finished'
+  const canSwitch  = !isGameOver && (state.gameState?.matchStatus !== 'active' || phase === 'between-rounds')
+  const slvJoin  = document.getElementById('slv-btn-join-table')
+  const slvLeave = document.getElementById('slv-btn-leave-table')
+  if (slvJoin)  slvJoin.style.display  = (canSwitch && !isPlayer) ? '' : 'none'
+  if (slvLeave) slvLeave.style.display = (canSwitch && isPlayer)  ? '' : 'none'
 }
 
 function _applyExitRow(prefix, isGameOver) {
@@ -884,24 +893,23 @@ function showSlaveRoundOverlay(meta, isGameOver) {
     }).join('')
   }
 
-  const hostActions  = document.getElementById('slv-host-actions')
-  const leaveActions = document.getElementById('slv-leave-actions')
-  const waitingEl    = document.getElementById('slv-uro-waiting')
+  const hostActions = document.getElementById('slv-host-actions')
+  const waitingEl   = document.getElementById('slv-uro-waiting')
   if (isGameOver) {
-    hostActions.style.display  = 'none'
-    leaveActions.style.display = ''
-    waitingEl.style.display    = 'none'
+    hostActions.style.display = 'none'
+    waitingEl.style.display   = 'none'
   } else if (amHost()) {
-    hostActions.style.display  = ''
-    leaveActions.style.display = 'none'
-    waitingEl.style.display    = 'none'
+    hostActions.style.display = ''
+    waitingEl.style.display   = 'none'
   } else {
-    hostActions.style.display  = 'none'
-    leaveActions.style.display = 'none'
-    waitingEl.style.display    = ''
+    hostActions.style.display = 'none'
+    waitingEl.style.display   = ''
   }
 
-  _applyExitRow('slv', isGameOver)
+  // Exit row always visible; updateRoleButtons controls join/leave button visibility
+  const exitRow = document.getElementById('slv-exit-row')
+  if (exitRow) exitRow.style.display = ''
+  updateRoleButtons()
   overlay.classList.add('open')
 }
 

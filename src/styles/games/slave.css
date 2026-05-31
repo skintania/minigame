@@ -296,7 +296,41 @@
   transition: opacity 0.3s;
 }
 #slave-round-overlay.open { opacity: 1; pointer-events: all; }
-#slv-uro-emoji { font-size: 44px; line-height: 1; margin-bottom: 10px; }
+#slv-uro-emoji { font-size: 44px; line-height: 1; }
+
+/* Two-column overlay layout */
+.slv-uro-card {
+  width: min(580px, 92vw);
+  align-items: stretch;
+  gap: 0;
+}
+.slv-uro-body {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  width: 100%;
+  padding-bottom: 14px;
+}
+.slv-uro-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+  gap: 14px;
+  padding-top: 4px;
+}
+.slv-uro-scoreboard {
+  width: 195px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+@media (max-width: 480px) {
+  .slv-uro-body { flex-direction: column; }
+  .slv-uro-scoreboard { width: 100%; }
+}
 
 .slv-rank-pill {
   font-size: 10px;

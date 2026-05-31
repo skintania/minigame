@@ -244,19 +244,21 @@
 
   <!-- Slave round-end / game-over overlay -->
   <div id="slave-round-overlay">
-    <div class="uro-card glass">
-      <span id="slv-uro-emoji">🥇</span>
-      <div id="slv-uro-title" class="uro-title"></div>
-      <div id="slv-uro-scoreboard" class="uro-scoreboard"></div>
-      <div class="uro-actions" id="slv-host-actions" style="display:none">
-        <button class="btn btn-primary" id="btn-slave-next-round" style="width:auto;padding:9px 20px">Next Round</button>
-        <button class="btn btn-ghost"   id="btn-slave-end-game"   style="width:auto;padding:9px 20px;font-size:12px;color:var(--muted)">End Game</button>
+    <div class="uro-card slv-uro-card glass">
+      <div class="slv-uro-body">
+        <div class="slv-uro-left">
+          <span id="slv-uro-emoji">🥇</span>
+          <div id="slv-uro-title" class="uro-title"></div>
+          <div class="uro-actions" id="slv-host-actions" style="display:none">
+            <button class="btn btn-primary" id="btn-slave-next-round" style="width:auto;padding:9px 20px">Next Round</button>
+            <button class="btn btn-ghost"   id="btn-slave-end-game"   style="width:auto;padding:9px 20px;font-size:12px;color:var(--muted)">End Game</button>
+          </div>
+          <div id="slv-leave-actions" style="display:none"></div>
+          <p id="slv-uro-waiting" class="uro-sub" style="display:none">Waiting for host to start next round…</p>
+        </div>
+        <div id="slv-uro-scoreboard" class="slv-uro-scoreboard"></div>
       </div>
-      <div class="uro-actions" id="slv-leave-actions" style="display:none">
-        <button class="btn btn-primary" id="btn-slave-leave-final" style="width:auto;padding:9px 20px">Leave Room</button>
-      </div>
-      <p id="slv-uro-waiting" class="uro-sub" style="display:none">Waiting for host to start next round…</p>
-      <div class="uro-exit-row" id="slv-exit-row" style="display:none">
+      <div class="uro-exit-row" id="slv-exit-row">
         <button class="btn btn-ghost" id="slv-btn-join-table"  style="display:none;width:auto;padding:7px 16px;font-size:12px">Join Table</button>
         <button class="btn btn-ghost" id="slv-btn-leave-table" style="display:none;width:auto;padding:7px 16px;font-size:12px">Leave Table</button>
         <button class="btn btn-ghost" id="slv-btn-leave-room"  style="width:auto;padding:7px 16px;font-size:12px;color:var(--muted)">Leave Room</button>
