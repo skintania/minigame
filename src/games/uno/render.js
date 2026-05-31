@@ -113,16 +113,35 @@ export function renderBoard(meta, mine, onPlay) {
     if (cEl && revealSec != null) cEl.textContent = `${Math.ceil(revealSec)}s`
   }
 
+  // ── Pending draw indicator ───────────────────────────────
+  const pendEl = document.getElementById('uno-pending-draw')
+  if (pendEl) {
+    const pd = meta.pendingDraw || 0
+    pendEl.style.display = pd > 0 ? '' : 'none'
+    if (pd > 0) {
+      const cntEl = document.getElementById('uno-pending-count')
+      if (cntEl) cntEl.textContent = pd
+    }
+  }
+
+  // ── Pass button (after drawing a playable card) ──────────
+  const passBtn = document.getElementById('btn-pass')
+  if (passBtn) passBtn.style.display = (mine && meta.drewThisTurn) ? '' : 'none'
+
   // ── My hand (cached to prevent image-reload flicker) ────
   const myHand = hands[state.sessionId] || []
   const handEl = document.getElementById('uno-hand')
   if (handEl) {
     const topCard = (meta.discard || []).slice(-1)[0] || meta.lastCard || ''
-    const handKey = myHand.join(',') + '|' + mine + '|' + topCard + '|' + (meta.currentColor || '')
+    const sel     = state.unoSelected || []
+    const handKey = myHand.join(',') + '|' + mine + '|' + topCard + '|' +
+                    (meta.currentColor || '') + '|' + (meta.pendingDraw || 0) + '|' + sel.join(',')
     if (handKey !== _lastHandKey) {
       _lastHandKey = handKey
-      handEl.innerHTML = myHand.map(card => unoCardHTML(card, mine ? canPlay(card, meta) : null)).join('')
-      handEl.onclick   = mine ? e => {
+      handEl.innerHTML = myHand.map(card =>
+        unoCardHTML(card, mine ? canPlay(card, meta) : null, false, '', sel.includes(card))
+      ).join('')
+      handEl.onclick = mine ? e => {
         const el = e.target.closest('[data-card].playable')
         if (el) onPlay(el.dataset.card)
       } : null
@@ -152,11 +171,11 @@ export function renderBoard(meta, mine, onPlay) {
   }
 }
 
-function unoCardHTML(card, playable, isDiscard = false, size = '') {
+function unoCardHTML(card, playable, isDiscard = false, size = '', isSelected = false) {
   const src       = cardSrc(card)
   // null = neutral (full opacity, no click); true = playable; false = not-playable (dimmed)
   const playClass = playable === true ? 'playable' : playable === false ? 'not-playable' : ''
-  const classes   = ['uno-card-img', playClass, isDiscard ? 'discard' : '', size].filter(Boolean).join(' ')
+  const classes   = ['uno-card-img', playClass, isDiscard ? 'discard' : '', size, isSelected ? 'selected' : ''].filter(Boolean).join(' ')
   const safe      = cssUnoCard(card, playable === true, size)
     .replace(/'/g, '&#39;').replace(/"/g, '&quot;')
   return `<img class="${classes}" src="${src}" alt="${card}" data-card="${card}"
@@ -181,6 +200,20 @@ function parseCard(card) {
 }
 
 export function canPlay(card, meta) {
+  // Draw stacking: only draw2 / wild_draw4 can counter a pending penalty
+  if (meta.pendingDraw > 0) {
+    return card === 'wild_draw4' || card.endsWith('_draw2')
+  }
+
+  // Multi-select in progress: only same-number cards remain playable
+  const sel = state.unoSelected || []
+  if (sel.length > 0) {
+    if (sel.includes(card)) return true  // already selected — clickable to deselect
+    const [, val]   = card.split('_')
+    const selVal    = sel[0].split('_')[1]
+    return val && /^\d$/.test(val) && val === selVal
+  }
+
   if (card === 'wild' || card === 'wild_draw4') return true
   const [color, val] = card.split('_')
   const top = (meta.discard || []).slice(-1)[0] || meta.lastCard || ''

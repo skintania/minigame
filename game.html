@@ -130,6 +130,9 @@
                 <div id="uno-color-lbl">—</div>
               </div>
             </div>
+            <div id="uno-pending-draw" class="uno-pending-draw" style="display:none">
+              +<span id="uno-pending-count">0</span>
+            </div>
             <div id="uno-reveal-bar" style="display:none">
               Revealing — <span id="uno-reveal-countdown"></span>
             </div>
@@ -140,6 +143,8 @@
           <div class="hand-row" id="uno-hand"></div>
           <div class="uno-hand-footer">
             <span id="uno-my-uno" class="uno-uno-badge" style="display:none">UNO!</span>
+            <button class="btn btn-blue" id="btn-confirm-play" style="display:none;width:auto">Play</button>
+            <button class="btn btn-ghost" id="btn-pass" style="display:none;width:auto">Pass</button>
             <button class="btn btn-blue" id="btn-draw" style="display:none">Draw Card</button>
           </div>
           <div class="last-action" id="uno-last"></div>
