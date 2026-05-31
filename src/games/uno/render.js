@@ -89,7 +89,7 @@ export function renderBoard(meta, mine, onPlay) {
   const myHand = hands[state.sessionId] || []
   const handEl = document.getElementById('uno-hand')
   if (handEl) {
-    handEl.innerHTML = myHand.map(card => unoCardHTML(card, mine && canPlay(card, meta))).join('')
+    handEl.innerHTML = myHand.map(card => unoCardHTML(card, mine ? canPlay(card, meta) : null)).join('')
     handEl.onclick   = mine ? e => {
       const el = e.target.closest('[data-card].playable')
       if (el) onPlay(el.dataset.card)
@@ -112,10 +112,12 @@ export function renderBoard(meta, mine, onPlay) {
 }
 
 function unoCardHTML(card, playable, isDiscard = false, size = '') {
-  const src     = `${UNO_BASE()}/${card.replace(/_/g, '-')}.svg`
-  const classes = ['uno-card-img', playable ? 'playable' : 'not-playable',
-    isDiscard ? 'discard' : '', size].filter(Boolean).join(' ')
-  const safe = cssUnoCard(card, playable, size).replace(/'/g, '&#39;')
+  const src       = `${UNO_BASE()}/${card.replace(/_/g, '-')}.svg`
+  // null = neutral (full opacity, no click); true = playable; false = not-playable (dimmed)
+  const playClass = playable === true ? 'playable' : playable === false ? 'not-playable' : ''
+  const classes   = ['uno-card-img', playClass, isDiscard ? 'discard' : '', size].filter(Boolean).join(' ')
+  const safe      = cssUnoCard(card, playable === true, size)
+    .replace(/'/g, '&#39;').replace(/"/g, '&quot;')
   return `<img class="${classes}" src="${src}" alt="${card}" data-card="${card}"
     onerror="this.outerHTML='${safe}'">`
 }

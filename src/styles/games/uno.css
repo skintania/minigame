@@ -20,8 +20,10 @@
 
 .uno-table-area {
   position: relative;
-  width: 100%;
-  padding-top: 56px;
+  padding: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .uno-opponents-overlay {
@@ -32,7 +34,7 @@
   overflow: visible;
 }
 
-/* Opponent badge slots — absolute positioned around the oval */
+/* Opponent badge slots — distributed around the circular table rim */
 .uno-opp-slot {
   position: absolute;
   pointer-events: all;
@@ -43,13 +45,15 @@
   transform: translate(-50%, -50%);
 }
 
-.uno-opp-slot[data-seat="top-center"] { left: 50%;  top: 22px; }
-.uno-opp-slot[data-seat="top-left"]   { left: 27%;  top: 32px; }
-.uno-opp-slot[data-seat="top-right"]  { left: 73%;  top: 32px; }
-.uno-opp-slot[data-seat="mid-left"]   { left: 9%;   top: 42%; }
-.uno-opp-slot[data-seat="mid-right"]  { left: 91%;  top: 42%; }
-.uno-opp-slot[data-seat="left"]  { left: -66px; top: 58%; }
-.uno-opp-slot[data-seat="right"] { left: calc(100% + 66px); top: 58%; }
+/* Positions calculated for a circle centered in an 80px-padded table-area.
+   Radius ≈ 33% of table-area. Angles measured clockwise from North. */
+.uno-opp-slot[data-seat="top-center"] { left: 50%; top: 17%; }   /* 0°   */
+.uno-opp-slot[data-seat="top-left"]   { left: 33%; top: 21%; }   /* -30° */
+.uno-opp-slot[data-seat="top-right"]  { left: 67%; top: 21%; }   /* +30° */
+.uno-opp-slot[data-seat="mid-left"]   { left: 21%; top: 33%; }   /* -60° */
+.uno-opp-slot[data-seat="mid-right"]  { left: 79%; top: 33%; }   /* +60° */
+.uno-opp-slot[data-seat="left"]       { left: 17%; top: 50%; }   /* -90° */
+.uno-opp-slot[data-seat="right"]      { left: 83%; top: 50%; }   /* +90° */
 
 /* Name badge */
 .uno-opp-badge {
@@ -96,24 +100,25 @@
   box-shadow: 0 0 20px rgba(255,215,0,0.45);
 }
 
-/* Green felt table */
+/* Green felt table — circular */
 .uno-table {
-  width: 100%;
+  width: min(50vw, 320px);
+  aspect-ratio: 1;
   background:
-    radial-gradient(ellipse at 50% 20%, rgba(100,220,130,0.1) 0%, transparent 55%),
-    radial-gradient(ellipse at center, #28784a 0%, #1a5432 50%, #0d3320 100%);
-  border-radius: 999px;
+    radial-gradient(circle at 50% 30%, rgba(100,220,130,0.12) 0%, transparent 55%),
+    radial-gradient(circle at center, #28784a 0%, #1a5432 50%, #0d3320 100%);
+  border-radius: 50%;
   border: 12px solid #7a4520;
   box-shadow:
     inset 0 3px 10px rgba(255,255,255,0.07),
     inset 0 -6px 24px rgba(0,0,0,0.55),
     0 0 0 3px #3e2010,
     0 10px 48px rgba(0,0,0,0.7);
-  padding: 48px 52px;
-  min-height: 180px;
+  padding: 36px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 14px;
   position: relative;
 }
@@ -122,7 +127,7 @@
   content: '';
   position: absolute;
   inset: 7px;
-  border-radius: 999px;
+  border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.055);
   pointer-events: none;
 }
@@ -271,9 +276,9 @@ html[data-theme="classic"] .uno-opp-badge {
 }
 
 @media (max-width: 640px) {
-  #uno-board { padding: 0 52px 8px; }
-  .uno-opp-slot[data-seat="left"]  { left: -44px; }
-  .uno-opp-slot[data-seat="right"] { left: calc(100% + 44px); }
+  #uno-board { padding: 0 16px 8px; }
+  .uno-table-area { padding: 60px; }
+  .uno-table { width: min(72vw, 260px); }
 }
 
 /* ── UNO cards ─────────────────────────────────────────── */
@@ -330,7 +335,7 @@ html[data-theme="classic"] .uno-opp-badge {
   transform: translateY(-12px) scale(1.04);
   box-shadow: 0 0 0 2px rgba(255,255,255,0.6), 0 18px 32px rgba(0,0,0,0.55);
 }
-.uno-card.not-playable { opacity: 0.38; cursor: default; }
+.uno-card.not-playable { opacity: 0.55; cursor: default; }
 
 /* Colors */
 .uno-card.red    { background: linear-gradient(155deg, #ff5465 0%, #a01e28 100%); }
@@ -399,7 +404,7 @@ html[data-theme="classic"] .uno-opp-badge {
   transform: translateY(-12px) scale(1.04);
   box-shadow: 0 0 0 2px rgba(255,255,255,0.6), 0 18px 32px rgba(0,0,0,0.55);
 }
-.uno-card-img.not-playable { opacity: 0.38; }
+.uno-card-img.not-playable { opacity: 0.55; }
 
 @media (max-width: 480px) {
   .uno-card-img { width: 58px; height: 86px; }
