@@ -36,6 +36,40 @@ function cardImgHTML(card, extraCls = '') {
   return `<img class="${cls}" src="${src}" alt="${card}">`
 }
 
+// Fly selected hand cards to the trick area on the table
+function animateSlavePlay(indices) {
+  const trickEl  = document.getElementById('slv-trick-cards')
+  const trickRect = trickEl?.getBoundingClientRect()
+  const toRect   = (trickRect?.width ?? 0) > 10
+    ? trickRect
+    : document.getElementById('slv-table')?.getBoundingClientRect()
+  if (!toRect) return
+
+  indices.forEach((origIdx, i) => {
+    const el = document.querySelector(`#slv-hand [data-slv-idx="${origIdx}"]`)
+    if (!el) return
+    const fromRect = el.getBoundingClientRect()
+    setTimeout(() => {
+      const fly = el.cloneNode(true)
+      fly.removeAttribute('class')
+      fly.style.cssText = `position:fixed;z-index:999;pointer-events:none;` +
+        `width:${fromRect.width}px;height:${fromRect.height}px;` +
+        `left:${fromRect.left}px;top:${fromRect.top}px;` +
+        `opacity:1;transform:none;border-radius:10px;object-fit:contain;`
+      document.body.appendChild(fly)
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const tx  = toRect.left + toRect.width  / 2 - fromRect.left - fromRect.width  / 2
+        const ty  = toRect.top  + toRect.height / 2 - fromRect.top  - fromRect.height / 2
+        const rot = (i - (indices.length - 1) / 2) * 7
+        fly.style.transition = 'transform 0.38s cubic-bezier(0.25,1.1,0.5,1), opacity 0.22s 0.16s'
+        fly.style.transform  = `translate(${tx}px,${ty}px) scale(0.7) rotate(${rot}deg)`
+        fly.style.opacity    = '0'
+        setTimeout(() => fly.remove(), 480)
+      }))
+    }, i * 70)
+  })
+}
+
 // Return original hand indices sorted by rank then suit (3 lowest → 2 highest)
 function sortedHandIndices(hand) {
   return hand
@@ -216,7 +250,11 @@ function updateActionButtons(meta, mine, onPlay, onPass, myHand, iHavePassed = f
     playBtn.disabled      = _selectedIndices.length === 0
     playBtn.onclick = () => {
       const cards = _selectedIndices.map(i => myHand[i]).filter(Boolean)
-      if (cards.length && onPlay) { _selectedIndices = []; onPlay(cards) }
+      if (cards.length && onPlay) {
+        animateSlavePlay([..._selectedIndices])
+        _selectedIndices = []
+        onPlay(cards)
+      }
     }
   }
 
