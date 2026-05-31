@@ -25,7 +25,7 @@ function parseCard(card) {
 function cardSrc(card) {
   const { rank, suit } = parseCard(card)
   const suitName = SUIT_NAMES[suit] || 'spades'
-  return `${cfg.url}/assets/cards/standard-deck/${rank}-${suitName}.svg`
+  return `${cfg.url}/assets/cards/standard-deck/${rank.toLowerCase()}-${suitName}.svg`
 }
 
 function cardImgHTML(card, extraCls = '') {
