@@ -1,4 +1,5 @@
 import { state, cfg } from '../../state.js'
+import { orderedOpponents } from '../utils.js'
 
 const UNO_BASE  = () => `${cfg.url}/assets/cards/uno-deck`
 let _lastHandKey    = ''
@@ -43,15 +44,7 @@ export function renderBoard(meta, mine, onPlay) {
   const revealSec   = state.gameState.revealRemainingSec ?? null
   const finishOrder = meta.finishOrder || []
 
-  // Derive opponent order from turnOrder so seats follow the actual play sequence.
-  // My seat is always the bottom; turnOrder[slice after me] gives CW order from my perspective.
-  // Reverse the list for CCW so the next-to-play opponent lands on the right side.
-  const turnOrder  = meta.turnOrder || []
-  const myTurnIdx  = turnOrder.indexOf(state.sessionId)
-  let opponents = myTurnIdx >= 0
-    ? [...turnOrder.slice(myTurnIdx + 1), ...turnOrder.slice(0, myTurnIdx)]
-    : (state.gameState.players || []).filter(p => p !== state.sessionId)
-  if (meta.direction === -1 && opponents.length > 0) opponents = [...opponents].reverse()
+  const opponents = orderedOpponents(meta, state.sessionId, state.gameState.players || [])
 
   // ── Opponents — positioned badges around the table ───────
   const oppContainer = document.getElementById('uno-opponents')

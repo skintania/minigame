@@ -1,5 +1,6 @@
 import { state, cfg } from '../../state.js'
 import { getBestHandName } from './eval.js'
+import { orderedOpponents } from '../utils.js'
 
 const SUIT_SYMBOLS = { spades: '♠', hearts: '♥', diamonds: '♦', clubs: '♣' }
 const SUIT_NAMES   = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs' }
@@ -37,14 +38,14 @@ function oppLabel(oppId, idx, total) {
   return names[oppId] || (total === 1 ? 'Opponent' : `Player ${idx + 2}`)
 }
 
-// Seat positions for N opponents (clockwise from top-center)
+// Seat positions — CW order left→right; index 0 = next-to-act opponent
 const SEAT_MAP = [
   ['top-center'],
   ['top-left', 'top-right'],
-  ['top-left', 'top-center', 'top-right'],
+  ['left', 'top-center', 'right'],
   ['left', 'top-left', 'top-right', 'right'],
   ['left', 'top-left', 'top-center', 'top-right', 'right'],
-  ['left', 'mid-left', 'top-left', 'top-right', 'mid-right', 'right'],
+  ['left', 'mid-left', 'top-left', 'top-center', 'top-right', 'right'],
   ['left', 'mid-left', 'top-left', 'top-center', 'top-right', 'mid-right', 'right'],
 ]
 
@@ -201,7 +202,7 @@ function legacyPS(meta, players) {
 
 export function renderBoard(meta, mine) {
   const players   = state.gameState.players || []
-  const opponents = players.filter(p => p !== state.sessionId)
+  const opponents = orderedOpponents(meta, state.sessionId, players)
   const ps        = meta.playerStates || legacyPS(meta, players)
 
   const curPhaseEarly = meta.phase || ''

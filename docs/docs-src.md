@@ -173,6 +173,18 @@ Plugin registry. Exports `{ poker, uno }` object pointing to each game module.
 
 ---
 
+## `src/games/utils.js`
+
+Shared helpers used by all game renderers.
+
+**`orderedOpponents(meta, sessionId, allPlayers)`** — returns opponent IDs in turn-order sequence starting from the player immediately after `sessionId`. For CW games (`direction >= 0` or absent) index-0 is the next-to-act opponent; assign it to the leftmost seat. For CCW (`direction === -1`) the list is reversed so index-0 is still next-to-act but should receive the rightmost seat.
+
+Falls back to `allPlayers.filter(≠ self)` when `meta.turnOrder` is absent, so games without `turnOrder` keep their current order.
+
+**Adding `turnOrder` to a new game:** have the backend include `turnOrder` in the metadata response (first element = current player, rest follow direction). The frontend automatically picks it up — no additional changes needed.
+
+---
+
 ## `src/games/poker/index.js`
 
 Poker plugin entry.
