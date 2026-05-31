@@ -86,7 +86,7 @@ Create a private room and get the code to share.
 ```json
 {
   "sessionId": "uuid",
-  "gameId": "poker" | "uno",
+  "gameId": "poker" | "uno" | "slave",
   "maxPlayers": 8,
   "startingChips": 1000,
   "turnTimeLimit": 30,
@@ -97,10 +97,11 @@ Create a private room and get the code to share.
 
 All fields are optional. Defaults: `maxPlayers = 8` (min `2`, max `16`), `startingChips = 1000` (min `100`, max `1,000,000`), `turnTimeLimit = 0` (disabled; min `10`, max `300` seconds), `roundLimit = 0` (infinite; min `1`, max `1000`), `betweenRoundsSec = 0` (disabled; min `5`, max `120` seconds). `startingChips`, `turnTimeLimit`, `roundLimit`, and `betweenRoundsSec` are poker-only.
 
-**Player inactivity timeout:** Any player who has not called a game endpoint (`GET /games/:matchId/state` or any action) for **5 minutes** is automatically kicked. What happens depends on the game phase:
+**Player inactivity timeout:** Any player who has not called a game endpoint (`GET /games/:matchId/state` or any action) for **5 minutes** is automatically kicked. What happens depends on the game and phase:
 - `waiting`: removed from the room entirely. Room is deleted if it becomes empty.
-- `between-rounds` / `showdown`: moved to spectator.
-- Mid-hand (`preflop`–`river`): folded out immediately, moved to spectator. If only one player is left active, the hand ends and pot is awarded. Kicked players can rejoin as `player` role during `between-rounds`.
+- Poker `between-rounds` / `showdown`: moved to spectator.
+- Poker mid-hand (`preflop`–`river`): folded out immediately, moved to spectator. If only one player is left active, the hand ends and pot is awarded. Kicked players can rejoin as `player` role during `between-rounds`.
+- UNO / Slave mid-game: moved to spectator and removed from the active player list. If it was their turn, the turn advances to the next active player.
 
 The scheduled cleanup job also removes players inactive for **30 minutes** across all rooms.
 
@@ -290,7 +291,7 @@ Find an existing public waiting match, or create one. Only joins matches that ha
 ```json
 {
   "sessionId": "uuid",
-  "gameId": "poker" | "uno"
+  "gameId": "poker" | "uno" | "slave"
 }
 ```
 
@@ -483,7 +484,7 @@ Get the current game state. Opponent hands are hidden — only card counts are i
 
 ### `POST /games/uno/:matchId/start`
 
-Start the game. Host only. Requires ≥ 2 players seated at the table.
+Start the first round. Host only. Requires ≥ 2 players seated at the table.
 
 **Request**
 ```json
@@ -491,6 +492,21 @@ Start the game. Host only. Requires ≥ 2 players seated at the table.
 ```
 
 **Response** `{ "ok": true }`
+
+---
+
+### `POST /games/uno/:matchId/next-round`
+
+Start the next round after someone wins. Host only. Only valid when `metadata.phase = "finished"`. Requires ≥ 2 players at the table. The winner's round win is recorded in `metadata.roundWins` before the new round begins.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** `{ "ok": true }`
+
+Errors: `"Can only start the next round after the current round ends."`, `"At least 2 players are required to start the next round."`, `"Only the room host can start the round"`.
 
 ---
 
@@ -535,7 +551,7 @@ Errors: `"Card is not in hand."`, `"Card is not playable on the current discard.
 Draw a card. Behaviour depends on context:
 
 - **No pending draw:** Draw one card. If the drawn card is playable, your turn does **not** pass — you may play it with `POST /play` or skip with `POST /pass`.
-- **Pending draw penalty (`pendingDraw > 0`):** Draw all pending cards at once. Turn always passes after a penalty draw; you cannot play the drawn cards.
+- **Pending draw penalty (`pendingDraw > 0`):** Draw all accumulated penalty cards at once. If any of the drawn cards is playable, your turn does **not** pass — you may play **one** of them with `POST /play` or skip with `POST /pass`. If none are playable, the turn passes automatically.
 
 **Request**
 ```json
@@ -563,9 +579,9 @@ Errors: `"You can only pass after drawing a card."`
 
 ---
 
-### `POST /games/uno/:matchId/next-round`
+### `POST /games/uno/:matchId/end-game`
 
-Start the next round. Host only. Only valid when `phase === "finished"` and the reveal window has ended (`revealRemainingSec` is `null`). Deals new hands and begins a new round in the same match.
+Close the room immediately. Host only. Valid at any point during an active match — does not wait for the current round to finish.
 
 **Request**
 ```json
@@ -574,7 +590,128 @@ Start the next round. Host only. Only valid when `phase === "finished"` and the 
 
 **Response** `{ "ok": true }`
 
-Errors: `"Only the room host can start the round"`, `"Round is not over yet."`.
+Errors: `"Only the room host can start the round"`
+
+---
+
+## Games — Slave
+
+Slave (also called President) is a trick-taking shedding game. Players race to empty their hand. The first to finish is **President**, the last is **Slave**. Each new round, lower-ranked players give their best cards to higher-ranked players.
+
+**Action endpoints return `{ "ok": true }` only.** After any action, poll `GET /games/slave/:matchId/state` to get the updated game state.
+
+**Beating rules:**
+- Same count → higher rank wins (rank order: 3 low → 2 high)
+- 3 cards always beats any 1 card (regardless of rank)
+- 4 cards always beats any 2 cards (regardless of rank)
+- No other cross-count combinations are valid
+
+**Card format:** `{rank}{suit}` — e.g. `3♣`, `10♠`, `A♥`, `2♦`. Ranks low to high: `3 4 5 6 7 8 9 10 J Q K A 2`.
+
+### `POST /games/slave/join`
+
+Find or join a waiting public Slave match.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response**
+```json
+{ "matchId": "uuid" }
+```
+
+---
+
+### `GET /games/slave/:matchId/state`
+
+Get the current game state. Opponent hands are hidden — only card counts are implied.
+
+**Query params**
+
+| Param | Type | Description |
+|---|---|---|
+| `sessionId` | string | Your session ID |
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+---
+
+### `POST /games/slave/:matchId/start`
+
+Start the first round. Host only. Requires ≥ 2 players seated at the table. All 52 cards are dealt evenly (some players may receive one extra card). The player dealt `3♣` goes first.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** `{ "ok": true }`
+
+---
+
+### `POST /games/slave/:matchId/play`
+
+Play one or more cards as a trick or to beat the current trick.
+
+**Request**
+```json
+{ "sessionId": "uuid", "cards": ["3♣", "3♦"] }
+```
+
+Rules:
+- All cards in `cards` must share the same rank (e.g. two 5s, three Ks).
+- The play must beat the current trick according to the beating rules above.
+- The player holding `3♣` must include it in their **first play** of each round.
+- If the play empties your hand, you finish and are assigned a rank. The round continues until only one player remains.
+
+**Response** `{ "ok": true }`
+
+Errors: `"All played cards must have the same rank."`, `"Your first play must include the 3♣."`, `"Cannot beat the current trick (N cards, value V)."`, `"Card X is not in hand."`, `"Specify cards to play as an array."`.
+
+---
+
+### `POST /games/slave/:matchId/pass`
+
+Pass on the current trick. Only valid when a trick is active — you cannot pass to start a new trick.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** `{ "ok": true }`
+
+Errors: `"You must play a card to start a new trick — you cannot pass."`
+
+---
+
+### `POST /games/slave/:matchId/next-round`
+
+Start the next round after the current one ends. Host only. Only valid when `metadata.phase = "finished"`. Applies the rank-based card exchange before dealing new cards.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** `{ "ok": true }`
+
+Errors: `"Can only start the next round after the current round ends."`, `"Only the room host can start the round"`.
+
+---
+
+### `POST /games/slave/:matchId/end-game`
+
+Close the room immediately. Host only.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** `{ "ok": true }`
 
 ---
 
@@ -594,7 +731,9 @@ The state shape returned by `GET /:matchId/state`:
   "myRole": "player" | "spectator",
   "matchStatus": "waiting" | "active" | "finished",
   "isMyTurn": true,
-  "betweenRoundsRemainingSec": 12
+  "turnOrder": ["sessionId1", "sessionId2"],
+  "betweenRoundsRemainingSec": 12,
+  "revealRemainingSec": 8
 }
 ```
 
@@ -608,7 +747,9 @@ The state shape returned by `GET /:matchId/state`:
 | `myRole` | Your current role: `"player"` or `"spectator"` |
 | `matchStatus` | Overall match state: `"waiting"`, `"active"`, or `"finished"` |
 | `isMyTurn` | `true` if it is currently your turn to act |
+| `turnOrder` | All players in the order they will play, starting from the current player going in the current direction. Present for all games when a round is active (`phase !== "waiting"`). Use this to render the seat sequence. |
 | `showdownRemainingSec` | Seconds until the showdown display auto-closes (always 10s). Only present during Poker `showdown` phase. `undefined` otherwise. |
+| `revealRemainingSec` | Seconds remaining in the UNO reveal window after a round ends. During this window all hands are visible and `winner` is hidden — let players discover the winner by seeing the empty hand. Only present for UNO during the 10-second reveal window. `undefined` otherwise. |
 | `betweenRoundsRemainingSec` | Seconds until the next hand auto-starts. Only present during Poker `between-rounds` when `betweenRoundsSec > 0`. `undefined` otherwise. |
 | `turnRemainingSec` | Seconds remaining for the current player's turn. Only present during Poker when `turnTimeLimit > 0` and a turn is in progress. `undefined` otherwise. |
 | `playerStates` | Per-player display map (Poker only, absent during `waiting` phase). See [Player States](#player-states-poker-only) below. |
@@ -754,13 +895,15 @@ Opponent `hands` entries: `["hidden","hidden"]` while in play, `["fold","fold"]`
     "sessionId2": ["hidden", "hidden", "hidden"]
   },
   "currentPlayer": "sessionId1",
+  "currentPlayerIndex": 0,
   "direction": 1,
   "currentColor": "red",
   "lastCard": "blue_skip",
-  "winner": null,
   "lastAction": "sessionId2 played blue_skip",
   "pendingDraw": 0,
   "drewThisTurn": false,
+  "winner": null,
+  "finishOrder": ["sessionId3"],
   "roundWins": { "sessionId1": 2, "sessionId2": 1 }
 }
 ```
@@ -769,15 +912,63 @@ Opponent `hands` entries are `"hidden"` strings — the array length reveals how
 
 `direction` is `1` (clockwise) or `-1` (counter-clockwise, after a reverse card).
 
+`currentPlayerIndex` is the index of `currentPlayer` in the `players` array. Together with `direction` this defines the full turn sequence — but prefer the top-level `turnOrder` field which pre-computes it.
+
 `pendingDraw` is the total accumulated draw penalty (from stacked +2/+4 cards) waiting for the current player. If `> 0`, the current player must either draw that many cards (`POST /draw`) or stack another draw2/wild_draw4 (`POST /play`).
 
 `drewThisTurn` is `true` when the current player already drew this turn and the drawn card is playable. They may `POST /play` to use it or `POST /pass` to skip.
 
-`roundWins` tracks cumulative round wins per `sessionId` across all rounds in this match session. Updated after each round ends.
+`finishOrder` is the ordered list of players who have emptied their hand this round, earliest first. Players in this list are skipped during turn advancement. When only one player remains, they are automatically appended as the loser.
 
-**Finished phase:** when a player plays their last card, `phase` becomes `"finished"`, `winner` is set, and `revealRemainingSec` counts down from 10 (top-level field on the state response, alongside `isMyTurn`). During this window all hands are revealed. Once `revealRemainingSec` is `null`, the host may call `POST /next-round` to begin a new round.
+`roundWins` tracks how many rounds each player has won across the session. Persists across rounds and is never reset.
+
+**Phases:** `waiting → started → finished → started → …` (repeats each round)
+
+When `phase = "finished"`, the round is over. During the **10-second reveal window** (`revealRemainingSec` is present), all hands are shown and `winner` is hidden — let players discover who won by seeing the empty hand. After the window, hands hide again and `winner` is set. The host then calls `POST /next-round` to deal new cards. The room never closes automatically.
 
 **Card format:** `{color}_{value}` — e.g. `red_0`, `blue_skip`, `yellow_reverse`, `green_draw2`, `wild`, `wild_draw4`.
+
+---
+
+### Slave `metadata`
+
+```json
+{
+  "phase": "waiting | started | finished",
+  "hands": {
+    "sessionId1": ["3♣", "7♠", "A♥"],
+    "sessionId2": ["hidden", "hidden", "hidden", "hidden"]
+  },
+  "currentPlayer": "sessionId1",
+  "currentPlayerIndex": 0,
+  "trick": {
+    "count": 2,
+    "value": 5,
+    "playedBy": "sessionId2",
+    "cards": ["8♣", "8♦"]
+  },
+  "consecutivePasses": 1,
+  "finishOrder": ["sessionId3"],
+  "ranks": { "sessionId3": "President", "sessionId1": "Vice President" },
+  "winner": "sessionId3",
+  "lastAction": "sessionId2 played 8♣ 8♦",
+  "roundWins": { "sessionId3": 1 }
+}
+```
+
+`trick` is the current active trick. `count` is the number of cards played, `value` is the rank index (0 = 3, 12 = 2), `playedBy` is who last played. `null` when no trick is active (start of round or after a trick is won).
+
+`consecutivePasses` is the number of consecutive passes since the last play. When this equals the number of active players minus the last player to play, the trick is won and the leader plays again.
+
+`finishOrder` lists players who have emptied their hand this round, earliest first. The last remaining player is automatically added as the final finisher (Slave) when only one active player remains.
+
+`ranks` is set when `phase = "finished"`. Maps each player to their title: `"President"`, `"Vice President"`, `"Citizen"`, `"Vice Slave"`, `"Slave"`. Only `President` and `Slave` exist in 2–3 player games; `Vice President` and `Vice Slave` appear with 4+ players.
+
+**Card exchange (between rounds):** When `POST /next-round` is called, cards are dealt fresh and ranks from the previous round trigger an automatic exchange before the round starts:
+- Slave gives their **best N cards** to President; President gives their **worst N cards** to Slave. (`N = 2` for 4+ players, `N = 1` for 2–3 players.)
+- Vice Slave gives their **best 1 card** to Vice President; Vice President gives their **worst 1 card** to Vice Slave. (4+ players only.)
+
+`roundWins` counts how many rounds each player has finished as President.
 
 ---
 
@@ -803,6 +994,10 @@ Common `400` messages:
 - `"It is not your turn."` — another player must move first
 - `"At least 2 players are required to start poker."` — need more players
 - `"At least 2 players are required to start UNO."` — need more players
+- `"At least 2 players are required to start."` — need more players (Slave)
+- `"All played cards must have the same rank."` — Slave cards must be a valid set
+- `"Your first play must include the 3♣."` — first trick of Slave round must contain 3♣
+- `"You must play a card to start a new trick — you cannot pass."` — Slave pass with no active trick
 - `"Cannot check — there is a bet to call."` — use `call` or `bet` to match `currentBet`
 - `"amount must be a positive number"` — invalid bet amount sent to `/bet`
 - `"Insufficient chips. You have N."` — bet exceeds your chip stack
@@ -861,7 +1056,24 @@ Common `400` messages:
    - play:  POST /play { card } or { cards: [...] } or { card: "wild", color }
    - draw:  POST /draw  (if drawn card playable, turn stays; play it or POST /pass)
    - stack: POST /play { card: "green_draw2" }  (when pendingDraw > 0)
-8. repeat 6–7 until matchStatus = "finished"
+8. when phase = "finished": wait for revealRemainingSec, then host calls POST /next-round
+9. repeat 6–8; host calls POST /end-game to close the room
+```
+
+**Private room — Slave**
+```
+1. POST /auth { username }
+2. POST /rooms/create { sessionId, gameId: "slave" } → get matchId + roomCode
+3. POST /rooms/join { sessionId, roomCode }     → join as spectator
+4. PATCH /rooms/:code/role { sessionId, role: "player" }
+5. POST /games/slave/:matchId/start { sessionId } → host starts (≥ 2 players)
+6. poll GET /games/slave/:matchId/state
+7. if isMyTurn:
+   - play: POST /play { cards: ["3♣", "3♠"] }  (must include 3♣ on first play)
+   - pass: POST /pass  (only when a trick is active)
+8. when phase = "finished": host calls POST /next-round
+   (card exchange is applied automatically before new round starts)
+9. repeat 6–8; host calls POST /end-game to close the room
 ```
 
 **Spectator joining mid-game / switching roles**
