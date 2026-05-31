@@ -479,6 +479,25 @@ html[data-theme="classic"] .uno-opp-badge {
   opacity: 1;
 }
 
+/* ── Discard pile stack ── */
+#uno-discard {
+  position: relative;
+  width: 72px;
+  height: 104px;
+  flex-shrink: 0;
+}
+
+.discard-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.discard-layer .uno-card-img,
+.discard-layer .uno-card {
+  width: 72px;
+  height: 104px;
+}
+
 /* ── Direction indicator (on felt) ── */
 #uno-direction {
   font-size: 22px;

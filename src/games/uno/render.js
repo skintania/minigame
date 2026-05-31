@@ -1,7 +1,16 @@
 import { state, cfg } from '../../state.js'
 
 const UNO_BASE  = () => `${cfg.url}/assets/cards/uno-deck`
-let _lastHandKey = ''
+let _lastHandKey    = ''
+let _lastDiscardKey = ''
+
+const VAL_ASSET = { draw2: 'draw-two', draw4: 'draw-four' }
+function cardSrc(card) {
+  if (card === 'wild_draw4') return `${UNO_BASE()}/wild-draw-four.svg`
+  const [color, val] = card.split('_')
+  const assetVal = VAL_ASSET[val] || val
+  return `${UNO_BASE()}/${color ? `${color}-${assetVal}` : card}.svg`
+}
 const COLOR_HEX = { red: '#ff4757', blue: '#3AABDE', green: '#2ed573', yellow: '#ffd32a' }
 const VAL_LABEL = { skip: '⊘', reverse: '↺', draw2: '+2' }
 
@@ -66,10 +75,28 @@ export function renderBoard(meta, mine, onPlay) {
     dirEl.title = meta.direction === -1 ? 'Counter-clockwise' : 'Clockwise'
   }
 
-  // ── Discard pile ─────────────────────────────────────────
-  const top    = (meta.discard || []).slice(-1)[0] || meta.lastCard
+  // ── Discard pile (messy stack) ───────────────────────────
+  const pile   = meta.discard || []
   const discEl = document.getElementById('uno-discard')
-  if (discEl && top) discEl.innerHTML = unoCardHTML(top, false, true)
+  if (discEl) {
+    const discKey = pile.slice(-4).join(',') + '|' + (meta.lastCard || '')
+    if (discKey !== _lastDiscardKey) {
+      _lastDiscardKey = discKey
+      const recent = pile.length ? pile.slice(-4) : (meta.lastCard ? [meta.lastCard] : [])
+      // fixed rotations/offsets per layer so the pile looks thrown down
+      const TRANSFORMS = [
+        'rotate(-11deg) translate(-4px, 3px)',
+        'rotate(7deg)  translate(3px, -2px)',
+        'rotate(-5deg) translate(-2px, -3px)',
+        'rotate(4deg)  translate(1px, 0)',
+      ]
+      const start = 4 - recent.length
+      discEl.innerHTML = recent.map((card, i) =>
+        `<div class="discard-layer" style="transform:${TRANSFORMS[start + i]};z-index:${i + 1}">` +
+        unoCardHTML(card, false, false) + '</div>'
+      ).join('')
+    }
+  }
 
   // ── Current color ────────────────────────────────────────
   const ccEl = document.getElementById('uno-color-lbl')
@@ -126,7 +153,7 @@ export function renderBoard(meta, mine, onPlay) {
 }
 
 function unoCardHTML(card, playable, isDiscard = false, size = '') {
-  const src       = `${UNO_BASE()}/${card.replace(/_/g, '-')}.svg`
+  const src       = cardSrc(card)
   // null = neutral (full opacity, no click); true = playable; false = not-playable (dimmed)
   const playClass = playable === true ? 'playable' : playable === false ? 'not-playable' : ''
   const classes   = ['uno-card-img', playClass, isDiscard ? 'discard' : '', size].filter(Boolean).join(' ')
