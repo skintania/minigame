@@ -520,8 +520,9 @@ function updateWaitingPanel(meta) {
   if (host) {
     startBtn.style.display = ''
     const cnt = room?.playerCount ?? players.length
-    startBtn.disabled    = cnt < 2
-    startBtn.textContent = cnt >= 2 ? `Start (${cnt})` : 'Need players…'
+    const minPlayers = state.gameId === 'slave' ? 3 : 2
+    startBtn.disabled    = cnt < minPlayers
+    startBtn.textContent = cnt >= minPlayers ? `Start (${cnt})` : `Need ${minPlayers}+ players…`
   } else {
     startBtn.style.display = 'none'
   }
