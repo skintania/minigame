@@ -364,29 +364,24 @@ export function render() {
   hideShowdownBar()
 
   if (meta.phase === 'between-rounds') {
-    document.getElementById('g-phase').textContent = 'Between Rounds'
     document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
     document.querySelector('.uno-hand-footer')?.style.setProperty('display', 'none')
-    showBetweenRounds(meta)
-    registry[state.gameId]?.render(meta, false)
-    return
-  }
 
-  // Slave between-rounds phase: round-end overlay
-  if (state.gameId === 'slave' && meta.phase === 'between-rounds') {
-    document.getElementById('g-phase').textContent = 'Round Over'
-    registry['slave']?.render(meta, false)
-    if (state.gameState?.matchStatus !== 'finished') showSlaveRoundOverlay(meta, false)
-    return
-  }
-
-  // UNO between-rounds phase: reveal window, then round-end overlay
-  if (state.gameId === 'uno' && meta.phase === 'between-rounds') {
-    document.getElementById('g-phase').textContent = 'Round Over'
-    document.querySelector('.uno-hand-footer')?.style.setProperty('display', 'none')
-    registry['uno']?.render(meta, false)
-    if (state.gameState?.revealRemainingSec == null && state.gameState?.matchStatus !== 'finished') {
-      showUnoRoundOverlay(meta, false)
+    if (state.gameId === 'slave') {
+      document.getElementById('g-phase').textContent = 'Round Over'
+      registry['slave']?.render(meta, false)
+      if (state.gameState?.matchStatus !== 'finished') showSlaveRoundOverlay(meta, false)
+    } else if (state.gameId === 'uno') {
+      document.getElementById('g-phase').textContent = 'Round Over'
+      registry['uno']?.render(meta, false)
+      if (state.gameState?.revealRemainingSec == null && state.gameState?.matchStatus !== 'finished') {
+        showUnoRoundOverlay(meta, false)
+      }
+    } else {
+      // Poker: between-rounds countdown panel
+      document.getElementById('g-phase').textContent = 'Between Rounds'
+      showBetweenRounds(meta)
+      registry[state.gameId]?.render(meta, false)
     }
     return
   }
