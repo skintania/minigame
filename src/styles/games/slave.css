@@ -129,6 +129,21 @@
   color: rgba(255,255,255,0.4);
 }
 
+.slv-opp-slot.passed .slv-opp-badge {
+  opacity: 0.45;
+  border-color: rgba(255,255,255,0.08);
+}
+
+.slv-passed-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+
 .slv-opp-cards {
   display: flex;
   gap: 0;

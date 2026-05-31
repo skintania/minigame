@@ -49,14 +49,16 @@ function sortedHandIndices(hand) {
 
 
 export function renderBoard(meta, mine, onPlay, onPass) {
-  const names         = state.gameState.playerNames || {}
-  const hands         = meta.hands || {}
-  const trick         = meta.trick || null
-  const finishOrder   = meta.finishOrder || []
-  const ranks         = meta.ranks || {}
-  const isFinished    = meta.phase === 'finished'
-  const turnOrder     = meta.turnOrder || state.gameState.turnOrder || []
-  const currentPlayer = turnOrder[0] || null
+  const names           = state.gameState.playerNames || {}
+  const hands           = meta.hands || {}
+  const trick           = meta.trick || null
+  const finishOrder     = meta.finishOrder || []
+  const ranks           = meta.ranks || {}
+  const isFinished      = meta.phase === 'finished'
+  const turnOrder       = meta.turnOrder || state.gameState.turnOrder || []
+  const currentPlayer   = turnOrder[0] || null
+  const passedThisTrick = meta.passedThisTrick || []
+  const iHavePassed     = passedThisTrick.includes(state.sessionId)
 
   const opponents = orderedOpponents(
     { ...meta, turnOrder },
@@ -71,10 +73,11 @@ export function renderBoard(meta, mine, onPlay, onPass) {
     oppContainer.innerHTML = opponents.slice(0, 7).map((id, i) => {
       const name      = names[id] || id.slice(0, 8)
       const hand      = hands[id] || []
-      const isCurrent = currentPlayer === id && !isFinished
-      const finishPos = finishOrder.indexOf(id)
-      const rankTitle = ranks[id] || ''
-      const seat      = seats[i] || 'top-center'
+      const isCurrent  = currentPlayer === id && !isFinished
+      const finishPos  = finishOrder.indexOf(id)
+      const rankTitle  = ranks[id] || ''
+      const hasPassed  = passedThisTrick.includes(id) && trick !== null && !isFinished
+      const seat       = seats[i] || 'top-center'
 
       const FINISH_MEDALS = ['🥇', '🥈', '🥉']
       const finishTag = finishPos >= 0
@@ -88,7 +91,8 @@ export function renderBoard(meta, mine, onPlay, onPass) {
           ).join('')
 
       const cls = ['slv-opp-slot',
-        isCurrent ? 'turn-active' : '',
+        isCurrent  ? 'turn-active'   : '',
+        hasPassed  ? 'passed'        : '',
         finishPos === 0 && !isFinished ? 'winner-flash' : '',
       ].filter(Boolean).join(' ')
 
@@ -96,7 +100,9 @@ export function renderBoard(meta, mine, onPlay, onPass) {
         ? `<span class="slv-rank-badge">${RANK_EMOJIS[rankTitle] || ''} ${rankTitle}</span>`
         : (!isFinished && finishPos >= 0
             ? `<span class="slv-rank-badge done">${finishTag} Done</span>`
-            : '')
+            : hasPassed
+              ? `<span class="slv-passed-badge">Passed</span>`
+              : '')
 
       return `<div class="${cls}" data-seat="${seat}">
         <div class="slv-opp-badge">
@@ -143,25 +149,25 @@ export function renderBoard(meta, mine, onPlay, onPass) {
   const myHand = hands[state.sessionId] || []
   const handEl = document.getElementById('slv-hand')
   if (handEl) {
-    const handKey = myHand.join(',') + '|' + mine
+    const handKey = myHand.join(',') + '|' + mine + '|' + iHavePassed
     if (handKey !== _lastHandKey) {
       _lastHandKey     = handKey
       _selectedIndices = []
-      renderHand(handEl, myHand, mine, isFinished)
+      renderHand(handEl, myHand, mine, isFinished, iHavePassed)
     }
 
-    handEl.onclick = (mine && !isFinished) ? e => {
+    handEl.onclick = (mine && !isFinished && !iHavePassed) ? e => {
       const el = e.target.closest('[data-slv-idx]')
       if (!el) return
       const idx  = parseInt(el.dataset.slvIdx)
       const card = el.dataset.slvCard
       toggleSelection(idx, card, myHand)
       refreshHandClasses(handEl, myHand)
-      updateActionButtons(meta, mine, onPlay, onPass, myHand)
+      updateActionButtons(meta, mine, onPlay, onPass, myHand, iHavePassed)
     } : null
   }
 
-  updateActionButtons(meta, mine, onPlay, onPass, myHand)
+  updateActionButtons(meta, mine, onPlay, onPass, myHand, iHavePassed)
 
   // ── Last action ────────────────────────────────────────────
   const lastEl = document.getElementById('slv-last')
@@ -172,15 +178,16 @@ export function renderBoard(meta, mine, onPlay, onPass) {
   }
 }
 
-function renderHand(handEl, myHand, mine, isFinished) {
+function renderHand(handEl, myHand, mine, isFinished, iHavePassed = false) {
   const sortedIdxs = sortedHandIndices(myHand)
   if (isFinished) {
     handEl.innerHTML = sortedIdxs.map(i => cardImgHTML(myHand[i], 'slv-hand-card')).join('')
     return
   }
   handEl.innerHTML = sortedIdxs.map(origIdx => {
-    const card = myHand[origIdx]
-    const cls  = ['slv-card-img', 'slv-hand-card', mine ? 'selectable' : ''].filter(Boolean).join(' ')
+    const card    = myHand[origIdx]
+    const stateCls = iHavePassed ? 'dimmed' : mine ? 'selectable' : ''
+    const cls     = ['slv-card-img', 'slv-hand-card', stateCls].filter(Boolean).join(' ')
     return `<img class="${cls}" src="${cardSrc(card)}" alt="${card}" ` +
            `data-slv-idx="${origIdx}" data-slv-card="${card}">`
   }).join('')
@@ -198,13 +205,14 @@ function refreshHandClasses(handEl, myHand) {
   })
 }
 
-function updateActionButtons(meta, mine, onPlay, onPass, myHand) {
+function updateActionButtons(meta, mine, onPlay, onPass, myHand, iHavePassed = false) {
   const trick      = meta.trick || null
   const isFinished = meta.phase === 'finished'
+  const canAct     = mine && !isFinished && !iHavePassed
 
   const playBtn = document.getElementById('btn-slave-play')
   if (playBtn) {
-    playBtn.style.display = (mine && !isFinished) ? '' : 'none'
+    playBtn.style.display = canAct ? '' : 'none'
     playBtn.disabled      = _selectedIndices.length === 0
     playBtn.onclick = () => {
       const cards = _selectedIndices.map(i => myHand[i]).filter(Boolean)
@@ -214,7 +222,7 @@ function updateActionButtons(meta, mine, onPlay, onPass, myHand) {
 
   const passBtn = document.getElementById('btn-slave-pass')
   if (passBtn) {
-    passBtn.style.display = (mine && trick !== null && !isFinished) ? '' : 'none'
+    passBtn.style.display = (canAct && trick !== null) ? '' : 'none'
     passBtn.onclick = () => { if (onPass) { _selectedIndices = []; onPass() } }
   }
 }
