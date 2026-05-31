@@ -496,9 +496,9 @@ Start the game. Host only. Requires ≥ 2 players seated at the table.
 
 ### `POST /games/uno/:matchId/play`
 
-Play a card from your hand. `color` is required when playing `wild` or `wild_draw4`.
+Play a card (or multiple cards) from your hand. `color` is required when playing `wild` or `wild_draw4`.
 
-**Request**
+**Single card**
 ```json
 { "sessionId": "uuid", "card": "red_7" }
 ```
@@ -508,15 +508,34 @@ Play a card from your hand. `color` is required when playing `wild` or `wild_dra
 { "sessionId": "uuid", "card": "wild", "color": "blue" }
 ```
 
+**Multi-card (same number, one turn)**
+
+Play multiple number cards (0–9) that share the same value in a single turn. The first card must be playable on the current discard; subsequent cards only need to match the number. Wild, skip, reverse, draw2, and wild_draw4 cannot be combined this way.
+
+```json
+{ "sessionId": "uuid", "cards": ["red_7", "green_7", "blue_7"] }
+```
+
+**Draw stacking (+2 / +4)**
+
+When `metadata.pendingDraw > 0`, the current player must either draw the full penalty (`POST /draw`) or counter with a draw2 or wild_draw4 to stack more onto the next player. Only one card can be played when stacking.
+
+```json
+{ "sessionId": "uuid", "card": "green_draw2" }
+```
+
 **Response** `{ "ok": true }`
 
-Errors: `"Card is not in hand."`, `"Card is not playable on the current discard."`, `"A color must be chosen when playing a wild card."`.
+Errors: `"Card is not in hand."`, `"Card is not playable on the current discard."`, `"A color must be chosen when playing a wild card."`, `"Only number cards (0–9) can be played together in one turn."`, `"All cards played together must share the same number."`, `"You must stack a +2 or +4, or draw N cards."`, `"You can only play one draw card when stacking."`.
 
 ---
 
 ### `POST /games/uno/:matchId/draw`
 
-Draw one card from the deck.
+Draw a card. Behaviour depends on context:
+
+- **No pending draw:** Draw one card. If the drawn card is playable, your turn does **not** pass — you may play it with `POST /play` or skip with `POST /pass`.
+- **Pending draw penalty (`pendingDraw > 0`):** Draw all pending cards at once. Turn always passes after a penalty draw; you cannot play the drawn cards.
 
 **Request**
 ```json
@@ -524,6 +543,38 @@ Draw one card from the deck.
 ```
 
 **Response** `{ "ok": true }`
+
+---
+
+### `POST /games/uno/:matchId/pass`
+
+After drawing a card that is playable, pass without playing it. Advances the turn to the next player.
+
+Only valid immediately after a normal `draw` where the drawn card was playable (`drewThisTurn = true` in metadata). Calling this at any other time returns a 400 error.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** `{ "ok": true }`
+
+Errors: `"You can only pass after drawing a card."`
+
+---
+
+### `POST /games/uno/:matchId/next-round`
+
+Start the next round. Host only. Only valid when `phase === "finished"` and the reveal window has ended (`revealRemainingSec` is `null`). Deals new hands and begins a new round in the same match.
+
+**Request**
+```json
+{ "sessionId": "uuid" }
+```
+
+**Response** `{ "ok": true }`
+
+Errors: `"Only the room host can start the round"`, `"Round is not over yet."`.
 
 ---
 
@@ -707,13 +758,24 @@ Opponent `hands` entries: `["hidden","hidden"]` while in play, `["fold","fold"]`
   "currentColor": "red",
   "lastCard": "blue_skip",
   "winner": null,
-  "lastAction": "sessionId2 played blue_skip"
+  "lastAction": "sessionId2 played blue_skip",
+  "pendingDraw": 0,
+  "drewThisTurn": false,
+  "roundWins": { "sessionId1": 2, "sessionId2": 1 }
 }
 ```
 
 Opponent `hands` entries are `"hidden"` strings — the array length reveals how many cards they hold.
 
 `direction` is `1` (clockwise) or `-1` (counter-clockwise, after a reverse card).
+
+`pendingDraw` is the total accumulated draw penalty (from stacked +2/+4 cards) waiting for the current player. If `> 0`, the current player must either draw that many cards (`POST /draw`) or stack another draw2/wild_draw4 (`POST /play`).
+
+`drewThisTurn` is `true` when the current player already drew this turn and the drawn card is playable. They may `POST /play` to use it or `POST /pass` to skip.
+
+`roundWins` tracks cumulative round wins per `sessionId` across all rounds in this match session. Updated after each round ends.
+
+**Finished phase:** when a player plays their last card, `phase` becomes `"finished"`, `winner` is set, and `revealRemainingSec` counts down from 10 (top-level field on the state response, alongside `isMyTurn`). During this window all hands are revealed. Once `revealRemainingSec` is `null`, the host may call `POST /next-round` to begin a new round.
 
 **Card format:** `{color}_{value}` — e.g. `red_0`, `blue_skip`, `yellow_reverse`, `green_draw2`, `wild`, `wild_draw4`.
 
@@ -795,8 +857,10 @@ Common `400` messages:
 4. PATCH /rooms/:code/role { sessionId, role: "player" }
 5. POST /games/uno/:matchId/start { sessionId } → host starts (≥ 2 players)
 6. poll GET /games/uno/:matchId/state
-7. POST /games/uno/:matchId/play { sessionId, card, color? }
-   OR POST /games/uno/:matchId/draw { sessionId }
+7. if isMyTurn:
+   - play:  POST /play { card } or { cards: [...] } or { card: "wild", color }
+   - draw:  POST /draw  (if drawn card playable, turn stays; play it or POST /pass)
+   - stack: POST /play { card: "green_draw2" }  (when pendingDraw > 0)
 8. repeat 6–7 until matchStatus = "finished"
 ```
 

@@ -44,9 +44,10 @@ export const api = {
   pokerMuck:      (mid, sid)         => request('POST', `/games/poker/${mid}/muck`,       { sessionId: sid }),
 
   // UNO actions
-  unoStart:    (mid, sid)               => request('POST', `/games/uno/${mid}/start`, { sessionId: sid }),
-  unoPlay:     (mid, sid, card, color)  => request('POST', `/games/uno/${mid}/play`,  color ? { sessionId: sid, card, color } : { sessionId: sid, card }),
-  unoPlayMulti:(mid, sid, cards)        => request('POST', `/games/uno/${mid}/play`,  { sessionId: sid, cards }),
-  unoDraw:     (mid, sid)               => request('POST', `/games/uno/${mid}/draw`,  { sessionId: sid }),
-  unoPass:     (mid, sid)               => request('POST', `/games/uno/${mid}/pass`,  { sessionId: sid }),
+  unoStart:     (mid, sid)               => request('POST', `/games/uno/${mid}/start`,      { sessionId: sid }),
+  unoNextRound: (mid, sid)               => request('POST', `/games/uno/${mid}/next-round`, { sessionId: sid }),
+  unoPlay:      (mid, sid, card, color)  => request('POST', `/games/uno/${mid}/play`,       color ? { sessionId: sid, card, color } : { sessionId: sid, card }),
+  unoPlayMulti: (mid, sid, cards)        => request('POST', `/games/uno/${mid}/play`,        { sessionId: sid, cards }),
+  unoDraw:      (mid, sid)               => request('POST', `/games/uno/${mid}/draw`,        { sessionId: sid }),
+  unoPass:      (mid, sid)               => request('POST', `/games/uno/${mid}/pass`,        { sessionId: sid }),
 }

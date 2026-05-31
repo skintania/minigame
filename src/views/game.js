@@ -203,7 +203,7 @@ export function enterGame() {
       applyServerState(gs)
       saveSession()
       render()
-      if (gs.metadata?.winner && gs.revealRemainingSec == null) {
+      if (gs.metadata?.winner && gs.revealRemainingSec == null && state.gameId !== 'uno') {
         stopPoll()
         prevCommunityCount = commBefore
         onHandEnd(gs.metadata)
@@ -295,6 +295,15 @@ export function render() {
     document.querySelector('.uno-hand-footer')?.style.setProperty('display', 'none')
     showBetweenRounds(meta)
     registry[state.gameId]?.render(meta, false)
+    return
+  }
+
+  // UNO finished phase: 10-second reveal window then round result overlay
+  if (state.gameId === 'uno' && meta.phase === 'finished') {
+    document.getElementById('g-phase').textContent = 'Round Over'
+    document.querySelector('.uno-hand-footer')?.style.setProperty('display', 'none')
+    registry['uno']?.render(meta, false)
+    if (state.gameState?.revealRemainingSec == null) showUnoRoundResult(meta)
     return
   }
 
@@ -664,6 +673,41 @@ function _renderTurnTimer(limit) {
   if (secs) secs.textContent = Math.ceil(Math.max(0, left)) + 's'
 }
 
+// ── UNO round result (finished phase) ────────────────────
+function showUnoRoundResult(meta) {
+  const overlay = document.getElementById('between-rounds-overlay')
+  if (!overlay || overlay.classList.contains('open')) return
+
+  const names    = state.gameState?.playerNames || {}
+  const winnerId = meta.winner
+  const isMe     = winnerId === state.sessionId
+  const name     = isMe ? (state.username || 'You') : (names[winnerId] || 'Opponent')
+  document.getElementById('br-round-info').textContent = isMe ? 'You won the round!' : `${name} won the round!`
+
+  const roundWinsEl = document.getElementById('br-round-wins')
+  if (roundWinsEl) {
+    const roundWins = meta.roundWins || {}
+    const entries   = Object.entries(roundWins).sort(([, a], [, b]) => b - a)
+    if (entries.length > 0) {
+      roundWinsEl.innerHTML = entries.map(([id, wins]) => {
+        const n    = id === state.sessionId ? (state.username || names[id] || 'You') : (names[id] || id.slice(0, 8))
+        const cls  = id === state.sessionId ? 'br-standing me' : 'br-standing'
+        return `<div class="${cls}">${n} — ${wins} win${wins !== 1 ? 's' : ''}</div>`
+      }).join('')
+      roundWinsEl.style.display = ''
+    } else {
+      roundWinsEl.style.display = 'none'
+    }
+  }
+
+  document.getElementById('btn-switch-role').style.display = 'none'
+  const brNextEl = document.querySelector('#between-rounds-overlay .br-next')
+  if (brNextEl) brNextEl.style.display = 'none'
+  document.getElementById('btn-next-round').style.display = amHost() ? '' : 'none'
+
+  overlay.classList.add('open')
+}
+
 // ── Between-rounds overlay ────────────────────────────────
 function showBetweenRounds(meta) {
   const overlay = document.getElementById('between-rounds-overlay')
@@ -693,11 +737,14 @@ function showBetweenRounds(meta) {
   }
 
   document.getElementById('btn-next-round').style.display = amHost() ? '' : 'none'
+  const roundWinsEl = document.getElementById('br-round-wins')
+  if (roundWinsEl) roundWinsEl.style.display = 'none'
   overlay.classList.add('open')
 
   const remSec   = state.gameState?.betweenRoundsRemainingSec ?? null
   const brNextEl = document.querySelector('#between-rounds-overlay .br-next')
   if (brNextEl) brNextEl.style.display = remSec != null ? '' : 'none'
+
   if (!betweenRoundsInterval && remSec != null) {
     localBetweenRoundsRemaining = remSec
     tickBetweenRounds()
@@ -763,9 +810,13 @@ async function hostNextRound() {
   if (btn)     btn.disabled     = true
   if (skipBtn) skipBtn.disabled = true
   try {
-    await api.pokerNextRound(state.matchId, state.sessionId)
+    const fn = state.gameId === 'uno' ? api.unoNextRound : api.pokerNextRound
+    await fn(state.matchId, state.sessionId)
     const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
-    state.gameState = gs; applyServerState(gs); saveSession(); render()
+    state.gameState = gs; applyServerState(gs); saveSession()
+    handResultActive = false
+    hideBetweenRounds()
+    render()
   } catch (e) { showToast(e.message) }
   finally {
     if (btn)     btn.disabled     = false

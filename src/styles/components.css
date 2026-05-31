@@ -268,6 +268,9 @@ html[data-theme="hangout"] .glass {
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
 .br-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+#br-round-wins { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.br-standing { font-size: 12px; color: var(--muted); }
+.br-standing.me { color: #fff; font-weight: 700; }
 
 /* ── Showdown bar ── */
 #showdown-bar {
