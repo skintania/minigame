@@ -23,25 +23,35 @@ function cardEffClass(card) {
 const COLOR_HEX = { red: '#ff4757', blue: '#3AABDE', green: '#2ed573', yellow: '#ffd32a' }
 const VAL_LABEL = { skip: '⊘', reverse: '↺', draw2: '+2' }
 
+// Seats in CW order: left → mid-left → top-left → top-center → top-right → mid-right → right
+// For CCW games the opponent list is reversed before assigning so next-to-play lands on the right
 const SEAT_MAP = [
   [],
   ['top-center'],
   ['top-left', 'top-right'],
-  ['top-left', 'top-center', 'top-right'],
-  ['top-left', 'top-center', 'top-right', 'right'],
-  ['top-left', 'top-center', 'top-right', 'mid-left', 'mid-right'],
-  ['top-left', 'top-center', 'top-right', 'left', 'mid-right', 'right'],
-  ['left', 'top-left', 'top-center', 'top-right', 'right', 'mid-left', 'mid-right'],
+  ['left', 'top-center', 'right'],
+  ['left', 'top-left', 'top-right', 'right'],
+  ['left', 'top-left', 'top-center', 'top-right', 'right'],
+  ['left', 'mid-left', 'top-left', 'top-center', 'top-right', 'right'],
+  ['left', 'mid-left', 'top-left', 'top-center', 'top-right', 'mid-right', 'right'],
 ]
 
 export function renderBoard(meta, mine, onPlay) {
-  const players     = state.gameState.players || []
-  const opponents   = players.filter(p => p !== state.sessionId)
   const names       = state.gameState.playerNames || {}
   const hands       = meta.hands || {}
   const isFinished  = meta.phase === 'finished'
   const revealSec   = state.gameState.revealRemainingSec ?? null
   const finishOrder = meta.finishOrder || []
+
+  // Derive opponent order from turnOrder so seats follow the actual play sequence.
+  // My seat is always the bottom; turnOrder[slice after me] gives CW order from my perspective.
+  // Reverse the list for CCW so the next-to-play opponent lands on the right side.
+  const turnOrder  = meta.turnOrder || []
+  const myTurnIdx  = turnOrder.indexOf(state.sessionId)
+  let opponents = myTurnIdx >= 0
+    ? [...turnOrder.slice(myTurnIdx + 1), ...turnOrder.slice(0, myTurnIdx)]
+    : (state.gameState.players || []).filter(p => p !== state.sessionId)
+  if (meta.direction === -1 && opponents.length > 0) opponents = [...opponents].reverse()
 
   // ── Opponents — positioned badges around the table ───────
   const oppContainer = document.getElementById('uno-opponents')
