@@ -3,7 +3,8 @@ import { unoAct, unoPlay, pickColor } from './actions.js'
 
 export default {
   init() {
-    document.getElementById('btn-draw').addEventListener('click', () => unoAct({ type: 'draw' }))
+    document.getElementById('btn-draw')?.addEventListener('click', () => unoAct({ type: 'draw' }))
+    document.getElementById('uno-draw-pile')?.addEventListener('click', () => unoAct({ type: 'draw' }))
 
     ;['red', 'blue', 'green', 'yellow'].forEach(color => {
       document.getElementById(`color-${color}`).addEventListener('click', () => pickColor(color))

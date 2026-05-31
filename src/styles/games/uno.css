@@ -20,7 +20,7 @@
 
 .uno-table-area {
   position: relative;
-  padding: 80px;
+  padding: 80px 100px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -45,15 +45,15 @@
   transform: translate(-50%, -50%);
 }
 
-/* Positions calculated for a circle centered in an 80px-padded table-area.
-   Radius ≈ 33% of table-area. Angles measured clockwise from North. */
+/* Positions for 5:3 oval table with 80px/100px padding.
+   rx≈36%, ry≈33% of table-area. Angles measured clockwise from North. */
 .uno-opp-slot[data-seat="top-center"] { left: 50%; top: 17%; }   /* 0°   */
-.uno-opp-slot[data-seat="top-left"]   { left: 33%; top: 21%; }   /* -30° */
-.uno-opp-slot[data-seat="top-right"]  { left: 67%; top: 21%; }   /* +30° */
-.uno-opp-slot[data-seat="mid-left"]   { left: 21%; top: 33%; }   /* -60° */
-.uno-opp-slot[data-seat="mid-right"]  { left: 79%; top: 33%; }   /* +60° */
-.uno-opp-slot[data-seat="left"]       { left: 17%; top: 50%; }   /* -90° */
-.uno-opp-slot[data-seat="right"]      { left: 83%; top: 50%; }   /* +90° */
+.uno-opp-slot[data-seat="top-left"]   { left: 32%; top: 21%; }   /* -30° */
+.uno-opp-slot[data-seat="top-right"]  { left: 68%; top: 21%; }   /* +30° */
+.uno-opp-slot[data-seat="mid-left"]   { left: 19%; top: 34%; }   /* -60° */
+.uno-opp-slot[data-seat="mid-right"]  { left: 81%; top: 34%; }   /* +60° */
+.uno-opp-slot[data-seat="left"]       { left: 14%; top: 50%; }   /* -90° */
+.uno-opp-slot[data-seat="right"]      { left: 86%; top: 50%; }   /* +90° */
 
 /* Name badge */
 .uno-opp-badge {
@@ -100,14 +100,14 @@
   box-shadow: 0 0 20px rgba(255,215,0,0.45);
 }
 
-/* Green felt table — circular */
+/* Green felt table — oval (5:3 ratio) */
 .uno-table {
-  width: min(50vw, 320px);
-  aspect-ratio: 1;
+  width: min(56vw, 500px);
+  aspect-ratio: 5 / 3;
   background:
-    radial-gradient(circle at 50% 30%, rgba(100,220,130,0.12) 0%, transparent 55%),
-    radial-gradient(circle at center, #28784a 0%, #1a5432 50%, #0d3320 100%);
-  border-radius: 50%;
+    radial-gradient(ellipse at 50% 30%, rgba(100,220,130,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #28784a 0%, #1a5432 50%, #0d3320 100%);
+  border-radius: 999px;
   border: 12px solid #7a4520;
   box-shadow:
     inset 0 3px 10px rgba(255,255,255,0.07),
@@ -127,7 +127,7 @@
   content: '';
   position: absolute;
   inset: 7px;
-  border-radius: 50%;
+  border-radius: 999px;
   border: 1px solid rgba(255,255,255,0.055);
   pointer-events: none;
 }
@@ -277,8 +277,8 @@ html[data-theme="classic"] .uno-opp-badge {
 
 @media (max-width: 640px) {
   #uno-board { padding: 0 16px 8px; }
-  .uno-table-area { padding: 60px; }
-  .uno-table { width: min(72vw, 260px); }
+  .uno-table-area { padding: 60px 70px; }
+  .uno-table { width: min(74vw, 320px); }
 }
 
 /* ── UNO cards ─────────────────────────────────────────── */
@@ -502,4 +502,35 @@ html[data-theme="classic"] .uno-opp-badge {
 #uno-reveal-countdown {
   font-weight: 900;
   color: #fff;
+}
+
+/* ── Draw pile (on table) ── */
+.uno-draw-pile {
+  position: relative;
+  width: 60px;
+  height: 88px;
+  flex-shrink: 0;
+  cursor: default;
+}
+
+.draw-pile-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--pink), var(--blue));
+  border: 2px solid rgba(255,255,255,0.15);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.draw-pile-card.c3 { transform: rotate(-6deg) translate(-3px, 2px); }
+.draw-pile-card.c2 { transform: rotate(-3deg) translate(-1px, 1px); z-index: 1; }
+.draw-pile-card.c1 { z-index: 2; }
+
+.uno-draw-pile.drawable { cursor: pointer; }
+.uno-draw-pile.drawable .draw-pile-card.c1 {
+  animation: draw-glow 1.2s ease-in-out infinite;
+}
+@keyframes draw-glow {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(255,255,255,0.55), 0 4px 12px rgba(0,0,0,0.5); }
+  50%       { box-shadow: 0 0 0 3px rgba(255,255,255,0.85), 0 0 22px rgba(255,255,255,0.3), 0 4px 16px rgba(0,0,0,0.45); }
 }

@@ -1,6 +1,7 @@
 import { state, cfg } from '../../state.js'
 
 const UNO_BASE  = () => `${cfg.url}/assets/cards/uno-deck`
+let _lastHandKey = ''
 const COLOR_HEX = { red: '#ff4757', blue: '#3AABDE', green: '#2ed573', yellow: '#ffd32a' }
 const VAL_LABEL = { skip: '⊘', reverse: '↺', draw2: '+2' }
 
@@ -85,15 +86,28 @@ export function renderBoard(meta, mine, onPlay) {
     if (cEl && revealSec != null) cEl.textContent = `${Math.ceil(revealSec)}s`
   }
 
-  // ── My hand ──────────────────────────────────────────────
+  // ── My hand (cached to prevent image-reload flicker) ────
   const myHand = hands[state.sessionId] || []
   const handEl = document.getElementById('uno-hand')
   if (handEl) {
-    handEl.innerHTML = myHand.map(card => unoCardHTML(card, mine ? canPlay(card, meta) : null)).join('')
-    handEl.onclick   = mine ? e => {
-      const el = e.target.closest('[data-card].playable')
-      if (el) onPlay(el.dataset.card)
-    } : null
+    const topCard = (meta.discard || []).slice(-1)[0] || meta.lastCard || ''
+    const handKey = myHand.join(',') + '|' + mine + '|' + topCard + '|' + (meta.currentColor || '')
+    if (handKey !== _lastHandKey) {
+      _lastHandKey = handKey
+      handEl.innerHTML = myHand.map(card => unoCardHTML(card, mine ? canPlay(card, meta) : null)).join('')
+      handEl.onclick   = mine ? e => {
+        const el = e.target.closest('[data-card].playable')
+        if (el) onPlay(el.dataset.card)
+      } : null
+    }
+  }
+
+  // ── Draw pile ────────────────────────────────────────────
+  const drawPile = document.getElementById('uno-draw-pile')
+  if (drawPile) {
+    const canDraw = mine && !isFinished
+    drawPile.classList.toggle('drawable', !!canDraw)
+    drawPile.style.pointerEvents = canDraw ? '' : 'none'
   }
 
   const myUnoEl = document.getElementById('uno-my-uno')
