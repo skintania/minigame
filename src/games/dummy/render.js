@@ -273,32 +273,38 @@ function renderMelds(melds, mine, drewThis, hasLaid, actions) {
   el.innerHTML = melds.map((meld, i) => {
     const cards         = Array.isArray(meld) ? meld : (meld.cards || [])
     const owner         = Array.isArray(meld) ? null : (meld.owner || null)
-    const contributions = Array.isArray(meld) ? {} : (meld.contributions || {})
+    const contribArr    = Array.isArray(meld) ? [] : (meld.contributions || [])
 
-    // Split into original laid cards vs fak'd cards (grouped by fak owner)
-    const originalCards = cards.filter(c => !contributions[c])
-    const fakByOwner    = {}
-    for (const [card, fakOwner] of Object.entries(contributions)) {
-      if (cards.includes(card)) {
-        if (!fakByOwner[fakOwner]) fakByOwner[fakOwner] = []
-        fakByOwner[fakOwner].push(card)
+    // Build per-player card groups preserving meld card order
+    const byPlayer = {}
+    if (contribArr.length) {
+      for (const { player, card } of contribArr) {
+        if (!byPlayer[player]) byPlayer[player] = []
+        byPlayer[player].push(card)
       }
+    } else {
+      // No contribution data — all cards belong to owner
+      if (owner) byPlayer[owner] = [...cards]
     }
 
-    const ownerName = owner ? (pNames[owner] || owner.slice(0, 8)) : ''
+    // Owner group first, then fak contributors
+    const ownerName  = owner ? (pNames[owner] || owner.slice(0, 8)) : ''
+    const ownerCards = byPlayer[owner] || cards
     const ownerGroup = `<div class="dmy-meld-group">
       ${ownerName ? `<div class="dmy-meld-glabel">${ownerName}</div>` : ''}
-      <div class="dmy-meld-gcards">${originalCards.map(c => cardImgHTML(c, 'meld-card')).join('')}</div>
+      <div class="dmy-meld-gcards">${ownerCards.map(c => cardImgHTML(c, 'meld-card')).join('')}</div>
     </div>`
 
-    const fakGroups = Object.entries(fakByOwner).map(([fakOwner, fakCards]) => {
-      const fakName = pNames[fakOwner] || fakOwner.slice(0, 8)
-      return `<div class="dmy-meld-sep"></div>
-      <div class="dmy-meld-group dmy-meld-fak-group">
-        <div class="dmy-meld-glabel dmy-meld-fak-lbl">${fakName}</div>
-        <div class="dmy-meld-gcards">${fakCards.map(c => cardImgHTML(c, 'meld-card')).join('')}</div>
-      </div>`
-    }).join('')
+    const fakGroups = Object.entries(byPlayer)
+      .filter(([pid]) => pid !== owner)
+      .map(([fakOwner, fakCards]) => {
+        const fakName = pNames[fakOwner] || fakOwner.slice(0, 8)
+        return `<div class="dmy-meld-sep"></div>
+        <div class="dmy-meld-group dmy-meld-fak-group">
+          <div class="dmy-meld-glabel dmy-meld-fak-lbl">${fakName}</div>
+          <div class="dmy-meld-gcards">${fakCards.map(c => cardImgHTML(c, 'meld-card')).join('')}</div>
+        </div>`
+      }).join('')
 
     return `<div class="dmy-meld${canFak ? ' fak-target' : ''}" data-meld-idx="${i}">
       ${ownerGroup}${fakGroups}
