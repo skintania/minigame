@@ -116,6 +116,9 @@ export function renderBoard(meta, mine, actions) {
       : `Round ${meta.currentRound ?? 1}`
   }
 
+  // ── Live scoreboard ───────────────────────────────────
+  renderLiveScores(meta)
+
   // ── Stock pile ────────────────────────────────────────
   const stockEl     = document.getElementById('dmy-stock')
   const stockCntEl  = document.getElementById('dmy-stock-count')
@@ -366,4 +369,29 @@ function updateButtons(meta, mine, actions, myHand) {
       }
     }
   }
+}
+
+function renderLiveScores(meta) {
+  const el = document.getElementById('dmy-live-scores')
+  if (!el) return
+  const names      = state.gameState?.playerNames || {}
+  const players    = state.gameState?.players || []
+  const scores     = meta.totalScores || {}
+  const hasLaid    = meta.hasLaidDown || {}
+  const curPlayer  = meta.currentPlayer || null
+  const isFinished = meta.phase === 'between-rounds'
+
+  const sorted = [...players].sort((a, b) => (scores[a] ?? 0) - (scores[b] ?? 0))
+  el.innerHTML = sorted.map(id => {
+    const name    = names[id] || id.slice(0, 8)
+    const score   = scores[id] ?? 0
+    const laid    = hasLaid[id]
+    const isMe    = id === state.sessionId
+    const isCurr  = id === curPlayer && !isFinished
+    return `<div class="dmy-ls-row${isMe ? ' dmy-ls-me' : ''}${isCurr ? ' dmy-ls-active' : ''}">
+      <span class="dmy-ls-name">${name}</span>
+      ${laid ? '<span class="dmy-ls-laid">Laid ✓</span>' : ''}
+      <span class="dmy-ls-score">${score}pt</span>
+    </div>`
+  }).join('')
 }
