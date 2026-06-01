@@ -86,7 +86,7 @@ Create a private room and get the code to share.
 ```json
 {
   "sessionId": "uuid",
-  "gameId": "poker" | "uno" | "slave",
+  "gameId": "poker" | "uno" | "slave" | "dummy",
   "maxPlayers": 8,
   "startingChips": 1000,
   "turnTimeLimit": 30,
@@ -291,7 +291,7 @@ Find an existing public waiting match, or create one. Only joins matches that ha
 ```json
 {
   "sessionId": "uuid",
-  "gameId": "poker" | "uno" | "slave"
+  "gameId": "poker" | "uno" | "slave" | "dummy"
 }
 ```
 
@@ -551,7 +551,7 @@ Errors: `"Card is not in hand."`, `"Card is not playable on the current discard.
 Draw a card. Behaviour depends on context:
 
 - **No pending draw:** Draw one card. If the drawn card is playable, your turn does **not** pass — you may play it with `POST /play` or skip with `POST /pass`.
-- **Pending draw penalty (`pendingDraw > 0`):** Draw all accumulated penalty cards at once. If any of the drawn cards is playable, your turn does **not** pass — you may play **one** of them with `POST /play` or skip with `POST /pass`. If none are playable, the turn passes automatically.
+- **Pending draw penalty (`pendingDraw > 0`):** Draw all accumulated penalty cards at once. The turn **always passes** after a penalty draw — you cannot play any of the drawn cards.
 
 **Request**
 ```json
@@ -969,6 +969,191 @@ When `phase = "finished"`, the round is over. During the **10-second reveal wind
 - Vice Slave gives their **best 1 card** to Vice President; Vice President gives their **worst 1 card** to Vice Slave. (4+ players only.)
 
 `roundWins` counts how many rounds each player has finished as President.
+
+---
+
+## Games — Dummy (ดัมมี่)
+
+Thai Dummy is a multi-round rummy-style game. Players draw, form melds, and race to empty their hand. Scores accumulate across rounds; highest total wins.
+
+**Card format:** `{rank}{suit}` — e.g. `3♣`, `10♠`, `A♥`, `Q♠`. Suit symbols: ♣ ♦ ♥ ♠.
+
+**Meld types:** Set (3–4 cards of the same rank) or Run (3+ consecutive ranks, same suit). Ace is high only (Q-K-A valid; A-2-3 invalid).
+
+**Point values:** 2–9 = 5 pts, 10/J/Q/K = 10 pts, A = 15 pts, 2♣ = 50 pts, Q♠ = 50 pts, opening discard card = 50 pts.
+
+**Action endpoints return `{ "ok": true }` only.** Poll `GET /games/dummy/:matchId/state` after every action.
+
+### `POST /games/dummy/join`
+
+Find or join a waiting public Dummy match.
+
+**Request** `{ "sessionId": "uuid" }` **Response** `{ "matchId": "uuid" }`
+
+---
+
+### `GET /games/dummy/:matchId/state`
+
+**Query params** `sessionId` — hides opponent hands, computes `myRole`/`isMyTurn`.
+
+**Response** — [Unified Game Response](#unified-game-response)
+
+---
+
+### `POST /games/dummy/:matchId/start`
+
+Start round 1. Host only. Requires 3–5 players. Cards dealt: 3 players → 9 cards, 4 → 7 cards, 5 → 5 cards. First card of the remaining deck is flipped to start the discard pile (worth 50 pts to whoever lays it).
+
+**Request** `{ "sessionId": "uuid" }` **Response** `{ "ok": true }`
+
+---
+
+### `POST /games/dummy/:matchId/draw`
+
+Draw one card from the stock pile. Must be your first action of the turn.
+
+**Request** `{ "sessionId": "uuid" }` **Response** `{ "ok": true }`
+
+Errors: `"You have already drawn this turn."`, `"Stock pile is empty. Draw from the discard pile instead."`
+
+---
+
+### `POST /games/dummy/:matchId/draw-discard`
+
+Draw from the discard pile. Takes the target card **plus all cards below it** (newer cards). The target card **must be included in a lay action this turn**.
+
+The discard pile is ordered oldest-at-top (`discardPile[0]`) to newest-at-bottom (`discardPile[last]`). Targeting an older card takes it and all newer cards beneath it.
+
+**Request**
+```json
+{ "sessionId": "uuid", "card": "K♠" }
+```
+
+`card` — the target card to draw (and all cards below it in the pile).
+
+**Response** `{ "ok": true }`
+
+Errors: `"You have already drawn this turn."`, `"K♠ is not in the discard pile."`
+
+---
+
+### `POST /games/dummy/:matchId/lay`
+
+Lay down a new meld from your hand onto the table. Requires at least 3 cards. If you drew from the discard pile, the target card must be included.
+
+**Request**
+```json
+{ "sessionId": "uuid", "cards": ["K♣", "K♦", "K♥"] }
+```
+
+**Response** `{ "ok": true }`
+
+Errors: `"A meld requires at least 3 cards."`, `"Invalid meld. Must be a set (3–4 same rank) or run (3+ consecutive same suit, A is high only)."`, `"Card X is not in your hand."`, `"You must include X (drawn from discard pile) in this meld."`
+
+---
+
+### `POST /games/dummy/:matchId/fak`
+
+Add one card from your hand to an existing meld on the table (ฝาก). You must have laid down at least one meld yourself this round.
+
+**Request**
+```json
+{ "sessionId": "uuid", "card": "K♠", "meldIndex": 0 }
+```
+
+`meldIndex` — index of the meld in `metadata.melds[]`.
+
+**Response** `{ "ok": true }`
+
+Errors: `"You must lay down a meld before you can ฝาก."`, `"Cannot add K♠ to that meld."`, `"Invalid meld index."`
+
+---
+
+### `POST /games/dummy/:matchId/discard`
+
+Discard one card to end your turn. You must have drawn first. If you drew from the discard pile, you must have laid the target card first.
+
+Discarding a card you could have played (added to a meld or ฝาก'd) incurs a **-50 point penalty**.
+
+**Request**
+```json
+{ "sessionId": "uuid", "card": "5♦" }
+```
+
+**Response** `{ "ok": true }`
+
+Errors: `"You must draw before discarding."`, `"You must lay down X (drawn from discard pile) before discarding."`, `"Card X is not in your hand."`
+
+---
+
+### `POST /games/dummy/:matchId/next-round`
+
+Start the next round. Host only. Only valid during `between-rounds`.
+
+**Request** `{ "sessionId": "uuid" }` **Response** `{ "ok": true }`
+
+---
+
+### `POST /games/dummy/:matchId/end-game`
+
+Close the room immediately. Host only.
+
+**Request** `{ "sessionId": "uuid" }` **Response** `{ "ok": true }`
+
+---
+
+### Dummy `metadata`
+
+```json
+{
+  "phase": "waiting | started | between-rounds | finished",
+  "hands": {
+    "sessionId1": ["K♣", "7♦", "A♠"],
+    "sessionId2": ["hidden", "hidden", "hidden", "hidden"]
+  },
+  "stockCount": 24,
+  "discardPile": ["3♣", "8♥", "Q♦"],
+  "melds": [
+    { "owner": "sessionId1", "cards": ["5♣", "6♣", "7♣"] },
+    { "owner": "sessionId2", "cards": ["K♣", "K♦", "K♥"] }
+  ],
+  "hasLaidDown": { "sessionId1": true, "sessionId2": true },
+  "currentPlayer": "sessionId1",
+  "currentPlayerIndex": 0,
+  "drewThisTurn": false,
+  "drewDiscardTarget": null,
+  "openingCard": "3♣",
+  "discardPenalties": { "sessionId1": 0, "sessionId2": 50 },
+  "totalScores": { "sessionId1": 120, "sessionId2": 80 },
+  "currentRound": 2,
+  "totalRounds": 5,
+  "lastAction": "sessionId1 laid down 5♣ 6♣ 7♣",
+  "roundScores": null,
+  "roundWinner": null,
+  "winner": null
+}
+```
+
+| Field | Description |
+|---|---|
+| `discardPile` | Full pile, visible to all. `[0]` = oldest (top), `[last]` = newest (bottom, last discarded). |
+| `melds` | All laid-down melds on the table. Public. `owner` is the player who laid it. |
+| `hasLaidDown` | Whether each player has laid down at least one meld this round. |
+| `drewThisTurn` | `true` if the current player has already drawn. They must now lay/fak/discard. |
+| `drewDiscardTarget` | Card drawn from discard that must appear in a `lay` action before discarding. `null` otherwise. |
+| `stockCount` | Number of cards remaining in the stock pile (contents hidden). |
+| `openingCard` | The first card of the discard pile — worth 50 pts to whoever lays it. |
+| `discardPenalties` | Accumulated -50 pt penalties this round per player (discarding a playable card). |
+| `totalScores` | Cumulative scores across all completed rounds. |
+| `roundScores` | Scores for the just-completed round. `null` while a round is in progress. |
+| `roundWinner` | Who went out this round. `null` while in progress. |
+| `winner` | Overall game winner (set when `phase = "finished"`). |
+
+**Round scoring:** Laid cards = positive points. Cards in hand at round end = negative points. +50 for going out. -50 per discard-penalty event. Players who never laid down get ×2 on their hand penalty (dummy rule). If the round winner's total laid cards are all one suit: other players' hand penalties ×2 (single-suit knock). If winner also never laid down: ×4 (blind single-suit knock).
+
+**Feeding penalty:** If the very next player draws your just-discarded card (bottom of discard pile) and goes out that turn, you receive an additional -50 penalty.
+
+**Phases:** `waiting → started → between-rounds → started → …` (host triggers `next-round`). After `totalRounds` rounds, `phase = "finished"` and `matchStatus = "finished"`.
 
 ---
 
