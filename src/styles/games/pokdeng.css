@@ -1,0 +1,365 @@
+/* ── Pok Deng Board ───────────────────────────────────────── */
+#pokdeng-board {
+  flex-direction: column;
+  align-items: center;
+  padding: 0 12px 12px;
+}
+
+.pd-table-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+}
+
+/* ── Felt Table ───────────────────────────────────────────── */
+.pd-table-area { width: 100%; }
+
+.pd-table {
+  background: radial-gradient(ellipse at 50% 20%, #1a5c5c 0%, #0a2e2e 100%);
+  border-radius: 20px 20px 0 0;
+  border: 3px solid rgba(255,255,255,0.08);
+  border-bottom: none;
+  padding: 20px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 220px;
+}
+
+/* ── Banker zone ──────────────────────────────────────────── */
+.pd-banker-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.pd-zone-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255,255,255,0.45);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pd-hand-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0,0,0,0.35);
+  border-radius: 5px;
+  padding: 1px 8px;
+}
+
+.pd-banker-hand {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  min-height: 76px;
+}
+
+/* ── Cards ────────────────────────────────────────────────── */
+.pd-card {
+  width: 52px;
+  height: 76px;
+  border-radius: 6px;
+  object-fit: contain;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.55);
+  flex-shrink: 0;
+}
+
+.pd-card.small {
+  width: 34px;
+  height: 50px;
+  border-radius: 4px;
+}
+
+.pd-card-back {
+  width: 52px;
+  height: 76px;
+  border-radius: 6px;
+  background: repeating-linear-gradient(
+    45deg,
+    #3a1a1a,
+    #3a1a1a 4px,
+    #4a2222 4px,
+    #4a2222 8px
+  );
+  border: 2px solid rgba(255,255,255,0.18);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.55);
+  flex-shrink: 0;
+}
+
+.pd-card-back.small {
+  width: 34px;
+  height: 50px;
+  border-radius: 4px;
+}
+
+/* ── Opponents ────────────────────────────────────────────── */
+.pd-opponents {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 50px;
+}
+
+.pd-opp-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  background: rgba(0,0,0,0.22);
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  min-width: 72px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.pd-opp-slot.turn-active {
+  border-color: var(--pink, #ff3c82);
+  background: rgba(255,60,130,0.13);
+}
+
+.pd-opp-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.75);
+  text-align: center;
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pd-opp-chips {
+  font-size: 11px;
+  color: var(--gold, #f5c842);
+  font-weight: 600;
+}
+
+.pd-opp-hand {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+}
+
+.pd-opp-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-height: 18px;
+}
+
+/* ── Info row ─────────────────────────────────────────────── */
+.pd-info-row { text-align: center; min-height: 16px; }
+
+.pd-rotate-info {
+  font-size: 11px;
+  color: rgba(255,215,0,0.65);
+}
+
+/* ── Bet pill ─────────────────────────────────────────────── */
+.pd-bet-pill {
+  font-size: 10px;
+  background: rgba(255,255,255,0.11);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: rgba(255,255,255,0.65);
+  font-weight: 600;
+}
+
+/* ── Result badge ─────────────────────────────────────────── */
+.pd-result-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pd-result-badge.win  { background: rgba(80,200,100,0.22); color: #7effa6; }
+.pd-result-badge.lose { background: rgba(255,90,90,0.22);  color: #ff8888; }
+.pd-result-badge.push { background: rgba(200,200,200,0.15); color: rgba(255,255,255,0.55); }
+
+/* ── Deng badge ───────────────────────────────────────────── */
+.pd-deng-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255,215,0,0.2);
+  color: #ffd700;
+}
+
+/* ── Hand value ───────────────────────────────────────────── */
+.pd-hand-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.75);
+}
+
+/* ── Payout (opponent row) ────────────────────────────────── */
+.pd-payout           { font-size: 11px; font-weight: 700; }
+.pd-payout.positive  { color: #7effa6; }
+.pd-payout.negative  { color: #ff8888; }
+
+/* ── Player zone ──────────────────────────────────────────── */
+.pd-player-zone {
+  width: 100%;
+  background: rgba(0,0,0,0.28);
+  border-radius: 0 0 20px 20px;
+  border: 3px solid rgba(255,255,255,0.07);
+  border-top: none;
+  padding: 14px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pd-player-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pd-chips-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold, #f5c842);
+}
+
+/* ── Banker badge (player zone) ───────────────────────────── */
+.pd-banker-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffd700;
+  background: rgba(255,215,0,0.15);
+  border: 1px solid rgba(255,215,0,0.35);
+  border-radius: 4px;
+  padding: 1px 6px;
+  vertical-align: middle;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Betting UI ───────────────────────────────────────────── */
+.pd-bet-ui {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.pd-chip-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pd-chip-btn {
+  width: auto !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  background: rgba(255,255,255,0.1) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+}
+
+.pd-chip-btn:hover { background: rgba(255,255,255,0.2) !important; }
+
+.pd-bet-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pd-wait-msg {
+  color: rgba(255,255,255,0.45);
+  font-size: 14px;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+/* ── My hand ──────────────────────────────────────────────── */
+.pd-my-hand {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pd-my-hand-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.22);
+  border-radius: 12px;
+}
+
+.pd-hand-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.pd-hand-val-main {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.pd-hand-cards {
+  display: flex;
+  gap: 6px;
+}
+
+/* ── Net chips (my result) ────────────────────────────────── */
+.pd-net-chips {
+  font-size: 20px;
+  font-weight: 800;
+  padding: 4px 18px;
+  border-radius: 10px;
+  letter-spacing: 0.02em;
+}
+
+.pd-net-chips.positive { color: #7effa6; background: rgba(80,200,100,0.14); }
+.pd-net-chips.negative { color: #ff8888; background: rgba(255,80,80,0.14); }
+
+/* ── Action buttons ───────────────────────────────────────── */
+.pd-hand-footer {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .pd-table { padding: 14px 12px 10px; gap: 12px; }
+  .pd-player-zone { padding: 10px 12px 12px; }
+  .pd-card       { width: 42px; height: 62px; }
+  .pd-card.small { width: 28px; height: 40px; }
+  .pd-card-back       { width: 42px; height: 62px; }
+  .pd-card-back.small { width: 28px; height: 40px; }
+  .pd-banker-hand { min-height: 62px; }
+}

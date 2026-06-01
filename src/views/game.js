@@ -111,6 +111,8 @@ export function initGame() {
       try { await api.dummyEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
     } else if (state.gameId === 'blackjack' && state.matchId) {
       try { await api.blackjackEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
+    } else if (state.gameId === 'pokdeng' && state.matchId) {
+      try { await api.pokdengEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
     } else {
       leaveRoom()
     }
@@ -191,12 +193,13 @@ export function enterGame() {
   stopPoll()
 
   const gameId = state.gameId
-  document.getElementById('g-name').textContent           = gameId === 'poker' ? 'Poker' : gameId === 'uno' ? 'UNO' : gameId === 'slave' ? 'Slave' : gameId === 'blackjack' ? 'Blackjack' : 'Dummy'
-  document.getElementById('poker-board').style.display     = gameId === 'poker'      ? 'flex' : 'none'
-  document.getElementById('uno-board').style.display       = gameId === 'uno'        ? 'flex' : 'none'
-  document.getElementById('slave-board').style.display     = gameId === 'slave'      ? 'flex' : 'none'
-  document.getElementById('dummy-board').style.display     = gameId === 'dummy'      ? 'flex' : 'none'
-  document.getElementById('blackjack-board').style.display = gameId === 'blackjack'  ? 'flex' : 'none'
+  document.getElementById('g-name').textContent            = gameId === 'poker' ? 'Poker' : gameId === 'uno' ? 'UNO' : gameId === 'slave' ? 'Slave' : gameId === 'blackjack' ? 'Blackjack' : gameId === 'pokdeng' ? 'Pok Deng' : 'Dummy'
+  document.getElementById('poker-board').style.display      = gameId === 'poker'      ? 'flex' : 'none'
+  document.getElementById('uno-board').style.display        = gameId === 'uno'        ? 'flex' : 'none'
+  document.getElementById('slave-board').style.display      = gameId === 'slave'      ? 'flex' : 'none'
+  document.getElementById('dummy-board').style.display      = gameId === 'dummy'      ? 'flex' : 'none'
+  document.getElementById('blackjack-board').style.display  = gameId === 'blackjack'  ? 'flex' : 'none'
+  document.getElementById('pokdeng-board').style.display    = gameId === 'pokdeng'    ? 'flex' : 'none'
 
   // Move join-wrap into whichever board is active (it lives in poker board by default)
   if (gameId === 'uno') {
@@ -211,6 +214,9 @@ export function enterGame() {
   } else if (gameId === 'blackjack') {
     const wrap = document.getElementById('wr-join-wrap')
     document.querySelector('.bj-player-zone')?.appendChild(wrap)
+  } else if (gameId === 'pokdeng') {
+    const wrap = document.getElementById('wr-join-wrap')
+    document.querySelector('.pd-player-zone')?.appendChild(wrap)
   }
   document.getElementById('btn-end-game').style.display =
     (state.roomCode && amHost()) ? 'inline-flex' : 'none'
@@ -245,7 +251,7 @@ export function enterGame() {
       applyServerState(gs)
       saveSession()
       render()
-      if (['uno', 'slave', 'dummy', 'blackjack'].includes(state.gameId) && gs.matchStatus === 'finished') {
+      if (['uno', 'slave', 'dummy', 'blackjack', 'pokdeng'].includes(state.gameId) && gs.matchStatus === 'finished') {
         stopPoll(); startGameOverCountdown()
       } else if (state.gameId === 'poker' && gs.metadata?.winner && gs.revealRemainingSec == null) {
         stopPoll()
@@ -325,6 +331,7 @@ export function render() {
     document.querySelector('.uno-hand-footer')?.style.setProperty('display', 'none')
     document.querySelector('.dmy-hand-footer')?.style.setProperty('display', 'none')
     document.querySelector('.bj-hand-footer')?.style.setProperty('display', 'none')
+    document.querySelector('.pd-hand-footer')?.style.setProperty('display', 'none')
     updateWaitingPanel(meta)
     registry[state.gameId]?.render(meta, false)
     return
@@ -344,6 +351,7 @@ export function render() {
     document.querySelector('.uno-hand-footer')?.style.setProperty('display', 'none')
     document.querySelector('.dmy-hand-footer')?.style.setProperty('display', 'none')
     document.querySelector('.bj-hand-footer')?.style.setProperty('display', 'none')
+    document.querySelector('.pd-hand-footer')?.style.setProperty('display', 'none')
 
     if (state.gameId === 'slave') {
       document.getElementById('g-phase').textContent = 'Round Over'
@@ -370,6 +378,12 @@ export function render() {
       registry['blackjack']?.render(meta, false)
       const isGameOver = state.gameState?.matchStatus === 'finished'
       showBlackjackScorePanel(meta, isGameOver)
+      showBetweenRounds(meta)
+    } else if (state.gameId === 'pokdeng') {
+      document.getElementById('g-phase').textContent = 'Round Over'
+      registry['pokdeng']?.render(meta, false)
+      const isGameOver = state.gameState?.matchStatus === 'finished'
+      showPokdengScorePanel(meta, isGameOver)
       showBetweenRounds(meta)
     } else {
       // Poker: between-rounds countdown panel
@@ -445,7 +459,7 @@ function updateWaitingPanel(meta) {
   const players = gs?.players     || []
   const chips   = gs?.metadata?.chips || {}
   const isPoker   = state.gameId === 'poker'
-  const hasChips  = isPoker || state.gameId === 'blackjack'
+  const hasChips  = isPoker || state.gameId === 'blackjack' || state.gameId === 'pokdeng'
   const role      = curRole()
   const host    = amHost()
 
@@ -529,7 +543,7 @@ function updateWaitingPanel(meta) {
     document.getElementById('wr-timer-row').style.display  = isPoker  ? '' : 'none'
     document.getElementById('wr-rounds-row').style.display = hasChips ? '' : 'none'
     const bankerRow = document.getElementById('wr-banker-row')
-    if (bankerRow) bankerRow.style.display = state.gameId === 'blackjack' ? '' : 'none'
+    if (bankerRow) bankerRow.style.display = (state.gameId === 'blackjack' || state.gameId === 'pokdeng') ? '' : 'none'
   }
 }
 
@@ -568,9 +582,11 @@ async function wrStartRound() {
   const btn = document.getElementById('wr-start-round')
   btn.disabled = true; btn.textContent = 'Starting…'
   try {
-    if (state.gameId === 'blackjack') {
-      const bankerEl = document.querySelector('input[name="bj-banker"]:checked')
-      await api.blackjackStart(state.matchId, state.sessionId, bankerEl?.value || 'bot')
+    if (state.gameId === 'blackjack' || state.gameId === 'pokdeng') {
+      const bankerEl   = document.querySelector('input[name="wr-banker-mode"]:checked')
+      const bankerMode = bankerEl?.value || 'bot'
+      if (state.gameId === 'blackjack') await api.blackjackStart(state.matchId, state.sessionId, bankerMode)
+      else                              await api.pokdengStart(state.matchId, state.sessionId, bankerMode)
     } else {
       const fn = state.gameId === 'poker'  ? api.pokerStart
                : state.gameId === 'uno'    ? api.unoStart
@@ -954,6 +970,56 @@ function hideBlackjackScorePanel() {
   if (panel) panel.style.display = 'none'
 }
 
+// ── Pok Deng scoreboard panel (top-right, non-blocking) ───
+function showPokdengScorePanel(meta, isGameOver) {
+  const panel = document.getElementById('pd-score-panel')
+  if (!panel) return
+
+  const names   = state.gameState?.playerNames || {}
+  const chips   = meta.chips   || {}
+  const results = meta.results || {}
+  const players = state.gameState?.players || []
+
+  const sorted   = [...players].sort((a, b) => (chips[b] ?? 0) - (chips[a] ?? 0))
+  const winnerId = meta.winner || sorted[0]
+  const isMe     = winnerId === state.sessionId
+  const winName  = isMe ? (state.username || 'You') : (names[winnerId] || 'Opponent')
+
+  document.getElementById('pd-sp-emoji').textContent = isGameOver ? '🎉' : '🃏'
+  document.getElementById('pd-sp-title').textContent = isGameOver
+    ? `Game Over — ${isMe ? 'You win' : winName + ' wins'}!`
+    : 'Round Complete'
+
+  const bodyEl = document.getElementById('pd-sp-body')
+  if (bodyEl) {
+    const medals = ['🥇', '🥈', '🥉']
+    bodyEl.innerHTML = sorted.map((id, i) => {
+      const n       = id === state.sessionId ? (state.username || names[id] || 'You') : (names[id] || id.slice(0, 8))
+      const chp     = chips[id] ?? 0
+      const res     = results[id]
+      const payout  = res?.payout
+      const deng    = res?.playerDeng
+      const outcome = res?.outcome
+      const payText  = payout  != null ? ` (${payout >= 0 ? '+' : ''}${payout})` : ''
+      const dengSpan = deng && deng > 1 ? ` <span class="pd-deng-badge">×${deng}</span>` : ''
+      const resSpan  = outcome
+        ? `<span class="pd-result-badge ${outcome}" style="margin-left:4px">${outcome.toUpperCase()}</span>` : ''
+      return `<div class="sp-row${id === state.sessionId ? ' me' : ''}">
+        <span class="sp-rank">${medals[i] ?? i + 1}</span>
+        <span class="sp-name">${n}${dengSpan}${resSpan}</span>
+        <span class="sp-wins">&#9885; ${chp}${payText}</span>
+      </div>`
+    }).join('')
+  }
+
+  panel.style.display = 'flex'
+}
+
+function hidePokdengScorePanel() {
+  const panel = document.getElementById('pd-score-panel')
+  if (panel) panel.style.display = 'none'
+}
+
 // ── Between-rounds overlay ────────────────────────────────
 function showBetweenRounds(meta) {
   const overlay = document.getElementById('between-rounds-overlay')
@@ -1004,7 +1070,7 @@ function showBetweenRounds(meta) {
         ? (isMe ? 'You went out!' : `${winnerName} went out!`)
         : 'Round complete'
     }
-  } else if (state.gameId === 'blackjack') {
+  } else if (state.gameId === 'blackjack' || state.gameId === 'pokdeng') {
     if (isGameOver) {
       const winnerId = meta.winner
       const isMe     = winnerId === state.sessionId
@@ -1064,6 +1130,7 @@ function hideBetweenRounds() {
   hideUnoScorePanel()
   hideDummyScorePanel()
   hideBlackjackScorePanel()
+  hidePokdengScorePanel()
   clearInterval(betweenRoundsInterval); betweenRoundsInterval = null
   localBetweenRoundsRemaining = null
 }
@@ -1120,6 +1187,8 @@ async function hostNextRound() {
       await api.dummyNextRound(state.matchId, state.sessionId)
     } else if (state.gameId === 'blackjack') {
       await api.blackjackNextRound(state.matchId, state.sessionId)
+    } else if (state.gameId === 'pokdeng') {
+      await api.pokdengNextRound(state.matchId, state.sessionId)
     } else {
       await api.pokerNextRound(state.matchId, state.sessionId)
     }

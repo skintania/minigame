@@ -61,7 +61,7 @@ export const api = {
   dummyDiscard:     (mid, sid, card)      => request('POST', `/games/dummy/${mid}/discard`,       { sessionId: sid, card }),
 
   // Blackjack actions
-  blackjackStart:      (mid, sid)         => request('POST', `/games/blackjack/${mid}/start`,       { sessionId: sid }),
+  blackjackStart:      (mid, sid, bankerMode) => request('POST', `/games/blackjack/${mid}/start`, bankerMode ? { sessionId: sid, bankerMode } : { sessionId: sid }),
   blackjackNextRound:  (mid, sid)         => request('POST', `/games/blackjack/${mid}/next-round`,  { sessionId: sid }),
   blackjackEndGame:    (mid, sid)         => request('POST', `/games/blackjack/${mid}/end-game`,    { sessionId: sid }),
   blackjackBet:        (mid, sid, amount) => request('POST', `/games/blackjack/${mid}/bet`,          { sessionId: sid, amount }),
@@ -69,6 +69,14 @@ export const api = {
   blackjackStand:      (mid, sid)         => request('POST', `/games/blackjack/${mid}/stand`,        { sessionId: sid }),
   blackjackDoubleDown: (mid, sid)         => request('POST', `/games/blackjack/${mid}/double-down`,  { sessionId: sid }),
   blackjackSplit:      (mid, sid)         => request('POST', `/games/blackjack/${mid}/split`,        { sessionId: sid }),
+
+  // Pok Deng actions
+  pokdengStart:     (mid, sid, bankerMode) => request('POST', `/games/pokdeng/${mid}/start`, bankerMode ? { sessionId: sid, bankerMode } : { sessionId: sid }),
+  pokdengNextRound: (mid, sid)             => request('POST', `/games/pokdeng/${mid}/next-round`, { sessionId: sid }),
+  pokdengEndGame:   (mid, sid)             => request('POST', `/games/pokdeng/${mid}/end-game`,   { sessionId: sid }),
+  pokdengBet:       (mid, sid, amount)     => request('POST', `/games/pokdeng/${mid}/bet`,         { sessionId: sid, amount }),
+  pokdengDraw:      (mid, sid)             => request('POST', `/games/pokdeng/${mid}/draw`,        { sessionId: sid }),
+  pokdengStand:     (mid, sid)             => request('POST', `/games/pokdeng/${mid}/stand`,       { sessionId: sid }),
 
   // UNO actions
   unoStart:     (mid, sid)               => request('POST', `/games/uno/${mid}/start`,      { sessionId: sid }),
