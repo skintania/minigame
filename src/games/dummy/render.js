@@ -1,5 +1,6 @@
 import { state, cfg } from '../../state.js'
 import { orderedOpponents } from '../utils.js'
+import { showToast } from '../../ui/toast.js'
 
 const SUIT_NAMES = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs' }
 const RANK_ORDER = { '2':0,'3':1,'4':2,'5':3,'6':4,'7':5,'8':6,'9':7,'10':8,'J':9,'Q':10,'K':11,'A':12 }
@@ -18,6 +19,8 @@ let _fakMode          = false
 let _discardTargetIdx = -1
 let _lastHandKey      = ''
 let _lastDiscardKey   = ''
+let _lastPenalties    = {}
+let _lastPenaltyRound = -1
 
 function parseCard(card) {
   return { suit: card.slice(-1), rank: card.slice(0, -1) }
@@ -115,6 +118,21 @@ export function renderBoard(meta, mine, actions) {
       ? `Round ${meta.currentRound ?? 1} / ${meta.totalRounds}`
       : `Round ${meta.currentRound ?? 1}`
   }
+
+  // ── Penalty notifications ─────────────────────────────
+  const curRound = meta.currentRound ?? 1
+  if (curRound !== _lastPenaltyRound) {
+    _lastPenalties    = {}
+    _lastPenaltyRound = curRound
+  }
+  const penalties = meta.discardPenalties || {}
+  for (const [id, total] of Object.entries(penalties)) {
+    if (total > (_lastPenalties[id] ?? 0)) {
+      const pName = names[id] || id.slice(0, 8)
+      showToast(`⚠️ ${pName} got a −50 penalty for discarding a playable card!`, 6000)
+    }
+  }
+  _lastPenalties = { ...penalties }
 
   // ── Live scoreboard ───────────────────────────────────
   renderLiveScores(meta)
@@ -249,11 +267,14 @@ function renderMelds(melds, mine, drewThis, hasLaid, actions) {
     return
   }
 
-  const canFak = _fakMode && mine && drewThis && hasLaid && _selectedIndices.length === 1
+  const canFak  = _fakMode && mine && drewThis && hasLaid && _selectedIndices.length === 1
+  const pNames  = state.gameState?.playerNames || {}
 
   el.innerHTML = melds.map((meld, i) => {
     const cards = Array.isArray(meld) ? meld : (meld.cards || [])
-    return `<div class="dmy-meld${canFak ? ' fak-target' : ''}" data-meld-idx="${i}">
+    const owner = Array.isArray(meld) ? null : (meld.owner || null)
+    const label = owner ? (pNames[owner] || owner.slice(0, 8)) : ''
+    return `<div class="dmy-meld${canFak ? ' fak-target' : ''}" data-meld-idx="${i}" data-owner="${label}">
       ${cards.map(c => cardImgHTML(c, 'meld-card')).join('')}
     </div>`
   }).join('')

@@ -348,9 +348,27 @@
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 10px;
-  padding: 6px 8px;
+  padding: 6px 8px 6px;
+  padding-top: 20px;
   cursor: default;
+  position: relative;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.dmy-meld::before {
+  content: attr(data-owner);
+  position: absolute;
+  top: 4px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+  pointer-events: none;
 }
 
 .dmy-meld.fak-target {
