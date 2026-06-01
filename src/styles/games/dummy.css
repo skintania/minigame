@@ -485,19 +485,86 @@ html[data-theme="classic"] .dmy-table {
   border-color: #1a3080;
 }
 
-/* ── Touch screens ───────────────────────────────────── */
-@media (pointer: coarse) {
-  .dmy-table-area { padding: 55px 60px 16px; }
-  .dmy-table { width: min(96vw, 480px); gap: 14px; padding: 14px 16px; }
-  .dmy-card-img { width: 52px; height: 76px; }
-  .dp-img { width: 44px; height: 64px; }
-  .dmy-dp-card { margin-right: -26px; }
-  .dmy-melds { max-height: 120px; }
-}
+/* ── Mobile layout (≤680px) ──────────────────────────── */
+@media (max-width: 680px) {
+  /* Opponents: flat horizontal strip above the table */
+  .dmy-table-area {
+    padding: 0 4px;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+  }
 
-@media (pointer: coarse) and (max-width: 480px) {
-  .dmy-table { width: min(98vw, 320px); gap: 10px; padding: 10px 12px; }
-  .dmy-card-img { width: 44px; height: 64px; }
-  .dp-img { width: 38px; height: 55px; }
-  .dmy-dp-card { margin-right: -22px; }
+  .dmy-opponents-overlay {
+    position: static;
+    inset: auto;
+    pointer-events: all;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+    z-index: auto;
+    overflow: visible;
+    width: 100%;
+  }
+
+  .dmy-opp-slot {
+    position: static !important;
+    transform: none !important;
+  }
+
+  /* Hide mini card backs — too small to read on phone */
+  .dmy-opp-cards { display: none; }
+
+  /* Compact table */
+  .dmy-table {
+    width: min(98vw, 420px);
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  /* Discard pile: limited width, scrolls horizontally to newest card */
+  .dmy-discard-wrap {
+    flex: none;
+    max-width: 165px;
+    min-width: 0;
+  }
+
+  .dmy-discard {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    min-height: 70px;
+  }
+  .dmy-discard::-webkit-scrollbar { display: none; }
+
+  /* Smaller landscape cards on mobile */
+  .dmy-dp-card.landscape {
+    width: 60px;
+    height: 42px;
+    margin-right: -38px;
+  }
+  .dmy-dp-card.landscape:last-child { margin-right: 0; }
+  .dmy-dp-card.landscape .dp-img {
+    width: 42px;
+    height: 60px;
+  }
+
+  /* Smaller portrait opening card */
+  .dp-img { width: 44px; height: 64px; }
+
+  /* Round label stays, live scores removed (scores in badges above) */
+  .dmy-live-scores { display: none; }
+  .dmy-round-lbl   { font-size: 11px; }
+
+  /* Game info narrower */
+  .dmy-game-info { min-width: 50px; }
+
+  /* Hand cards */
+  .dmy-card-img { width: 52px; height: 76px; }
+
+  /* Melds */
+  .dmy-melds { max-height: 110px; }
 }

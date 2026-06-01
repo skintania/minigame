@@ -206,6 +206,9 @@ function renderDiscardPile(pile, mine, drewThis, isFinished, openingCard, action
     </div>`
   }).join('')
 
+  // On mobile the pile scrolls — keep newest card in view
+  el.scrollLeft = el.scrollWidth
+
   el.onclick = canDrawFrom ? e => {
     const item = e.target.closest('[data-dp-idx]')
     if (!item) return
