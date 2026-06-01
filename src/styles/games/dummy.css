@@ -344,31 +344,49 @@
 
 .dmy-meld {
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 10px;
-  padding: 6px 8px 6px;
-  padding-top: 20px;
+  padding: 6px 8px;
+  gap: 0;
   cursor: default;
-  position: relative;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
-.dmy-meld::before {
-  content: attr(data-owner);
-  position: absolute;
-  top: 4px;
-  left: 0; right: 0;
-  text-align: center;
+/* Owner / fak group inside a meld */
+.dmy-meld-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.dmy-meld-gcards {
+  display: flex;
+  align-items: flex-end;
+}
+
+.dmy-meld-glabel {
   font-size: 9px;
   font-weight: 600;
   color: rgba(255,255,255,0.5);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 0 4px;
-  pointer-events: none;
+  text-align: center;
+  min-height: 11px;
+}
+
+.dmy-meld-fak-lbl {
+  color: rgba(100, 200, 255, 0.8);
+}
+
+/* Thin divider between original meld and ฝาก'd group */
+.dmy-meld-sep {
+  width: 1px;
+  background: rgba(255,255,255,0.14);
+  margin: 2px 5px;
+  align-self: stretch;
+  flex-shrink: 0;
 }
 
 .dmy-meld.fak-target {
