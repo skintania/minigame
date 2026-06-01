@@ -528,6 +528,8 @@ function updateWaitingPanel(meta) {
     document.getElementById('wr-chips-row').style.display  = hasChips ? '' : 'none'
     document.getElementById('wr-timer-row').style.display  = isPoker  ? '' : 'none'
     document.getElementById('wr-rounds-row').style.display = hasChips ? '' : 'none'
+    const bankerRow = document.getElementById('wr-banker-row')
+    if (bankerRow) bankerRow.style.display = state.gameId === 'blackjack' ? '' : 'none'
   }
 }
 
@@ -566,12 +568,16 @@ async function wrStartRound() {
   const btn = document.getElementById('wr-start-round')
   btn.disabled = true; btn.textContent = 'Starting…'
   try {
-    const fn = state.gameId === 'poker'     ? api.pokerStart
-             : state.gameId === 'uno'       ? api.unoStart
-             : state.gameId === 'dummy'     ? api.dummyStart
-             : state.gameId === 'blackjack' ? api.blackjackStart
-             : api.slaveStart
-    await fn(state.matchId, state.sessionId)
+    if (state.gameId === 'blackjack') {
+      const bankerEl = document.querySelector('input[name="bj-banker"]:checked')
+      await api.blackjackStart(state.matchId, state.sessionId, bankerEl?.value || 'bot')
+    } else {
+      const fn = state.gameId === 'poker'  ? api.pokerStart
+               : state.gameId === 'uno'    ? api.unoStart
+               : state.gameId === 'dummy'  ? api.dummyStart
+               : api.slaveStart
+      await fn(state.matchId, state.sessionId)
+    }
     const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
     state.gameState = gs; applyServerState(gs); saveSession()
     if (!state.poll) enterGame()
@@ -923,15 +929,18 @@ function showBlackjackScorePanel(meta, isGameOver) {
 
   const bodyEl = document.getElementById('bj-sp-body')
   if (bodyEl) {
-    const medals = ['🥇', '🥈', '🥉']
+    const medals   = ['🥇', '🥈', '🥉']
+    const dealerId = meta.dealerId
     bodyEl.innerHTML = sorted.map((id, i) => {
       const n   = id === state.sessionId ? (state.username || names[id] || 'You') : (names[id] || id.slice(0, 8))
       const net = netChips[id]
       const chp = chips[id] ?? 0
-      const netText = net != null ? ` (${net >= 0 ? '+' : ''}${net})` : ''
+      const netText    = net != null ? ` (${net >= 0 ? '+' : ''}${net})` : ''
+      const dealerBadge = (meta.bankerMode === 'rotate' && id === dealerId)
+        ? ' <span class="bj-dealer-badge">Dealer</span>' : ''
       return `<div class="sp-row${id === state.sessionId ? ' me' : ''}">
         <span class="sp-rank">${medals[i] ?? i + 1}</span>
-        <span class="sp-name">${n}</span>
+        <span class="sp-name">${n}${dealerBadge}</span>
         <span class="sp-wins">&#9885; ${chp}${netText}</span>
       </div>`
     }).join('')

@@ -61,6 +61,9 @@ export function renderBoard(meta, mine) {
   const netChips   = meta.netChips || {}
   const isBetween  = phase === 'between-rounds' || phase === 'finished'
   const isSpect    = state.gameState?.myRole === 'spectator'
+  const isRotate   = meta.bankerMode === 'rotate'
+  const dealerId   = meta.dealerId || null
+  const isDealer   = isRotate && myId === dealerId
 
   const myChips     = chips[myId] ?? 0
   const myBetPlaced = betsPlaced[myId] === true
@@ -73,9 +76,25 @@ export function renderBoard(meta, mine) {
   const deckEl = document.getElementById('bj-deck-size')
   if (deckEl) deckEl.textContent = meta.deckSize ?? '—'
 
+  // Rotate-mode info (current dealer name in the table area)
+  const rotateInfoEl = document.getElementById('bj-rotate-info')
+  if (rotateInfoEl) {
+    if (isRotate && dealerId) {
+      const dealerName = dealerId === myId ? (state.username || 'You') : (names[dealerId] || dealerId.slice(0, 8))
+      rotateInfoEl.textContent = `Dealer: ${dealerName}`
+      rotateInfoEl.style.display = ''
+    } else {
+      rotateInfoEl.style.display = 'none'
+    }
+  }
+
   // My chip count (always visible)
   const myChipsEl = document.getElementById('bj-my-chips')
   if (myChipsEl) myChipsEl.textContent = myChips
+
+  // Dealer indicator badge (shown when I am the dealer in rotate mode)
+  const dealerIndicator = document.getElementById('bj-dealer-indicator')
+  if (dealerIndicator) dealerIndicator.style.display = isDealer ? '' : 'none'
 
   // Dealer
   const dealerEl    = document.getElementById('bj-dealer-hand')
@@ -84,7 +103,7 @@ export function renderBoard(meta, mine) {
   if (dealerValEl) dealerValEl.textContent       = dealerHand.length ? valueLabel(dealerHand) : ''
 
   // Opponents
-  _renderOpponents(meta, names, myId, hands, bets, handStatus, activeIdx, betsPlaced, chips, results, isBetween)
+  _renderOpponents(meta, names, myId, hands, bets, handStatus, activeIdx, betsPlaced, chips, results, isBetween, isRotate, dealerId)
 
   // My section
   const betUI   = document.getElementById('bj-bet-ui')
@@ -93,12 +112,15 @@ export function renderBoard(meta, mine) {
   const footer  = document.getElementById('bj-hand-footer')
 
   if (phase === 'betting' && !isSpect) {
-    if (!myBetPlaced) {
+    if (!isDealer && !myBetPlaced) {
       if (betUI) { betUI.style.display = ''; _renderBetUI(myChips) }
       if (waitMsg) waitMsg.style.display = 'none'
     } else {
       if (betUI)   betUI.style.display   = 'none'
-      if (waitMsg) waitMsg.style.display = ''
+      if (waitMsg) {
+        waitMsg.style.display = ''
+        waitMsg.textContent   = isDealer ? 'You are the Dealer — waiting for players…' : 'Waiting for others to bet…'
+      }
     }
     if (handsEl) handsEl.innerHTML     = ''
     if (footer)  footer.style.display  = 'none'
@@ -115,7 +137,7 @@ export function renderBoard(meta, mine) {
   }
 }
 
-function _renderOpponents(meta, names, myId, hands, bets, handStatus, activeIdx, betsPlaced, chips, results, isBetween) {
+function _renderOpponents(meta, names, myId, hands, bets, handStatus, activeIdx, betsPlaced, chips, results, isBetween, isRotate, dealerId) {
   const oppEl = document.getElementById('bj-opponents')
   if (!oppEl) return
   const players   = state.gameState?.players || []
@@ -132,6 +154,7 @@ function _renderOpponents(meta, names, myId, hands, bets, handStatus, activeIdx,
     const pResults = results[id] || []
     const isCurrent = meta.currentPlayer === id
     const hasBet   = betsPlaced[id] === true
+    const isOppDealer = isRotate && id === dealerId
 
     const handsHTML = pHands.length
       ? pHands.map((h, hi) => {
@@ -150,9 +173,10 @@ function _renderOpponents(meta, names, myId, hands, bets, handStatus, activeIdx,
           ? `<div class="bj-opp-waiting">${cardHTML('hidden', true)}${cardHTML('hidden', true)}</div>`
           : ''
 
-    const betHtml = hasBet ? `<span class="bj-bet-pill">&#9885; ${pBets[0] ?? '?'}</span>` : ''
-    return `<div class="bj-opp-slot${isCurrent ? ' turn-active' : ''}">
-      <div class="bj-opp-name">${name}</div>
+    const betHtml    = hasBet ? `<span class="bj-bet-pill">&#9885; ${pBets[0] ?? '?'}</span>` : ''
+    const dealerHtml = isOppDealer ? `<span class="bj-dealer-badge">Dealer</span>` : ''
+    return `<div class="bj-opp-slot${isCurrent ? ' turn-active' : ''}${isOppDealer ? ' dealer-seat' : ''}">
+      <div class="bj-opp-name">${name}${dealerHtml}</div>
       <div class="bj-opp-chips">&#9885; ${pChips}</div>
       ${betHtml}
       <div class="bj-opp-hands">${handsHTML}</div>

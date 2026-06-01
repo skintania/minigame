@@ -347,6 +347,54 @@
   justify-content: center;
 }
 
+/* ── Rotate mode ──────────────────────────────────────────── */
+.bj-dealer-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffd700;
+  background: rgba(255,215,0,0.15);
+  border: 1px solid rgba(255,215,0,0.35);
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin-left: 5px;
+  vertical-align: middle;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bj-rotate-info {
+  font-size: 11px;
+  color: rgba(255,215,0,0.65);
+  margin-left: 12px;
+}
+
+.bj-opp-slot.dealer-seat {
+  border-color: rgba(255,215,0,0.45);
+  background: rgba(255,215,0,0.07);
+}
+
+/* ── Banker toggle (waiting panel) ───────────────────────── */
+.bj-banker-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.bj-banker-opt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.75);
+  cursor: pointer;
+}
+
+.bj-banker-opt input[type="radio"] {
+  accent-color: var(--pink, #ff3c82);
+  cursor: pointer;
+}
+
 /* ── Mobile ───────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .bj-table { padding: 14px 12px 10px; gap: 12px; }
