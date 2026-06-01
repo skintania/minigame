@@ -30,7 +30,8 @@ export async function initLogin() {
   document.getElementById('btn-create-poker').addEventListener('click', () => doCreateRoom('poker'))
   document.getElementById('btn-create-uno').addEventListener('click',   () => doCreateRoom('uno'))
   document.getElementById('btn-create-slave').addEventListener('click', () => doCreateRoom('slave'))
-  document.getElementById('btn-create-dummy').addEventListener('click', () => doCreateRoom('dummy'))
+  document.getElementById('btn-create-dummy').addEventListener('click',      () => doCreateRoom('dummy'))
+  document.getElementById('btn-create-blackjack').addEventListener('click', () => doCreateRoom('blackjack'))
 
   // Auto-reconnect
   if (state.sessionId) {

@@ -60,6 +60,16 @@ export const api = {
   dummyFak:         (mid, sid, card, meldIndex) => request('POST', `/games/dummy/${mid}/fak`,    { sessionId: sid, card, meldIndex }),
   dummyDiscard:     (mid, sid, card)      => request('POST', `/games/dummy/${mid}/discard`,       { sessionId: sid, card }),
 
+  // Blackjack actions
+  blackjackStart:      (mid, sid)         => request('POST', `/games/blackjack/${mid}/start`,       { sessionId: sid }),
+  blackjackNextRound:  (mid, sid)         => request('POST', `/games/blackjack/${mid}/next-round`,  { sessionId: sid }),
+  blackjackEndGame:    (mid, sid)         => request('POST', `/games/blackjack/${mid}/end-game`,    { sessionId: sid }),
+  blackjackBet:        (mid, sid, amount) => request('POST', `/games/blackjack/${mid}/bet`,          { sessionId: sid, amount }),
+  blackjackHit:        (mid, sid)         => request('POST', `/games/blackjack/${mid}/hit`,          { sessionId: sid }),
+  blackjackStand:      (mid, sid)         => request('POST', `/games/blackjack/${mid}/stand`,        { sessionId: sid }),
+  blackjackDoubleDown: (mid, sid)         => request('POST', `/games/blackjack/${mid}/double-down`,  { sessionId: sid }),
+  blackjackSplit:      (mid, sid)         => request('POST', `/games/blackjack/${mid}/split`,        { sessionId: sid }),
+
   // UNO actions
   unoStart:     (mid, sid)               => request('POST', `/games/uno/${mid}/start`,      { sessionId: sid }),
   unoNextRound: (mid, sid)               => request('POST', `/games/uno/${mid}/next-round`, { sessionId: sid }),

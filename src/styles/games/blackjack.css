@@ -1,0 +1,359 @@
+/* ── Blackjack Board ─────────────────────────────────────── */
+#blackjack-board {
+  flex-direction: column;
+  align-items: center;
+  padding: 0 12px 12px;
+}
+
+.bj-table-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+}
+
+/* ── Felt Table ───────────────────────────────────────────── */
+.bj-table-area { width: 100%; }
+
+.bj-table {
+  background: radial-gradient(ellipse at 50% 20%, #1e7042 0%, #0f3d22 100%);
+  border-radius: 20px 20px 0 0;
+  border: 3px solid rgba(255,255,255,0.08);
+  border-bottom: none;
+  padding: 20px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 220px;
+}
+
+/* ── Dealer ───────────────────────────────────────────────── */
+.bj-dealer-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.bj-zone-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255,255,255,0.45);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bj-hand-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0,0,0,0.35);
+  border-radius: 5px;
+  padding: 1px 8px;
+}
+
+.bj-dealer-hand {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  min-height: 76px;
+}
+
+/* ── Cards ────────────────────────────────────────────────── */
+.bj-card {
+  width: 52px;
+  height: 76px;
+  border-radius: 6px;
+  object-fit: contain;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.55);
+  flex-shrink: 0;
+}
+
+.bj-card.small {
+  width: 34px;
+  height: 50px;
+  border-radius: 4px;
+}
+
+.bj-card-back {
+  width: 52px;
+  height: 76px;
+  border-radius: 6px;
+  background: repeating-linear-gradient(
+    45deg,
+    #1a3a8a,
+    #1a3a8a 4px,
+    #1e44a6 4px,
+    #1e44a6 8px
+  );
+  border: 2px solid rgba(255,255,255,0.18);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.55);
+  flex-shrink: 0;
+}
+
+.bj-card-back.small {
+  width: 34px;
+  height: 50px;
+  border-radius: 4px;
+}
+
+/* ── Opponents ────────────────────────────────────────────── */
+.bj-opponents {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 50px;
+}
+
+.bj-opp-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  background: rgba(0,0,0,0.22);
+  border-radius: 12px;
+  border: 1.5px solid transparent;
+  min-width: 72px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.bj-opp-slot.turn-active {
+  border-color: var(--pink, #ff3c82);
+  background: rgba(255,60,130,0.13);
+}
+
+.bj-opp-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.75);
+  text-align: center;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bj-opp-chips {
+  font-size: 11px;
+  color: var(--gold, #f5c842);
+  font-weight: 600;
+}
+
+.bj-opp-hands {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.bj-opp-waiting {
+  display: flex;
+  gap: 3px;
+  opacity: 0.35;
+}
+
+/* ── Deck row ─────────────────────────────────────────────── */
+.bj-deck-row { text-align: center; }
+.bj-deck-lbl { font-size: 11px; color: rgba(255,255,255,0.28); }
+
+/* ── Hand group (opponent & dealer) ──────────────────────── */
+.bj-hand-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.bj-hand-cards {
+  display: flex;
+  gap: 3px;
+}
+
+.bj-hand-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bj-hand-val {
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.75);
+}
+
+.bj-hand-group.active  .bj-hand-val { color: #7effa6; }
+.bj-hand-group.bust    .bj-hand-val { color: #ff6b6b; }
+.bj-hand-group.bj-bj   .bj-hand-val { color: #ffd700; }
+.bj-hand-group.stood   .bj-hand-val { color: rgba(255,255,255,0.4); }
+
+/* ── Bet pill ─────────────────────────────────────────────── */
+.bj-bet-pill {
+  font-size: 10px;
+  background: rgba(255,255,255,0.11);
+  border-radius: 4px;
+  padding: 1px 6px;
+  color: rgba(255,255,255,0.65);
+  font-weight: 600;
+}
+
+/* ── Result badge ─────────────────────────────────────────── */
+.bj-result-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.bj-result-badge.win       { background: rgba(80,200,100,0.22); color: #7effa6; }
+.bj-result-badge.lose      { background: rgba(255,90,90,0.22);  color: #ff8888; }
+.bj-result-badge.push      { background: rgba(200,200,200,0.15); color: rgba(255,255,255,0.55); }
+.bj-result-badge.blackjack { background: rgba(255,215,0,0.22);  color: #ffd700; }
+
+/* ── Player zone ──────────────────────────────────────────── */
+.bj-player-zone {
+  width: 100%;
+  background: rgba(0,0,0,0.28);
+  border-radius: 0 0 20px 20px;
+  border: 3px solid rgba(255,255,255,0.07);
+  border-top: none;
+  padding: 14px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.bj-player-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bj-chips-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold, #f5c842);
+}
+
+/* ── Betting UI ───────────────────────────────────────────── */
+.bj-bet-ui {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.bj-chip-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.bj-chip-btn {
+  width: auto !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  background: rgba(255,255,255,0.1) !important;
+  border: 1px solid rgba(255,255,255,0.2) !important;
+}
+
+.bj-chip-btn:hover { background: rgba(255,255,255,0.2) !important; }
+
+.bj-bet-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bj-wait-msg {
+  color: rgba(255,255,255,0.45);
+  font-size: 14px;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+/* ── My hands ─────────────────────────────────────────────── */
+.bj-my-hands {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.bj-my-hands-inner {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.bj-my-hand-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.22);
+  border-radius: 12px;
+  border: 2px solid transparent;
+  transition: border-color 0.2s, background 0.2s, opacity 0.2s;
+}
+
+.bj-my-hand-group.active   { border-color: var(--pink, #ff3c82); background: rgba(255,60,130,0.1); }
+.bj-my-hand-group.bust     { border-color: rgba(255,90,90,0.45); opacity: 0.7; }
+.bj-my-hand-group.bj-bj    { border-color: #ffd700; }
+.bj-my-hand-group.stood    { opacity: 0.6; }
+
+.bj-hand-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.bj-my-hand-group .bj-hand-val { font-size: 14px; font-weight: 700; }
+.bj-my-hand-group.active   .bj-hand-val { color: #7effa6; }
+.bj-my-hand-group.bust     .bj-hand-val { color: #ff6b6b; }
+.bj-my-hand-group.bj-bj    .bj-hand-val { color: #ffd700; }
+
+/* ── Net chip change ──────────────────────────────────────── */
+.bj-net-chips {
+  font-size: 20px;
+  font-weight: 800;
+  padding: 4px 18px;
+  border-radius: 10px;
+  letter-spacing: 0.02em;
+}
+
+.bj-net-chips.positive { color: #7effa6; background: rgba(80,200,100,0.14); }
+.bj-net-chips.negative { color: #ff8888; background: rgba(255,80,80,0.14); }
+
+/* ── Action buttons ───────────────────────────────────────── */
+.bj-hand-footer {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .bj-table { padding: 14px 12px 10px; gap: 12px; }
+  .bj-player-zone { padding: 10px 12px 12px; }
+  .bj-card       { width: 42px; height: 62px; }
+  .bj-card.small { width: 28px; height: 40px; }
+  .bj-card-back       { width: 42px; height: 62px; }
+  .bj-card-back.small { width: 28px; height: 40px; }
+  .bj-dealer-hand { min-height: 62px; }
+}
