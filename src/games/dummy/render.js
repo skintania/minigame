@@ -193,7 +193,7 @@ function renderDiscardPile(pile, mine, drewThis, isFinished, openingCard, action
     const inRange   = _discardTargetIdx >= 0 && i >= _discardTargetIdx
     const isOpening = i === 0 && card === openingCard
     const cls = ['dmy-dp-card',
-      isOpening              ? 'opening-card' : '',
+      isOpening              ? 'opening-card' : 'landscape',
       isTarget               ? 'dp-target'    : '',
       inRange && !isTarget   ? 'dp-range'     : '',
       canDrawFrom            ? 'dp-drawable'  : '',
