@@ -38,7 +38,7 @@ function applyServerState(gs) {
 
   // Detect role change player → spectator during an active match
   if (prevMyRole === 'player' && gs.myRole === 'spectator' && gs.matchStatus === 'active') {
-    if (state.gameId === 'uno' || state.gameId === 'slave') {
+    if (state.gameId === 'uno' || state.gameId === 'slave' || state.gameId === 'dummy') {
       // These games have no bust — keep the player at the table and silently re-join
       gs.myRole = 'player'
       api.switchRole(state.roomCode, state.sessionId, 'player').catch(() => {})
@@ -107,6 +107,8 @@ export function initGame() {
       try { await api.unoEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
     } else if (state.gameId === 'slave' && state.matchId) {
       try { await api.slaveEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
+    } else if (state.gameId === 'dummy' && state.matchId) {
+      try { await api.dummyEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
     } else {
       leaveRoom()
     }
@@ -187,10 +189,11 @@ export function enterGame() {
   stopPoll()
 
   const gameId = state.gameId
-  document.getElementById('g-name').textContent        = gameId === 'poker' ? 'Poker' : gameId === 'uno' ? 'UNO' : 'Slave'
+  document.getElementById('g-name').textContent        = gameId === 'poker' ? 'Poker' : gameId === 'uno' ? 'UNO' : gameId === 'slave' ? 'Slave' : 'Dummy'
   document.getElementById('poker-board').style.display = gameId === 'poker' ? 'flex' : 'none'
   document.getElementById('uno-board').style.display   = gameId === 'uno'   ? 'flex' : 'none'
   document.getElementById('slave-board').style.display = gameId === 'slave' ? 'flex' : 'none'
+  document.getElementById('dummy-board').style.display = gameId === 'dummy' ? 'flex' : 'none'
 
   // Move join-wrap into whichever board is active (it lives in poker board by default)
   if (gameId === 'uno') {
@@ -199,6 +202,9 @@ export function enterGame() {
   } else if (gameId === 'slave') {
     const wrap = document.getElementById('wr-join-wrap')
     document.querySelector('.slv-player-zone')?.appendChild(wrap)
+  } else if (gameId === 'dummy') {
+    const wrap = document.getElementById('wr-join-wrap')
+    document.querySelector('.dmy-player-zone')?.appendChild(wrap)
   }
   document.getElementById('btn-end-game').style.display =
     (state.roomCode && amHost()) ? 'inline-flex' : 'none'
@@ -233,9 +239,7 @@ export function enterGame() {
       applyServerState(gs)
       saveSession()
       render()
-      if (state.gameId === 'uno' && gs.matchStatus === 'finished') {
-        stopPoll(); startGameOverCountdown()
-      } else if (state.gameId === 'slave' && gs.matchStatus === 'finished') {
+      if (['uno', 'slave', 'dummy'].includes(state.gameId) && gs.matchStatus === 'finished') {
         stopPoll(); startGameOverCountdown()
       } else if (state.gameId === 'poker' && gs.metadata?.winner && gs.revealRemainingSec == null) {
         stopPoll()
@@ -313,6 +317,7 @@ export function render() {
   if (isWaiting) {
     document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
     document.querySelector('.uno-hand-footer')?.style.setProperty('display', 'none')
+    document.querySelector('.dmy-hand-footer')?.style.setProperty('display', 'none')
     updateWaitingPanel(meta)
     registry[state.gameId]?.render(meta, false)
     return
@@ -330,6 +335,7 @@ export function render() {
   if (meta.phase === 'between-rounds') {
     document.querySelector('.pk-action-bar')?.style.setProperty('display', 'none')
     document.querySelector('.uno-hand-footer')?.style.setProperty('display', 'none')
+    document.querySelector('.dmy-hand-footer')?.style.setProperty('display', 'none')
 
     if (state.gameId === 'slave') {
       document.getElementById('g-phase').textContent = 'Round Over'
@@ -345,6 +351,12 @@ export function render() {
         showUnoScorePanel(meta, isGameOver)
         showBetweenRounds(meta)
       }
+    } else if (state.gameId === 'dummy') {
+      document.getElementById('g-phase').textContent = 'Round Over'
+      registry['dummy']?.render(meta, false)
+      const isGameOver = state.gameState?.matchStatus === 'finished'
+      showDummyScorePanel(meta, isGameOver)
+      showBetweenRounds(meta)
     } else {
       // Poker: between-rounds countdown panel
       document.getElementById('g-phase').textContent = 'Between Rounds'
@@ -358,6 +370,8 @@ export function render() {
   document.querySelector('.pk-action-bar')?.style.setProperty('display',
     curRole() === 'spectator' ? 'none' : '')
   document.querySelector('.uno-hand-footer')?.style.setProperty('display',
+    curRole() === 'spectator' ? 'none' : '')
+  document.querySelector('.dmy-hand-footer')?.style.setProperty('display',
     curRole() === 'spectator' ? 'none' : '')
 
   const isSpectator = curRole() === 'spectator'
@@ -539,6 +553,7 @@ async function wrStartRound() {
   try {
     const fn = state.gameId === 'poker' ? api.pokerStart
              : state.gameId === 'uno'   ? api.unoStart
+             : state.gameId === 'dummy' ? api.dummyStart
              : api.slaveStart
     await fn(state.matchId, state.sessionId)
     const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
@@ -825,6 +840,51 @@ function hideUnoScorePanel() {
   if (panel) panel.style.display = 'none'
 }
 
+// ── Dummy scoreboard panel (top-right, non-blocking) ─────
+function showDummyScorePanel(meta, isGameOver) {
+  const panel = document.getElementById('dmy-score-panel')
+  if (!panel) return
+
+  const names       = state.gameState?.playerNames || {}
+  const totalScores = meta.totalScores || {}
+  const roundScores = meta.roundScores || {}
+  const roundWinner = meta.roundWinner
+  const isMe        = roundWinner === state.sessionId
+  const winnerName  = isMe ? (state.username || 'You') : (names[roundWinner] || 'Opponent')
+
+  document.getElementById('dmy-sp-emoji').textContent = isGameOver ? '🎉' : (isMe ? '🏆' : '🎴')
+  document.getElementById('dmy-sp-title').textContent = isGameOver
+    ? 'Game Over!'
+    : (roundWinner ? (isMe ? 'You went out!' : `${winnerName} went out!`) : 'Round complete')
+
+  const bodyEl = document.getElementById('dmy-sp-body')
+  if (bodyEl) {
+    const allIds  = [...new Set([...(state.gameState?.players || []), ...Object.keys(totalScores)])]
+    const hasRound = Object.keys(roundScores).length > 0
+    const entries = allIds
+      .map(id => ({ id, total: totalScores[id] ?? 0, round: roundScores[id] ?? 0 }))
+      .sort((a, b) => b.total - a.total)
+
+    const medals = ['🥇', '🥈', '🥉']
+    bodyEl.innerHTML = entries.map(({ id, total, round }, i) => {
+      const n         = id === state.sessionId ? (state.username || names[id] || 'You') : (names[id] || id.slice(0, 8))
+      const roundText = hasRound ? ` (${round >= 0 ? '+' : ''}${round})` : ''
+      return `<div class="sp-row${id === state.sessionId ? ' me' : ''}">
+        <span class="sp-rank">${medals[i] ?? i + 1}</span>
+        <span class="sp-name">${n}</span>
+        <span class="sp-wins">${total}${roundText}</span>
+      </div>`
+    }).join('')
+  }
+
+  panel.style.display = 'flex'
+}
+
+function hideDummyScorePanel() {
+  const panel = document.getElementById('dmy-score-panel')
+  if (panel) panel.style.display = 'none'
+}
+
 // ── Between-rounds overlay ────────────────────────────────
 function showBetweenRounds(meta) {
   const overlay = document.getElementById('between-rounds-overlay')
@@ -858,6 +918,22 @@ function showBetweenRounds(meta) {
         : 'Game Over!'
     } else {
       roundInfo.textContent = isMe ? 'You Won the Round!' : `${winnerName} Won the Round!`
+    }
+  } else if (state.gameId === 'dummy') {
+    const roundWinner = meta.roundWinner
+    const isMe        = roundWinner === state.sessionId
+    const winnerName  = isMe ? (state.username || 'You') : (names[roundWinner] || 'Opponent')
+    if (isGameOver) {
+      const top     = Object.entries(meta.totalScores || {}).sort(([, a], [, b]) => b - a)[0]
+      const topId   = top?.[0]
+      const topIsMe = topId === state.sessionId
+      roundInfo.textContent = topId
+        ? `Game Over — ${topIsMe ? 'You win' : (names[topId] || 'Opponent') + ' wins'}!`
+        : 'Game Over!'
+    } else {
+      roundInfo.textContent = roundWinner
+        ? (isMe ? 'You went out!' : `${winnerName} went out!`)
+        : 'Round complete'
     }
   } else {
     const won        = meta.handWinner === state.sessionId
@@ -907,6 +983,7 @@ function hideBetweenRounds() {
   document.getElementById('between-rounds-overlay')?.classList.remove('open')
   hideSlaveScorePanel()
   hideUnoScorePanel()
+  hideDummyScorePanel()
   clearInterval(betweenRoundsInterval); betweenRoundsInterval = null
   localBetweenRoundsRemaining = null
 }
@@ -959,6 +1036,8 @@ async function hostNextRound() {
       await api.slaveNextRound(state.matchId, state.sessionId)
     } else if (state.gameId === 'uno') {
       await api.unoNextRound(state.matchId, state.sessionId)
+    } else if (state.gameId === 'dummy') {
+      await api.dummyNextRound(state.matchId, state.sessionId)
     } else {
       await api.pokerNextRound(state.matchId, state.sessionId)
     }

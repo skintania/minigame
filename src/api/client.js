@@ -50,6 +50,16 @@ export const api = {
   slavePlay:      (mid, sid, cards) => request('POST', `/games/slave/${mid}/play`,        { sessionId: sid, cards }),
   slavePass:      (mid, sid)        => request('POST', `/games/slave/${mid}/pass`,        { sessionId: sid }),
 
+  // Dummy actions
+  dummyStart:       (mid, sid)            => request('POST', `/games/dummy/${mid}/start`,        { sessionId: sid }),
+  dummyNextRound:   (mid, sid)            => request('POST', `/games/dummy/${mid}/next-round`,   { sessionId: sid }),
+  dummyEndGame:     (mid, sid)            => request('POST', `/games/dummy/${mid}/end-game`,     { sessionId: sid }),
+  dummyDraw:        (mid, sid)            => request('POST', `/games/dummy/${mid}/draw`,          { sessionId: sid }),
+  dummyDrawDiscard: (mid, sid, card)      => request('POST', `/games/dummy/${mid}/draw-discard`,  { sessionId: sid, card }),
+  dummyLay:         (mid, sid, cards)     => request('POST', `/games/dummy/${mid}/lay`,           { sessionId: sid, cards }),
+  dummyFak:         (mid, sid, card, meldIndex) => request('POST', `/games/dummy/${mid}/fak`,    { sessionId: sid, card, meldIndex }),
+  dummyDiscard:     (mid, sid, card)      => request('POST', `/games/dummy/${mid}/discard`,       { sessionId: sid, card }),
+
   // UNO actions
   unoStart:     (mid, sid)               => request('POST', `/games/uno/${mid}/start`,      { sessionId: sid }),
   unoNextRound: (mid, sid)               => request('POST', `/games/uno/${mid}/next-round`, { sessionId: sid }),

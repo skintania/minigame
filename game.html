@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/src/styles/games/poker.css">
   <link rel="stylesheet" href="/src/styles/games/uno.css">
   <link rel="stylesheet" href="/src/styles/games/slave.css">
+  <link rel="stylesheet" href="/src/styles/games/dummy.css">
 </head>
 <body>
   <div id="toast"></div>
@@ -171,6 +172,50 @@
           <div class="last-action" id="slv-last"></div>
         </div>
       </div>
+    </div>
+
+    <!-- Dummy Board -->
+    <div id="dummy-board" class="game-board" style="display:none">
+      <div class="dmy-layout">
+        <div class="dmy-table-area">
+          <div class="dmy-opponents-overlay" id="dmy-opponents"></div>
+          <div class="dmy-table">
+            <div class="dmy-stock-wrap">
+              <div id="dmy-stock" class="dmy-stock"></div>
+              <span id="dmy-stock-count" class="dmy-pile-lbl">0</span>
+            </div>
+            <div class="dmy-discard-wrap">
+              <div id="dmy-discard" class="dmy-discard"></div>
+              <span class="dmy-pile-lbl">Discard</span>
+            </div>
+            <div class="dmy-game-info">
+              <div id="dmy-round-lbl" class="dmy-round-lbl"></div>
+              <div id="dmy-target-indicator" class="dmy-target-indicator" style="display:none"></div>
+            </div>
+          </div>
+        </div>
+        <div id="dmy-melds" class="dmy-melds"></div>
+        <div class="dmy-player-zone">
+          <div class="hand-row" id="dmy-hand"></div>
+          <div class="dmy-hand-footer">
+            <button class="btn btn-pink"  id="btn-dmy-draw"         style="display:none;width:auto;padding:10px 22px">Draw</button>
+            <button class="btn btn-blue"  id="btn-dmy-draw-discard" style="display:none;width:auto;padding:10px 22px">Draw selected</button>
+            <button class="btn btn-blue"  id="btn-dmy-lay"          style="display:none;width:auto;padding:10px 22px">Lay</button>
+            <button class="btn btn-blue"  id="btn-dmy-fak"          style="display:none;width:auto;padding:10px 22px">ฝาก</button>
+            <button class="btn btn-ghost" id="btn-dmy-discard"      style="display:none;width:auto;padding:10px 22px">Discard</button>
+          </div>
+          <div class="last-action" id="dmy-last"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dummy between-rounds scoreboard panel (top-right, non-blocking) -->
+    <div id="dmy-score-panel" style="display:none">
+      <div class="sp-header">
+        <span id="dmy-sp-emoji"></span>
+        <span id="dmy-sp-title" class="sp-title"></span>
+      </div>
+      <div id="dmy-sp-body" class="sp-body"></div>
     </div>
 
     <!-- Spectator panel (top-left, always visible when in a room) -->
