@@ -439,6 +439,13 @@
 
 .dmy-card-img.not-turn { opacity: 0.55; cursor: default; }
 
+/* Card that could be ฝาก'd — discard will trigger −50 penalty */
+.dmy-card-img.penalty-risk {
+  outline: 2px solid rgba(255, 160, 0, 0.75);
+  outline-offset: 2px;
+}
+.dmy-card-img.penalty-risk.selected { outline-color: #ffd700; }
+
 .dmy-card-img.must-lay {
   outline: 2px solid rgba(255,107,107,0.8);
   outline-offset: 2px;
@@ -453,6 +460,14 @@
   flex-shrink: 0;
 }
 .dmy-card-back.mini { width: 20px; height: 28px; margin-right: -8px; }
+
+/* Hint shown when player drew from stock before first lay */
+.dmy-lay-hint {
+  font-size: 11px;
+  color: rgba(255, 185, 50, 0.9);
+  text-align: center;
+  padding: 2px 0;
+}
 
 /* ── Player zone ─────────────────────────────────────── */
 .dmy-player-zone {

@@ -21,6 +21,7 @@ let _lastHandKey      = ''
 let _lastDiscardKey   = ''
 let _lastPenalties    = {}
 let _lastPenaltyRound = -1
+let _penaltyRiskCards = new Set()
 
 function parseCard(card) {
   return { suit: card.slice(-1), rank: card.slice(0, -1) }
@@ -332,11 +333,12 @@ function renderHand(handEl, myHand, mine, drewThis, drawTarget, isFinished) {
     return
   }
   handEl.innerHTML = sortedIdxs.map(origIdx => {
-    const card     = myHand[origIdx]
-    const isTarget = drawTarget && card === drawTarget
+    const card      = myHand[origIdx]
+    const isTarget  = drawTarget && card === drawTarget
+    const isRisk    = drewThis && !isTarget && _penaltyRiskCards.has(card)
     const cls = ['dmy-card-img', 'dmy-hand-card',
       drewThis ? 'selectable' : 'not-turn',
-      isTarget ? 'must-lay' : '',
+      isTarget ? 'must-lay' : isRisk ? 'penalty-risk' : '',
     ].filter(Boolean).join(' ')
     return `<img class="${cls}" src="${cardSrc(card)}" alt="${card}" data-hand-idx="${origIdx}" data-card="${card}">`
   }).join('')
@@ -344,13 +346,14 @@ function renderHand(handEl, myHand, mine, drewThis, drawTarget, isFinished) {
 
 function refreshHandClasses(handEl, myHand, drawTarget) {
   handEl.querySelectorAll('[data-hand-idx]').forEach(el => {
-    const idx     = parseInt(el.dataset.handIdx)
-    const card    = el.dataset.card
-    const isSel   = _selectedIndices.includes(idx)
+    const idx      = parseInt(el.dataset.handIdx)
+    const card     = el.dataset.card
+    const isSel    = _selectedIndices.includes(idx)
     const isTarget = drawTarget && card === drawTarget
-    el.className  = ['dmy-card-img', 'dmy-hand-card',
+    const isRisk   = !isSel && !isTarget && _penaltyRiskCards.has(card)
+    el.className   = ['dmy-card-img', 'dmy-hand-card',
       isSel ? 'selected' : 'selectable',
-      isTarget ? 'must-lay' : '',
+      isTarget ? 'must-lay' : isRisk ? 'penalty-risk' : '',
     ].filter(Boolean).join(' ')
   })
 }
@@ -373,6 +376,24 @@ function updateButtons(meta, mine, actions, myHand) {
   const selCards = _selectedIndices.map(i => myHand[i]).filter(Boolean)
   const validLay  = isValidMeld(selCards)
 
+  // Change 2: first lay requires having drawn from discard
+  const canFirstLay = hasLaid || !!drawTarget
+
+  // Change 3: compute penalty-risk cards (extend an existing meld, only after hasLaid)
+  const melds = meta.melds || []
+  _penaltyRiskCards = new Set()
+  if (hasLaid && drewThis && canAct) {
+    for (const card of myHand) {
+      for (const meld of melds) {
+        const meldCards = Array.isArray(meld) ? meld : (meld.cards || [])
+        if (isValidMeld([...meldCards, card])) {
+          _penaltyRiskCards.add(card)
+          break
+        }
+      }
+    }
+  }
+
   // Draw stock
   const drawBtn = document.getElementById('btn-dmy-draw')
   if (drawBtn) {
@@ -380,18 +401,24 @@ function updateButtons(meta, mine, actions, myHand) {
     drawBtn.onclick = () => actions.draw()
   }
 
-  // Lay
+  // Lay — disabled on first lay unless drew from discard
   const layBtn = document.getElementById('btn-dmy-lay')
   if (layBtn) {
     layBtn.style.display = (canAct && drewThis) ? '' : 'none'
-    layBtn.disabled      = !validLay
+    layBtn.disabled      = !validLay || !canFirstLay
     layBtn.onclick = () => {
-      if (validLay) {
+      if (validLay && canFirstLay) {
         actions.lay(selCards)
         _selectedIndices = []
         _fakMode         = false
       }
     }
+  }
+
+  // Lay hint: shown when drew from stock with no prior lay
+  const layHintEl = document.getElementById('dmy-lay-hint')
+  if (layHintEl) {
+    layHintEl.style.display = (canAct && drewThis && !hasLaid && !drawTarget) ? '' : 'none'
   }
 
   // ฝาก
@@ -425,6 +452,10 @@ function updateButtons(meta, mine, actions, myHand) {
       }
     }
   }
+
+  // Update hand card risk highlights after computing _penaltyRiskCards
+  const handEl = document.getElementById('dmy-hand')
+  if (handEl && drewThis) refreshHandClasses(handEl, myHand, drawTarget)
 }
 
 function renderLiveScores(meta) {
