@@ -126,8 +126,8 @@
     inset 0 -6px 24px rgba(0,0,0,0.55),
     0 0 0 3px #3e2010,
     0 10px 48px rgba(0,0,0,0.7);
-  padding: 18px 24px;
-  min-width: min(72vw, 580px);
+  padding: 18px 28px;
+  width: min(82vw, 720px);
 }
 
 /* Stock pile */
@@ -170,35 +170,36 @@
 .dmy-discard-wrap {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .dmy-discard {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  max-height: 180px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scrollbar-width: none;
-  padding: 2px;
+  flex-direction: row;
+  align-items: flex-start;
+  overflow: visible;
+  padding: 2px 2px 6px;
   gap: 0;
 }
-.dmy-discard::-webkit-scrollbar { display: none; }
 
 .dmy-dp-card {
   position: relative;
-  margin-bottom: -42px;
-  transition: transform 0.1s, margin-bottom 0.1s;
+  margin-right: -32px;
+  flex-shrink: 0;
+  transition: transform 0.1s;
   z-index: 1;
 }
-.dmy-dp-card:last-child { margin-bottom: 0; z-index: 2; }
-.dmy-dp-card:nth-last-child(2) { z-index: 1; }
+.dmy-dp-card:last-child { margin-right: 0; z-index: 10; }
+.dmy-dp-card:nth-last-child(2) { z-index: 9; }
+.dmy-dp-card:nth-last-child(3) { z-index: 8; }
+.dmy-dp-card:nth-last-child(4) { z-index: 7; }
+.dmy-dp-card:nth-last-child(5) { z-index: 6; }
 
 .dmy-dp-card.dp-drawable { cursor: pointer; }
-.dmy-dp-card.dp-drawable:hover { transform: translateX(6px); }
+.dmy-dp-card.dp-drawable:hover { transform: translateY(-6px); }
 
 .dp-img {
   width: 52px; height: 75px;
@@ -414,17 +415,16 @@ html[data-theme="classic"] .dmy-table {
 /* ── Touch screens ───────────────────────────────────── */
 @media (pointer: coarse) {
   .dmy-table-area { padding: 55px 60px 16px; }
-  .dmy-table { min-width: min(90vw, 380px); gap: 14px; padding: 14px 16px; }
+  .dmy-table { width: min(96vw, 480px); gap: 14px; padding: 14px 16px; }
   .dmy-card-img { width: 52px; height: 76px; }
-  .dmy-discard { max-height: 150px; }
   .dp-img { width: 44px; height: 64px; }
-  .dmy-dp-card { margin-bottom: -36px; }
+  .dmy-dp-card { margin-right: -26px; }
   .dmy-melds { max-height: 120px; }
 }
 
 @media (pointer: coarse) and (max-width: 480px) {
-  .dmy-table { min-width: min(96vw, 300px); gap: 10px; padding: 10px 12px; }
+  .dmy-table { width: min(98vw, 320px); gap: 10px; padding: 10px 12px; }
   .dmy-card-img { width: 44px; height: 64px; }
   .dp-img { width: 38px; height: 55px; }
-  .dmy-dp-card { margin-bottom: -30px; }
+  .dmy-dp-card { margin-right: -22px; }
 }
