@@ -9,6 +9,7 @@ let handResultActive            = false
 let showdownInterval            = null
 let turnTimerInterval           = null
 let betweenRoundsInterval       = null
+let gameOverCountdown           = null
 let roomHeartbeatInterval       = null
 let localTurnRemaining          = null
 let localBetweenRoundsRemaining = null
@@ -80,30 +81,6 @@ function updateRoleButtons() {
   const leave = document.getElementById('rd-leave-table')
   if (join)  join.style.display  = isPlayer ? 'none' : ''
   if (leave) leave.style.display = isPlayer ? ''     : 'none'
-
-  // Slave overlay exit row — sync join/leave buttons whenever role changes
-  const phase      = state.gameState?.metadata?.phase
-  const isGameOver = state.gameState?.matchStatus === 'finished'
-  const canSwitch  = !isGameOver && (state.gameState?.matchStatus !== 'active' || phase === 'between-rounds')
-  const slvJoin  = document.getElementById('slv-btn-join-table')
-  const slvLeave = document.getElementById('slv-btn-leave-table')
-  if (slvJoin)  slvJoin.style.display  = (canSwitch && !isPlayer) ? '' : 'none'
-  if (slvLeave) slvLeave.style.display = (canSwitch && isPlayer)  ? '' : 'none'
-}
-
-function _applyExitRow(prefix, isGameOver) {
-  const row = document.getElementById(`${prefix}-exit-row`)
-  if (!row) return
-  if (isGameOver) { row.style.display = 'none'; return }
-  row.style.display = ''
-  // Backend allows switchRole when not active, or during between-rounds phase
-  const phase     = state.gameState?.metadata?.phase
-  const canSwitch = state.gameState?.matchStatus !== 'active' || phase === 'between-rounds'
-  const isPlayer  = curRole() === 'player'
-  const joinBtn   = document.getElementById(`${prefix}-btn-join-table`)
-  const leaveBtn  = document.getElementById(`${prefix}-btn-leave-table`)
-  if (joinBtn)  joinBtn.style.display  = (canSwitch && !isPlayer && state.roomCode) ? '' : 'none'
-  if (leaveBtn) leaveBtn.style.display = (canSwitch && isPlayer  && state.roomCode) ? '' : 'none'
 }
 
 // ── Theme ─────────────────────────────────────────────────
@@ -127,33 +104,13 @@ export function initGame() {
   document.getElementById('btn-end-game').addEventListener('click', async () => {
     if (!confirm('End the game for everyone?')) return
     if (state.gameId === 'uno' && state.matchId) {
-      try { await api.unoEndGame(state.matchId, state.sessionId) } catch (e) { showToast(e.message) }
+      try { await api.unoEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
     } else if (state.gameId === 'slave' && state.matchId) {
-      try { await api.slaveEndGame(state.matchId, state.sessionId) } catch (e) { showToast(e.message) }
+      try { await api.slaveEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
     } else {
       leaveRoom()
     }
   })
-  document.getElementById('btn-uno-next-round')?.addEventListener('click', unoHostNextRound)
-  document.getElementById('btn-uno-end-game')?.addEventListener('click', async () => {
-    if (!confirm('End the game for everyone?')) return
-    try { await api.unoEndGame(state.matchId, state.sessionId) } catch (e) { showToast(e.message) }
-  })
-  document.getElementById('btn-uno-leave-final')?.addEventListener('click', () => leaveRoom())
-  document.getElementById('btn-slave-next-round')?.addEventListener('click', slaveHostNextRound)
-  document.getElementById('btn-slave-end-game')?.addEventListener('click', async () => {
-    if (!confirm('End the game for everyone?')) return
-    try { await api.slaveEndGame(state.matchId, state.sessionId) } catch (e) { showToast(e.message) }
-  })
-  document.getElementById('btn-slave-leave-final')?.addEventListener('click', () => leaveRoom())
-
-  // Overlay exit rows (Leave Room + Join/Leave Table — visible to everyone during round-end)
-  document.getElementById('uro-btn-join-table')?.addEventListener('click',  wrJoinTable)
-  document.getElementById('uro-btn-leave-table')?.addEventListener('click', wrLeaveTable)
-  document.getElementById('uro-btn-leave-room')?.addEventListener('click',  () => leaveRoom())
-  document.getElementById('slv-btn-join-table')?.addEventListener('click',  wrJoinTable)
-  document.getElementById('slv-btn-leave-table')?.addEventListener('click', wrLeaveTable)
-  document.getElementById('slv-btn-leave-room')?.addEventListener('click',  () => leaveRoom())
   document.getElementById('btn-next-round').addEventListener('click', hostNextRound)
   document.getElementById('btn-skip-showdown').addEventListener('click', hostNextRound)
   document.getElementById('btn-show-cards').addEventListener('click', showCards)
@@ -277,9 +234,9 @@ export function enterGame() {
       saveSession()
       render()
       if (state.gameId === 'uno' && gs.matchStatus === 'finished') {
-        stopPoll()
+        stopPoll(); startGameOverCountdown()
       } else if (state.gameId === 'slave' && gs.matchStatus === 'finished') {
-        stopPoll()
+        stopPoll(); startGameOverCountdown()
       } else if (state.gameId === 'poker' && gs.metadata?.winner && gs.revealRemainingSec == null) {
         stopPoll()
         prevCommunityCount = commBefore
@@ -398,8 +355,6 @@ export function render() {
   }
 
   hideBetweenRounds()
-  hideUnoRoundOverlay()
-  hideSlaveRoundOverlay()
   document.querySelector('.pk-action-bar')?.style.setProperty('display',
     curRole() === 'spectator' ? 'none' : '')
   document.querySelector('.uno-hand-footer')?.style.setProperty('display',
@@ -770,89 +725,6 @@ function _renderTurnTimer(limit) {
   if (secs) secs.textContent = Math.ceil(Math.max(0, left)) + 's'
 }
 
-// ── UNO round-end / game-over overlay ────────────────────
-function showUnoRoundOverlay(meta, isGameOver) {
-  const overlay = document.getElementById('uno-round-overlay')
-  if (!overlay) return
-
-  const names       = state.gameState?.playerNames || {}
-  const roundWins   = meta.roundWins   || {}
-  const finishOrder = meta.finishOrder || []
-  const winnerId    = finishOrder[0]   || meta.winner
-  const isMe        = winnerId === state.sessionId
-  const winnerName  = isMe ? (state.username || 'You') : (names[winnerId] || 'Opponent')
-
-  if (isGameOver) {
-    const top     = Object.entries(roundWins).sort(([, a], [, b]) => b - a)[0]
-    const topId   = top?.[0]
-    const topIsMe = topId === state.sessionId
-    document.getElementById('uro-emoji').textContent = '🎉'
-    document.getElementById('uro-title').textContent = 'Game Over!'
-    document.getElementById('uro-sub').textContent   = topId
-      ? `${topIsMe ? 'You win' : (names[topId] || 'Opponent') + ' wins'} the session!`
-      : ''
-  } else {
-    document.getElementById('uro-emoji').textContent = isMe ? '🏆' : '🎴'
-    document.getElementById('uro-title').textContent = isMe ? 'You Won the Round!' : `${winnerName} Won the Round!`
-    document.getElementById('uro-sub').textContent   = ''
-  }
-
-  // Scoreboard: sorted by cumulative wins; show this round's finish position as a badge
-  const sbEl = document.getElementById('uro-scoreboard')
-  if (sbEl) {
-    const posMap  = Object.fromEntries(finishOrder.map((id, i) => [id, i]))
-    const allIds  = [...new Set([...Object.keys(roundWins), ...finishOrder])]
-    const entries = allIds
-      .map(id => ({ id, wins: roundWins[id] || 0, pos: posMap[id] ?? 999 }))
-      .sort((a, b) => b.wins - a.wins || a.pos - b.pos)
-
-    const standMedals = ['🥇', '🥈', '🥉']
-    const roundLabels = ['🥇', '🥈', '🥉']
-
-    sbEl.innerHTML = entries.map(({ id, wins, pos }, i) => {
-      const n      = id === state.sessionId ? (state.username || names[id] || 'You') : (names[id] || id.slice(0, 8))
-      const meRow  = id === state.sessionId
-      const rank   = standMedals[i] ?? `${i + 1}`
-      const rLabel = !isGameOver && pos < 999
-        ? (pos === finishOrder.length - 1 && finishOrder.length > 1
-            ? '💀'
-            : (roundLabels[pos] ?? `#${pos + 1}`))
-        : ''
-      return `<div class="uro-row${meRow ? ' me' : ''}">
-        <span class="uro-rank">${rank}</span>
-        <span class="uro-name">${n}</span>
-        ${rLabel ? `<span class="uro-round-pos">${rLabel}</span>` : ''}
-        <span class="uro-wins">${wins} win${wins !== 1 ? 's' : ''}</span>
-      </div>`
-    }).join('')
-  }
-
-  // Buttons
-  const hostActions  = document.getElementById('uro-host-actions')
-  const leaveActions = document.getElementById('uro-leave-actions')
-  const waitingEl    = document.getElementById('uro-waiting')
-  if (isGameOver) {
-    hostActions.style.display  = 'none'
-    leaveActions.style.display = ''
-    waitingEl.style.display    = 'none'
-  } else if (amHost()) {
-    hostActions.style.display  = ''
-    leaveActions.style.display = 'none'
-    waitingEl.style.display    = 'none'
-  } else {
-    hostActions.style.display  = 'none'
-    leaveActions.style.display = 'none'
-    waitingEl.style.display    = ''
-  }
-
-  _applyExitRow('uro', isGameOver)
-  overlay.classList.add('open')
-}
-
-function hideUnoRoundOverlay() {
-  document.getElementById('uno-round-overlay')?.classList.remove('open')
-}
-
 // ── Slave scoreboard panel (top-right, non-blocking) ─────
 function showSlaveScorePanel(meta, isGameOver) {
   const panel = document.getElementById('slv-score-panel')
@@ -951,99 +823,6 @@ function showUnoScorePanel(meta, isGameOver) {
 function hideUnoScorePanel() {
   const panel = document.getElementById('uno-score-panel')
   if (panel) panel.style.display = 'none'
-}
-
-// ── Slave round-end / game-over overlay ──────────────────
-function showSlaveRoundOverlay(meta, isGameOver) {
-  const overlay = document.getElementById('slave-round-overlay')
-  if (!overlay) return
-
-  const names       = state.gameState?.playerNames || {}
-  const ranks       = meta.ranks || {}
-  const roundWins   = meta.roundWins || {}
-  const finishOrder = meta.finishOrder || []
-  const RANK_ORDER  = ['President', 'Vice President', 'Citizen', 'Vice Slave', 'Slave']
-  const RANK_EMOJIS = { President: '🥇', 'Vice President': '🥈', Citizen: '', 'Vice Slave': '🔴', Slave: '💀' }
-
-  const presidentId = Object.entries(ranks).find(([, t]) => t === 'President')?.[0]
-  const winnerId    = presidentId || finishOrder[0]
-  const isMe        = winnerId === state.sessionId
-  const winnerName  = isMe ? (state.username || 'You') : (names[winnerId] || 'Opponent')
-
-  document.getElementById('slv-uro-emoji').textContent = isGameOver ? '🎉' : (isMe ? '🥇' : '🎴')
-  document.getElementById('slv-uro-title').textContent = isGameOver
-    ? 'Game Over!'
-    : (isMe ? "You're the President!" : `${winnerName} is the President!`)
-
-  const sbEl = document.getElementById('slv-uro-scoreboard')
-  if (sbEl) {
-    const allIds  = [...new Set([...(state.gameState?.players || []), ...Object.keys(ranks), ...Object.keys(roundWins)])]
-    const entries = allIds.map(id => ({
-      id, wins: roundWins[id] || 0, title: ranks[id] || '',
-    })).sort((a, b) => b.wins - a.wins || RANK_ORDER.indexOf(a.title) - RANK_ORDER.indexOf(b.title))
-
-    const standMedals = ['🥇', '🥈', '🥉']
-    sbEl.innerHTML = entries.map(({ id, wins, title }, i) => {
-      const n     = id === state.sessionId ? (state.username || names[id] || 'You') : (names[id] || id.slice(0, 8))
-      const emoji = RANK_EMOJIS[title] ?? ''
-      return `<div class="uro-row${id === state.sessionId ? ' me' : ''}">
-        <span class="uro-rank">${standMedals[i] ?? i + 1}</span>
-        <span class="uro-name">${n}</span>
-        ${title ? `<span class="slv-rank-pill">${emoji} ${title}</span>` : ''}
-        <span class="uro-wins">${wins} win${wins !== 1 ? 's' : ''}</span>
-      </div>`
-    }).join('')
-  }
-
-  const hostActions = document.getElementById('slv-host-actions')
-  const waitingEl   = document.getElementById('slv-uro-waiting')
-  if (isGameOver) {
-    hostActions.style.display = 'none'
-    waitingEl.style.display   = 'none'
-  } else if (amHost()) {
-    hostActions.style.display = ''
-    waitingEl.style.display   = 'none'
-  } else {
-    hostActions.style.display = 'none'
-    waitingEl.style.display   = ''
-  }
-
-  // Exit row always visible; updateRoleButtons controls join/leave button visibility
-  const exitRow = document.getElementById('slv-exit-row')
-  if (exitRow) exitRow.style.display = ''
-  updateRoleButtons()
-  overlay.classList.add('open')
-}
-
-function hideSlaveRoundOverlay() {
-  document.getElementById('slave-round-overlay')?.classList.remove('open')
-}
-
-async function slaveHostNextRound() {
-  const btn = document.getElementById('btn-slave-next-round')
-  if (btn) btn.disabled = true
-  try {
-    await api.slaveNextRound(state.matchId, state.sessionId)
-    const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
-    state.gameState = gs; applyServerState(gs); saveSession()
-    hideSlaveRoundOverlay()
-    if (!state.poll) enterGame()
-    else render()
-  } catch (e) { showToast(e.message) }
-  finally { if (btn) btn.disabled = false }
-}
-
-async function unoHostNextRound() {
-  const btn = document.getElementById('btn-uno-next-round')
-  if (btn) btn.disabled = true
-  try {
-    await api.unoNextRound(state.matchId, state.sessionId)
-    const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
-    state.gameState = gs; applyServerState(gs); saveSession()
-    hideUnoRoundOverlay()
-    render()
-  } catch (e) { showToast(e.message) }
-  finally { if (btn) btn.disabled = false }
 }
 
 // ── Between-rounds overlay ────────────────────────────────
@@ -1233,6 +1012,26 @@ function showWinner(winnerId) {
   document.getElementById('winner-overlay').classList.add('open')
 }
 
+// ── Game-over auto-redirect (non-host players) ───────────
+function startGameOverCountdown() {
+  const brNextEl = document.querySelector('#between-rounds-overlay .br-next')
+  if (brNextEl) {
+    brNextEl.innerHTML = 'Returning to lobby in <span id="br-countdown">12</span>s'
+    brNextEl.style.display = ''
+  }
+  let remaining = 12
+  gameOverCountdown = setInterval(() => {
+    remaining = Math.max(0, remaining - 1)
+    const el = document.getElementById('br-countdown')
+    if (el) el.textContent = remaining
+    if (remaining <= 0) {
+      clearInterval(gameOverCountdown)
+      gameOverCountdown = null
+      leaveRoom()
+    }
+  }, 1000)
+}
+
 // ── Poll stop / navigation ────────────────────────────────
 export function stopPoll() {
   clearInterval(state.poll);            state.poll                    = null
@@ -1240,6 +1039,7 @@ export function stopPoll() {
   clearInterval(betweenRoundsInterval); betweenRoundsInterval         = null
   clearInterval(showdownInterval);      showdownInterval              = null
   clearInterval(roomHeartbeatInterval); roomHeartbeatInterval         = null
+  clearInterval(gameOverCountdown);     gameOverCountdown             = null
   localTurnRemaining          = null
   localBetweenRoundsRemaining = null
   prevMatchStatus             = null
