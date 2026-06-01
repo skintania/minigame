@@ -240,11 +240,39 @@ function renderDiscardPile(pile, mine, drewThis, isFinished, openingCard, action
   syncDrawDiscardBtn(pile, actions)
 }
 
+function canCardBeLaid(card, hand, melds, hasLaid) {
+  // Can extend an existing meld via ฝาก (only after first lay)
+  if (hasLaid) {
+    for (const meld of melds) {
+      const mc = Array.isArray(meld) ? meld : (meld.cards || [])
+      if (isValidMeld([...mc, card])) return true
+    }
+  }
+
+  // Can form a new set: need 2+ other cards of the same rank in hand
+  const { rank, suit } = parseCard(card)
+  if (hand.filter(c => parseCard(c).rank === rank).length >= 2) return true
+
+  // Can form a new run: need 2 adjacent cards of same suit
+  const cardR   = RANK_ORDER[rank] ?? -1
+  const suitSet = new Set(
+    hand.filter(c => parseCard(c).suit === suit).map(c => RANK_ORDER[parseCard(c).rank] ?? -1)
+  )
+  if (suitSet.has(cardR + 1) && suitSet.has(cardR + 2)) return true
+  if (suitSet.has(cardR - 1) && suitSet.has(cardR + 1)) return true
+  if (suitSet.has(cardR - 1) && suitSet.has(cardR - 2)) return true
+
+  return false
+}
+
 function syncDrawDiscardBtn(pile, actions) {
-  const btn = document.getElementById('btn-dmy-draw-discard')
+  const btn    = document.getElementById('btn-dmy-draw-discard')
+  const warnEl = document.getElementById('dmy-discard-draw-warn')
   if (!btn) return
+
   if (_discardTargetIdx >= 0 && _discardTargetIdx < pile.length) {
-    const count = pile.length - _discardTargetIdx
+    const count      = pile.length - _discardTargetIdx
+    const targetCard = pile[_discardTargetIdx]
     btn.style.display = ''
     btn.textContent   = `Draw ${count}`
     btn.onclick = () => {
@@ -253,8 +281,19 @@ function syncDrawDiscardBtn(pile, actions) {
         _discardTargetIdx = -1
       }
     }
+
+    // Warn if target card can't be played with current hand
+    if (warnEl) {
+      const meta    = state.gameState?.metadata || {}
+      const myHand  = (meta.hands || {})[state.sessionId] || []
+      const hasLaid = (meta.hasLaidDown || {})[state.sessionId] || false
+      const melds   = meta.melds || []
+      const playable = canCardBeLaid(targetCard, myHand, melds, hasLaid)
+      warnEl.style.display = playable ? 'none' : ''
+    }
   } else {
     btn.style.display = 'none'
+    if (warnEl) warnEl.style.display = 'none'
   }
 }
 

@@ -461,6 +461,14 @@
 }
 .dmy-card-back.mini { width: 20px; height: 28px; margin-right: -8px; }
 
+/* Warning shown when selected discard target can't form a meld */
+.dmy-draw-warn {
+  font-size: 11px;
+  color: rgba(255, 100, 100, 0.9);
+  padding: 2px 4px;
+  align-self: center;
+}
+
 /* Hint shown when player drew from stock before first lay */
 .dmy-lay-hint {
   font-size: 11px;
