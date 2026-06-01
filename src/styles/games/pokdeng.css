@@ -353,6 +353,38 @@
   justify-content: center;
 }
 
+/* ── Theme variants for pokdeng table ────────────────────── */
+html[data-theme="hangout"] .pd-table {
+  background:
+    repeating-linear-gradient(88deg, rgba(80,40,0,0.06) 0px, rgba(80,40,0,0.06) 1px, transparent 1px, transparent 10px),
+    radial-gradient(ellipse at 50% 20%, #e0b060 0%, #c08838 50%, #8a5820 100%);
+  border-color: rgba(90,56,16,0.45);
+}
+html[data-theme="ocean"] .pd-table {
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(0,220,230,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #0a8090 0%, #055060 50%, #022838 100%);
+  border-color: rgba(8,56,72,0.55);
+}
+html[data-theme="sakura"] .pd-table {
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(224,88,136,0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #3a1030 0%, #280820 50%, #160412 100%);
+  border-color: rgba(88,24,64,0.5);
+}
+html[data-theme="neon"] .pd-table {
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(184,32,232,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #180830 0%, #0e0520 50%, #060310 100%);
+  border-color: rgba(74,16,160,0.5);
+}
+html[data-theme="classic"] .pd-table {
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(61,139,255,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #1a3a80 0%, #0e2258 50%, #060e30 100%);
+  border-color: rgba(26,48,128,0.5);
+}
+
 /* ── Mobile ───────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .pd-table { padding: 14px 12px 10px; gap: 12px; }
