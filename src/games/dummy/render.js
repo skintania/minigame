@@ -180,6 +180,7 @@ export function renderBoard(meta, mine, actions) {
       }
       refreshHandClasses(handEl, myHand, drawTarget)
       updateButtons(meta, mine, actions, myHand)
+      if (_fakMode) renderMelds(meta.melds || [], mine, drewThis, hasLaid, actions)
     } : null
   }
 
@@ -467,7 +468,7 @@ function updateButtons(meta, mine, actions, myHand) {
     fakBtn.textContent   = _fakMode ? 'Cancel' : 'ฝาก'
     fakBtn.onclick = () => {
       _fakMode = !_fakMode
-      if (!_fakMode) _selectedIndices = []
+      _selectedIndices = []
       updateButtons(meta, mine, actions, myHand)
       const handEl = document.getElementById('dmy-hand')
       if (handEl) refreshHandClasses(handEl, myHand, drawTarget)
