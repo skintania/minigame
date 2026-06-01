@@ -1073,7 +1073,7 @@ Errors: `"You must lay down a meld before you can ฝาก."`, `"Cannot add K�
 
 Discard one card to end your turn. You must have drawn first. If you drew from the discard pile, you must have laid the target card first.
 
-Discarding a card you could have played (added to a meld or ฝาก'd) incurs a **-50 point penalty**.
+Discarding a card that could have been **ฝาก'd** onto an existing meld incurs a **-50 point penalty** (melds are visible on the table). Discarding a card that could form a new meld from hand cards only is not penalised.
 
 **Request**
 ```json
@@ -1114,8 +1114,16 @@ Close the room immediately. Host only.
   "stockCount": 24,
   "discardPile": ["3♣", "8♥", "Q♦"],
   "melds": [
-    { "owner": "sessionId1", "cards": ["5♣", "6♣", "7♣"] },
-    { "owner": "sessionId2", "cards": ["K♣", "K♦", "K♥"] }
+    {
+      "owner": "sessionId1",
+      "cards": ["5♣", "6♣", "7♣", "4♣"],
+      "contributions": [
+        { "player": "sessionId1", "card": "5♣" },
+        { "player": "sessionId1", "card": "6♣" },
+        { "player": "sessionId1", "card": "7♣" },
+        { "player": "sessionId2", "card": "4♣" }
+      ]
+    }
   ],
   "hasLaidDown": { "sessionId1": true, "sessionId2": true },
   "currentPlayer": "sessionId1",
@@ -1151,7 +1159,9 @@ Close the room immediately. Host only.
 
 **Round scoring:** Laid cards = positive points. Cards in hand at round end = negative points. +50 for going out. -50 per discard-penalty event. Players who never laid down get ×2 on their hand penalty (dummy rule). If the round winner's total laid cards are all one suit: other players' hand penalties ×2 (single-suit knock). If winner also never laid down: ×4 (blind single-suit knock).
 
-**Feeding penalty:** If the very next player draws your just-discarded card (bottom of discard pile) and goes out that turn, you receive an additional -50 penalty.
+**Discard penalty (-50):** Only triggered when the discarded card could have been ฝาก'd onto a visible meld (requires `hasLaidDown = true`). Discarding a card that could form a new meld from hand is not penalised.
+
+**Feeding penalty (-50):** If the very next player draws your just-discarded card (bottom of discard pile) and goes out that turn, you receive an additional -50 penalty.
 
 **Phases:** `waiting → started → between-rounds → started → …` (host triggers `next-round`). After `totalRounds` rounds, `phase = "finished"` and `matchStatus = "finished"`.
 
@@ -1279,4 +1289,83 @@ Common `400` messages:
 2. pick the match from activeMatches (matchId + gameId)
 3. GET /games/poker/:matchId/state?sessionId=   → restore board from saved state
 4. resume taking turns (isMyTurn will tell you if it's your move)
+```
+
+---
+
+## Blackjack
+
+Players vs. dealer (bot). Chip-based betting. Multi-round. Players who reach 0 chips become spectators.
+
+### Endpoints
+
+| Method | Path | Body |
+|--------|------|------|
+| POST | `/games/blackjack/join` | `{ sessionId }` |
+| GET | `/games/blackjack/:matchId/state` | query: `sessionId` |
+| POST | `/games/blackjack/:matchId/start` | `{ sessionId }` |
+| POST | `/games/blackjack/:matchId/bet` | `{ sessionId, amount }` |
+| POST | `/games/blackjack/:matchId/hit` | `{ sessionId }` |
+| POST | `/games/blackjack/:matchId/stand` | `{ sessionId }` |
+| POST | `/games/blackjack/:matchId/double-down` | `{ sessionId }` |
+| POST | `/games/blackjack/:matchId/split` | `{ sessionId }` |
+| POST | `/games/blackjack/:matchId/next-round` | `{ sessionId }` |
+| POST | `/games/blackjack/:matchId/end-game` | `{ sessionId }` |
+
+### Phases
+
+```
+waiting
+  → host calls /start
+betting  (all players place bets)
+  → last bet placed → cards dealt automatically
+playing  (players take turns vs dealer)
+  → all players done → dealer auto-plays → results calculated
+between-rounds  (show results)
+  → host calls /next-round (or betweenRoundsSec timer)
+betting  (next round)
+  ...repeat...
+finished  (roundLimit reached or host ends game)
+```
+
+### State Fields (`metadata`)
+
+| Field | Description |
+|-------|-------------|
+| `phase` | `waiting` \| `betting` \| `playing` \| `between-rounds` \| `finished` |
+| `dealerHand` | Dealer cards. During `betting`/`playing`: `["A♠", "hidden"]` (hole card hidden) |
+| `hands[playerId]` | Array of hands — `string[][]`. Normally 1 hand; 2–4 after splits |
+| `bets[playerId]` | Bet per hand — `number[]` |
+| `handStatus[playerId]` | Per-hand status — `("active"\|"stood"\|"bust"\|"blackjack")[]` |
+| `activeHandIndex[playerId]` | Which hand index the player is currently playing |
+| `betsPlaced[playerId]` | `true` once the player has placed their bet this round |
+| `chips[playerId]` | Current chip count (bet already deducted for the current round) |
+| `currentPlayer` | Session ID of the player whose turn it is (`null` during betting/between-rounds) |
+| `results[playerId]` | Per-hand outcome — `("win"\|"lose"\|"push"\|"blackjack")[]`. Set after dealer plays |
+| `netChips[playerId]` | Net chip change for this round per player |
+| `deckSize` | Cards remaining in the shoe |
+| `currentRound` | Current round number |
+| `winner` | Session ID of winner when `phase = "finished"` |
+
+### Rules
+
+- **Bet phase:** each player must call `/bet` before cards are dealt. When the last player bets, cards are dealt automatically and `phase` → `playing`.
+- **Turn order:** `isMyTurn = true` when it's your turn during `playing` phase. During `betting`, everyone can act (check `betsPlaced[myId]` to know if you've bet).
+- **Hit/Stand/Double-Down/Split:** only available when `isMyTurn = true` and `phase = "playing"`.
+- **Double-down:** only on the initial 2-card hand; requires chips ≥ current bet.
+- **Split:** two cards of the same value (10/J/Q/K all count as equal). Requires chips ≥ current bet. Max 4 hands (3 splits). Split 21 pays 1:1, not 3:2.
+- **Dealer:** hits on 16 or below and soft 17; stands on hard 17+. Plays after all players finish.
+- **Payouts:** natural blackjack = 3:2 · win = 1:1 · push = refund · bust/lose = 0.
+- **Bust to spectator:** players with 0 chips after a round are moved to spectator (same as poker).
+
+### Example round flow
+
+```
+1. All players call POST /bet { amount }
+   → when last bet is placed, cards are dealt and phase → "playing"
+2. isMyTurn player calls: /hit, /stand, /double-down, or /split
+3. Repeat until all player hands are resolved
+   → dealer auto-plays, results set, phase → "between-rounds"
+4. Poll GET /state — read results[myId] and netChips[myId]
+5. Host calls POST /next-round
 ```

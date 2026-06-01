@@ -47,6 +47,14 @@ Thin fetch wrapper around the Cloudflare Worker API.
 | `unoStart(mid, sid)` | POST | `/games/uno/{mid}/start` |
 | `unoPlay(mid, sid, card, color?)` | POST | `/games/uno/{mid}/play` |
 | `unoDraw(mid, sid)` | POST | `/games/uno/{mid}/draw` |
+| `blackjackStart(mid, sid)` | POST | `/games/blackjack/{mid}/start` |
+| `blackjackNextRound(mid, sid)` | POST | `/games/blackjack/{mid}/next-round` |
+| `blackjackEndGame(mid, sid)` | POST | `/games/blackjack/{mid}/end-game` |
+| `blackjackBet(mid, sid, amount)` | POST | `/games/blackjack/{mid}/bet` |
+| `blackjackHit(mid, sid)` | POST | `/games/blackjack/{mid}/hit` |
+| `blackjackStand(mid, sid)` | POST | `/games/blackjack/{mid}/stand` |
+| `blackjackDoubleDown(mid, sid)` | POST | `/games/blackjack/{mid}/double-down` |
+| `blackjackSplit(mid, sid)` | POST | `/games/blackjack/{mid}/split` |
 
 All calls use `cfg.url` as base. Non-2xx responses throw `Error(d.error)`.
 
@@ -169,7 +177,7 @@ Main game orchestrator (~700 lines). Manages polling, rendering dispatch, overla
 
 ## `src/games/registry.js`
 
-Plugin registry. Exports `{ poker, uno }` object pointing to each game module.
+Plugin registry. Exports `{ poker, uno, slave, dummy, blackjack }` object pointing to each game module.
 
 ---
 
@@ -278,6 +286,41 @@ UNO board rendering (~120 lines).
 - Shows `#uno-my-uno` UNO! badge when my hand has 1 card (not during finished)
 - `canPlay` — true if card color matches `meta.currentColor`, value matches top discard value, or card is wild
 - Card image path: `{cfg.url}/assets/cards/uno-deck/{card}.svg`; `.small` class for 42×62px reveal cards
+
+---
+
+## `src/games/blackjack/index.js`
+
+Blackjack plugin entry.
+
+**Exports:** `{ init, render }`
+- `init()` — bind Place Bet / Enter key on bet input / Hit / Stand / Double Down / Split button listeners
+- `render(meta, mine)` — delegate to `renderBoard(meta, mine)`
+
+---
+
+## `src/games/blackjack/actions.js`
+
+Blackjack action dispatchers.
+
+**Exports:** `bjBet(amount)`, `bjHit()`, `bjStand()`, `bjDoubleDown()`, `bjSplit()`
+
+All dispatch via `act(fn)`: call API → `api.getState()` → fire `CustomEvent('game:move')`.
+
+---
+
+## `src/games/blackjack/render.js`
+
+Blackjack board rendering.
+
+**Exports:** `renderBoard(meta, mine)`
+
+- Renders dealer hand with hidden hole card during `betting`/`playing`; full reveal during `between-rounds`
+- Renders opponent slots: name, chips, bet pill, hand cards (face-up), per-hand result badges during `between-rounds`
+- **Betting phase:** shows bet input + chip shortcuts (10/25/50/100/200/500 filtered by chips); shows "waiting" message after bet placed
+- **Playing phase:** shows my hand(s) — `string[][]`; highlights active hand (pink border); dims stood/busted hands; shows Hit/Stand and conditionally Double Down (2-card hand + chips ≥ bet) / Split (matching rank + chips ≥ bet + < 4 hands)
+- **Between-rounds:** shows per-hand result badges + net chip change with color (+/−)
+- Hand value computed locally: Ace=11/1, face=10, shows "Soft X" when Ace counts as 11
 
 ---
 

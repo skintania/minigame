@@ -29,11 +29,20 @@ game.html
        │    └─ src/ui/modal.js
        └─ src/games/registry.js
             ├─ src/games/poker/index.js
-            │    ├─ src/games/poker/actions.js  ← api/client, state, toast
-            │    └─ src/games/poker/render.js   ← state, cfg
-            └─ src/games/uno/index.js
-                 ├─ src/games/uno/actions.js    ← api/client, state, modal, toast
-                 └─ src/games/uno/render.js     ← state, cfg
+            │    ├─ src/games/poker/actions.js      ← api/client, state, toast
+            │    └─ src/games/poker/render.js       ← state, cfg
+            ├─ src/games/uno/index.js
+            │    ├─ src/games/uno/actions.js        ← api/client, state, modal, toast
+            │    └─ src/games/uno/render.js         ← state, cfg
+            ├─ src/games/slave/index.js
+            │    ├─ src/games/slave/actions.js      ← api/client, state, toast
+            │    └─ src/games/slave/render.js       ← state, cfg
+            ├─ src/games/dummy/index.js
+            │    ├─ src/games/dummy/actions.js      ← api/client, state, toast
+            │    └─ src/games/dummy/render.js       ← state, cfg, toast
+            └─ src/games/blackjack/index.js
+                 ├─ src/games/blackjack/actions.js  ← api/client, state, toast
+                 └─ src/games/blackjack/render.js   ← state, cfg
 ```
 
 ## Page Navigation Flow
@@ -163,7 +172,7 @@ roomHeartbeatInterval (15s) [game.js]
 
 | Event | Fired by | Listened by | Purpose |
 |-------|---------|------------|---------|
-| `game:move` | `poker/actions.js`, `uno/actions.js` | `views/game.js` | Relay move result back to game loop |
+| `game:move` | `poker/actions.js`, `uno/actions.js`, `slave/actions.js`, `dummy/actions.js`, `blackjack/actions.js` | `views/game.js` | Relay move result back to game loop |
 
 ## DOM ID Quick Reference
 
@@ -174,6 +183,9 @@ roomHeartbeatInterval (15s) [game.js]
 | `#view-create` | index | Game picker |
 | `#poker-board` | game | Poker table container |
 | `#uno-board` | game | UNO board container |
+| `#slave-board` | game | Slave board container |
+| `#dummy-board` | game | Dummy board container |
+| `#blackjack-board` | game | Blackjack board container |
 | `#pk-hand-winner` | game | Hand result banner |
 | `#winner-overlay` | game | Game-over full-screen overlay |
 | `#showdown-bar` | game | Showdown pill (winner name + countdown + Skip for host) |

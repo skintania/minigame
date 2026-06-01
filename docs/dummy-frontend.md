@@ -31,7 +31,7 @@ Use `metadata.drewThisTurn` to know which step the current player is on:
 | `metadata.hands[otherId]` | Array of `"hidden"` strings — length = their card count |
 | `metadata.stockCount` | Number of cards remaining in stock pile |
 | `metadata.discardPile` | Full discard pile — `[0]` = oldest/top card (highlighted), `[last]` = newest/bottom (just discarded) |
-| `metadata.melds` | All laid melds on the table, public to everyone |
+| `metadata.melds` | All laid melds on the table, public to everyone. Each meld has `owner` (who laid it), `cards` (all cards), and `contributions` (per-card attribution for scoring) |
 | `metadata.hasLaidDown` | Map of who has laid down this round (needed to show/hide ฝาก button) |
 | `metadata.openingCard` | The first card of the discard pile — worth 50 pts, highlight it specially |
 | `metadata.drewDiscardTarget` | If set: current player must lay this card before they can discard |
@@ -95,7 +95,7 @@ Valid melds:
 - **Set:** 3–4 cards of the same rank (e.g. `K♣ K♦ K♥`)
 - **Run:** 3+ consecutive ranks, same suit (e.g. `5♣ 6♣ 7♣`). Ace is high only — `Q-K-A` valid, `A-2-3` invalid.
 
-Enable this action when `drewThisTurn = true`. Allow players to select multiple cards from their hand.
+**First lay restriction:** Enable this action only when `drewThisTurn = true` AND (`hasLaidDown[me] = true` OR `drewDiscardTarget != null`). A player cannot lay down for the first time in a round unless they drew from the discard pile this turn.
 
 If `drewDiscardTarget` is set, the selected cards **must include** that card.
 
@@ -127,7 +127,7 @@ Only enabled when:
 - `drewThisTurn = true`, AND
 - `drewDiscardTarget = null` (or it has been satisfied via a `lay`)
 
-**Penalty warning:** If the card the player is about to discard is playable (can form a meld or be ฝาก'd), the API will apply a -50 penalty automatically. Consider showing a warning before confirming.
+**Penalty warning:** If the card can be ฝาก'd onto any existing meld on the table, the API applies a -50 penalty automatically (melds are visible — no excuse to miss them). Discarding a card that could form a new meld from hand only is **not** penalised. Consider highlighting cards in hand that match a visible meld as a hint.
 
 ---
 
@@ -225,7 +225,9 @@ Note: if only the bottom card is selected (just `discardPile[last]`), only 1 car
 |-----------|-----|
 | `isMyTurn = false` | All action buttons disabled |
 | `drewThisTurn = false` | Only draw buttons enabled |
-| `drewThisTurn = true` | Lay / ฝาก / discard buttons enabled |
+| `drewThisTurn = true` AND `hasLaidDown[me] = true` | Lay / ฝาก / discard buttons enabled |
+| `drewThisTurn = true` AND `hasLaidDown[me] = false` AND `drewDiscardTarget != null` | Lay enabled (first lay, drew from discard) |
+| `drewThisTurn = true` AND `hasLaidDown[me] = false` AND `drewDiscardTarget = null` | Lay disabled (drew from stock, can't lay yet); only discard enabled |
 | `drewDiscardTarget != null` | Highlight the target card in hand; warn that it must be laid before discarding |
 | `hasLaidDown[me] = false` | Hide or disable ฝาก button |
 | `phase = "between-rounds"` | Show score table; host sees "Next Round" button |
