@@ -19,6 +19,8 @@ let prevMyRole                  = null
 let prevMatchStatus             = null
 let wrSettings                  = { maxPlayers: 8, startingChips: 1000, turnTimeLimit: 0, roundLimit: 0 }
 let wrDebounce                  = {}
+let lastBankerActiveMeta        = null
+let bustScreenActive            = false
 
 // ── Server-authoritative helpers ──────────────────────────
 // Use these everywhere instead of reading state.isHost / state.role directly.
@@ -58,10 +60,16 @@ function applyServerState(gs) {
 
   // Detect room reset: active game → waiting (all players busted)
   if (prevMatchStatus === 'active' && gs.matchStatus === 'waiting') {
-    hideBetweenRounds()
     hideShowdownBar()
     document.getElementById('winner-overlay')?.classList.remove('open')
-    showToast('All players busted out. Room reset.')
+    if (['blackjack', 'pokdeng'].includes(state.gameId) && lastBankerActiveMeta) {
+      const bustMeta = lastBankerActiveMeta
+      lastBankerActiveMeta = null
+      _showBankerChipBust(bustMeta)
+    } else {
+      hideBetweenRounds()
+      showToast('All players busted out. Room reset.')
+    }
   }
   prevMatchStatus = gs.matchStatus ?? prevMatchStatus
 
@@ -256,6 +264,9 @@ export function enterGame() {
     try {
       const commBefore = state.gameState?.metadata?.community?.length ?? 0
       const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
+      if (['blackjack', 'pokdeng'].includes(state.gameId) && state.gameState?.matchStatus === 'active') {
+        lastBankerActiveMeta = state.gameState.metadata
+      }
       state.gameState = gs
       applyServerState(gs)
       saveSession()
@@ -316,6 +327,7 @@ async function pollRoomHeartbeat() {
 
 // ── Render ────────────────────────────────────────────────
 export function render() {
+  if (bustScreenActive) return
   if (!state.gameState) return
   const meta = state.gameState.metadata
   if (!meta) return
@@ -641,6 +653,9 @@ async function wrKickPlayer(targetId) {
 // ── Move result handler ───────────────────────────────────
 async function handleMoveResult(res) {
   const commBefore = state.gameState?.metadata?.community?.length ?? 0
+  if (['blackjack', 'pokdeng'].includes(state.gameId) && state.gameState?.matchStatus === 'active') {
+    lastBankerActiveMeta = state.gameState.metadata
+  }
   state.gameState = res
   applyServerState(res)
   saveSession()
@@ -1148,6 +1163,27 @@ function hideBetweenRounds() {
   hidePokdengScorePanel()
   clearInterval(betweenRoundsInterval); betweenRoundsInterval = null
   localBetweenRoundsRemaining = null
+}
+
+// ── Chip-bust transition (BJ / PD single-player bot) ─────
+function _showBankerChipBust(meta) {
+  bustScreenActive = true
+  registry[state.gameId]?.render(meta, false)
+  const overlay   = document.getElementById('between-rounds-overlay')
+  const roundInfo = document.getElementById('br-round-info')
+  if (roundInfo) roundInfo.textContent = 'You ran out of chips!'
+  const btnNext   = document.getElementById('btn-next-round')
+  const btnSwitch = document.getElementById('btn-switch-role')
+  if (btnNext)   btnNext.style.display   = 'none'
+  if (btnSwitch) btnSwitch.style.display = 'none'
+  if (overlay) overlay.classList.add('open')
+  setTimeout(() => {
+    bustScreenActive = false
+    hideBetweenRounds()
+    if (btnNext)   btnNext.style.display   = ''
+    if (btnSwitch) btnSwitch.style.display = ''
+    render()
+  }, 4000)
 }
 
 // ── Inactivity rejoin prompt ──────────────────────────────
