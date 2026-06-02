@@ -290,8 +290,7 @@ export function enterGame() {
         stopPoll(); showToast('Game over! Returning to lobby…')
         gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
       } else if (state.gameId === 'oldmaid' && gs.metadata?.phase === 'between-rounds') {
-        stopPoll(); showToast('Game over! Returning to lobby…')
-        gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
+        stopPoll()
       } else if (state.gameId === 'poker' && gs.metadata?.winner && gs.revealRemainingSec == null) {
         stopPoll()
         prevCommunityCount = commBefore
@@ -690,8 +689,7 @@ async function handleMoveResult(res) {
   saveSession()
   render()
   if (state.gameId === 'oldmaid' && res.metadata?.phase === 'between-rounds') {
-    stopPoll(); showToast('Game over! Returning to lobby…')
-    gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
+    stopPoll()
   } else if (res.metadata?.winner && res.revealRemainingSec == null) {
     stopPoll()
     prevCommunityCount = commBefore
