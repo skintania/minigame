@@ -1,7 +1,7 @@
 import { state, cfg } from '../../state.js'
 import {
   dmChooseBuddy, dmReportLoser, dmSetKRule,
-  dmReportGestureLoser,
+  dmReportGestureLoser, dmSetCategory,
 } from './actions.js'
 
 const SUIT_NAMES = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs' }
@@ -272,7 +272,7 @@ function _setDisplay(id, visible) {
 }
 
 function _renderPhaseArea(meta, mine, players, turnOrder, names, myId) {
-  const { phase, currentPlayer, pendingMinigame, kRules = {}, gesturePending, silenced } = meta
+  const { phase, currentPlayer, pendingMinigame, kRules = {}, gesturePending, silenced, buddies = {} } = meta
   const phaseEl = document.getElementById('dm-phase-area')
   if (!phaseEl) return
 
@@ -281,16 +281,38 @@ function _renderPhaseArea(meta, mine, players, turnOrder, names, myId) {
   // ── pending-buddy ─────────────────────────────────────────
   if (phase === 'pending-buddy') {
     if (currentPlayer === myId) {
+      const alreadyBuddied = new Set(Object.values(buddies))
       const others = players.filter(id => id !== myId)
       html = `<div class="dm-phase-card">
         <div class="dm-phase-title">🤝 Pick your buddy!</div>
         <div class="dm-picker-grid" id="dm-buddy-picks">
-          ${others.map(id => `<button class="btn btn-blue dm-pick-btn" data-buddy="${id}">${names[id] || id.slice(0,8)}</button>`).join('')}
+          ${others.map(id => {
+            const taken = alreadyBuddied.has(id)
+            return `<button class="btn btn-blue dm-pick-btn" data-buddy="${id}" ${taken ? 'disabled' : ''}>${names[id] || id.slice(0,8)}</button>`
+          }).join('')}
         </div>
       </div>`
     } else {
       html = `<div class="dm-phase-card">
         <div class="dm-phase-title">🤝 ${names[currentPlayer] || currentPlayer.slice(0,8)} is picking a buddy…</div>
+      </div>`
+    }
+  }
+
+  // ── pending-category ──────────────────────────────────────
+  else if (phase === 'pending-category') {
+    if (currentPlayer === myId) {
+      html = `<div class="dm-phase-card">
+        <div class="dm-phase-title">📂 Name the category!</div>
+        <div class="dm-phase-desc">Type a category for everyone to name items from.</div>
+        <div class="dm-k-input-row">
+          <input type="text" id="dm-category-text" class="bet-field" placeholder="e.g. types of fruit…" style="flex:1;min-width:0">
+          <button class="btn btn-pink" id="btn-dm-set-category" style="width:auto">Set</button>
+        </div>
+      </div>`
+    } else {
+      html = `<div class="dm-phase-card">
+        <div class="dm-phase-title">📂 ${names[currentPlayer] || currentPlayer.slice(0,8)} is picking a category…</div>
       </div>`
     }
   }
@@ -382,6 +404,17 @@ function _renderPhaseArea(meta, mine, players, turnOrder, names, myId) {
     })
     phaseEl.querySelector('#dm-k-text')?.addEventListener('keydown', e => {
       if (e.key === 'Enter') setKBtn.click()
+    })
+  }
+
+  const setCatBtn = phaseEl.querySelector('#btn-dm-set-category')
+  if (setCatBtn) {
+    setCatBtn.addEventListener('click', () => {
+      const text = phaseEl.querySelector('#dm-category-text')?.value?.trim()
+      if (text) dmSetCategory(text)
+    })
+    phaseEl.querySelector('#dm-category-text')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') setCatBtn.click()
     })
   }
 }

@@ -34,3 +34,6 @@ export async function dmReportTalking(talker) {
 export async function dmReportPointing(offender) {
   await act(() => api.doraemonReportPointing(state.matchId, state.sessionId, offender))
 }
+export async function dmSetCategory(topic) {
+  await act(() => api.doraemonSetCategory(state.matchId, state.sessionId, topic))
+}

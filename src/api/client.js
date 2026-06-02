@@ -90,6 +90,7 @@ export const api = {
   doraemonReportGestureLoser:(mid, sid, target)=> request('POST', `/games/doraemon/${mid}/report-gesture-loser`,{ sessionId: sid, target }),
   doraemonReportTalking:    (mid, sid, talker) => request('POST', `/games/doraemon/${mid}/report-talking`,      { sessionId: sid, talker }),
   doraemonReportPointing:   (mid, sid, offender)=>request('POST', `/games/doraemon/${mid}/report-pointing`,     { sessionId: sid, offender }),
+  doraemonSetCategory:      (mid, sid, topic)   => request('POST', `/games/doraemon/${mid}/set-category`,        { sessionId: sid, topic }),
 
   // UNO actions
   unoStart:     (mid, sid)               => request('POST', `/games/uno/${mid}/start`,      { sessionId: sid }),
