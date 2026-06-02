@@ -8,7 +8,7 @@ let prevMatchId    = null
 let selectedIdx    = null   // for manual reorder swap
 
 function cardImgSrc(card) {
-  if (card === 'Joker') return `${CARD_BASE()}/joker.svg`
+  if (card === 'Joker') return `${CARD_BASE()}/red-joker.svg`
   if (!card || card === 'hidden') return null
   const suit = SUIT_NAMES[card.slice(-1)]
   const rank = card.slice(0, -1)
