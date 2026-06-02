@@ -7,8 +7,39 @@ import {
 const SUIT_NAMES = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs' }
 const CARD_BASE  = () => `${cfg.url}/assets/cards/standard-deck`
 
-// Module-level state for drink-flash tracking
-let prevDrinks = {}
+// Module-level state for drink tracking
+let prevDrinks       = {}
+let prevMatchId      = null
+let drinkOverlayTimer = null
+
+function showDrinkOverlay(drinkers) {
+  const overlay  = document.getElementById('dm-drink-overlay')
+  if (!overlay) return
+  clearTimeout(drinkOverlayTimer)
+
+  const names  = drinkers.map(d => d.name).join(' & ')
+  const delta  = drinkers.reduce((max, d) => Math.max(max, d.delta), 1)
+  const sipTxt = delta === 1 ? '1 sip' : `${delta} sips`
+
+  const whoEl    = document.getElementById('dm-drink-who')
+  const amountEl = document.getElementById('dm-drink-amount')
+  if (whoEl)    whoEl.textContent    = names
+  if (amountEl) amountEl.textContent = `🍺 × ${sipTxt}!`
+
+  overlay.style.display = 'flex'
+  overlay.classList.remove('dm-splash-out')
+  void overlay.offsetWidth               // force reflow so animation restarts
+  overlay.classList.add('dm-splash-in')
+
+  drinkOverlayTimer = setTimeout(() => {
+    overlay.classList.remove('dm-splash-in')
+    overlay.classList.add('dm-splash-out')
+    setTimeout(() => {
+      overlay.style.display = 'none'
+      overlay.classList.remove('dm-splash-out')
+    }, 600)
+  }, 3500)
+}
 
 function cardImgSrc(card) {
   if (!card) return null
@@ -62,8 +93,12 @@ export function renderBoard(meta, mine) {
     jHolder, gesturePending, kRules = {}, pendingMinigame, lastAction,
   } = meta
 
-  const isActive = phase !== 'waiting' && phase !== 'finished'
-  const chains   = buildChains(buddies)
+  const isActive  = phase !== 'waiting' && phase !== 'finished'
+  const chains    = buildChains(buddies)
+
+  // ── Match-reset guard ────────────────────────────────────
+  const isNewMatch = state.matchId !== prevMatchId
+  if (isNewMatch) { prevDrinks = {}; prevMatchId = state.matchId }
 
   // ── Deck ─────────────────────────────────────────────────
   const deckCountEl = document.getElementById('dm-deck-count')
@@ -104,7 +139,7 @@ export function renderBoard(meta, mine) {
       const buddyName  = buddyId ? pName(buddyId) : null
       const chainIdx   = chains.findIndex(c => c.includes(id))
       const chainColor = chainIdx >= 0 ? CHAIN_COLORS[chainIdx % CHAIN_COLORS.length] : null
-      const flashing   = (prevDrinks[id] ?? 0) < drinkCount
+      const flashing   = !isNewMatch && (prevDrinks[id] ?? 0) < drinkCount
 
       let powerCard = ''
       if (isSilenced) {
@@ -140,7 +175,15 @@ export function renderBoard(meta, mine) {
     }).join('')
   }
 
-  // Update prevDrinks after rendering
+  // ── Drink overlay ────────────────────────────────────────
+  if (!isNewMatch) {
+    const drinkers = turnOrder
+      .filter(id => (drinks[id] || 0) > (prevDrinks[id] ?? 0))
+      .map(id => ({ name: pName(id), delta: (drinks[id] || 0) - (prevDrinks[id] ?? 0) }))
+    if (drinkers.length > 0) showDrinkOverlay(drinkers)
+  }
+
+  // Update prevDrinks
   turnOrder.forEach(id => { prevDrinks[id] = drinks[id] || 0 })
 
   // ── Last action ──────────────────────────────────────────
