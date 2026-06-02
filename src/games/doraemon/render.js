@@ -356,7 +356,8 @@ function _renderPhaseArea(meta, mine, players, turnOrder, names, myId) {
     </div>`
   }
 
-  if (phaseEl.contains(document.activeElement)) return
+  const focused = document.activeElement
+  if (phaseEl.contains(focused) && (focused.tagName === 'INPUT' || focused.tagName === 'TEXTAREA')) return
 
   phaseEl.innerHTML = html
 
