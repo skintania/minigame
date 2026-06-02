@@ -562,6 +562,78 @@ html[data-theme="classic"] .dm-table {
   animation: dmSplashOut 0.6s ease-in forwards;
 }
 
+/* ── Card reveal overlay ─────────────────────────────────── */
+#dm-card-reveal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 8600;
+  pointer-events: none;
+}
+
+.dm-reveal-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.dm-reveal-card-img {
+  filter: drop-shadow(0 8px 32px rgba(255,220,80,0.55));
+}
+
+.dm-reveal-card-img .dm-reveal-card-img-el,
+.dm-reveal-card-img img {
+  width: 120px;
+  height: 176px;
+  border-radius: 10px;
+  object-fit: contain;
+}
+
+.dm-reveal-effect-label {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(255,200,60,0.7), 0 0 32px rgba(255,200,60,0.4);
+  background: rgba(8,6,20,0.72);
+  border: 2px solid rgba(255,200,60,0.35);
+  border-radius: 14px;
+  padding: 10px 24px;
+  backdrop-filter: blur(10px);
+  text-align: center;
+}
+
+@keyframes dmRevealIn {
+  0%   { opacity: 0; transform: scale(0.2) rotate(-15deg); }
+  60%  { transform: scale(1.08) rotate(3deg); }
+  80%  { transform: scale(0.96) rotate(-1deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes dmRevealFlyRight {
+  0%   { opacity: 1; transform: scale(1) translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: scale(0.35) translate(260px, 80px) rotate(12deg); }
+}
+
+@keyframes dmRevealFlyUp {
+  0%   { opacity: 1; transform: scale(1) translate(0, 0) rotate(0deg); }
+  100% { opacity: 0; transform: scale(0.35) translate(0, -220px) rotate(-8deg); }
+}
+
+.dm-reveal-wrap.dm-reveal-in {
+  animation: dmRevealIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.dm-reveal-wrap.dm-reveal-fly-right {
+  animation: dmRevealFlyRight 0.65s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.dm-reveal-wrap.dm-reveal-fly-up {
+  animation: dmRevealFlyUp 0.65s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
 /* ── Mobile ───────────────────────────────────────────────── */
 @media (max-width: 600px) {
   .dm-table     { padding: 12px 12px 10px; gap: 8px; }
