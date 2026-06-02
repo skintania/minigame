@@ -84,7 +84,7 @@ export function renderBoard(meta, mine) {
   if (isNewMatch) { prevMatchId = state.matchId; selectedIdx = null; prevMeta = null }
 
   const isActive      = phase === 'playing'
-  const pickTarget    = mine ? turnOrder.find(id => id !== myId && !eliminated.includes(id)) : null
+  const pickTarget    = mine ? (turnOrder.slice(1).find(id => !eliminated.includes(id)) ?? null) : null
   const myHand        = hands[myId] || []
   const myShuffleMode = shuffleMode[myId] || 'auto'
 
