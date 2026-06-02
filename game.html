@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="/src/styles/games/blackjack.css">
   <link rel="stylesheet" href="/src/styles/games/pokdeng.css">
   <link rel="stylesheet" href="/src/styles/games/doraemon.css">
+  <link rel="stylesheet" href="/src/styles/games/oldmaid.css">
 </head>
 <body>
   <div id="toast"></div>
@@ -358,6 +359,24 @@
             <button class="btn btn-ghost"   id="btn-dm-pointing"   style="display:none;width:auto">👉 Caught pointing?</button>
             <button class="btn btn-ghost"   id="btn-dm-talking"    style="display:none;width:auto">⚠️ Talked to silenced?</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Old Maid Board -->
+    <div id="oldmaid-board" class="game-board" style="display:none">
+      <div class="om-layout">
+        <div class="om-table-area">
+          <div class="om-opponents" id="om-opponents"></div>
+          <div class="om-center-info" id="om-center-info"></div>
+        </div>
+        <div class="om-player-zone">
+          <div class="om-my-hand" id="om-my-hand"></div>
+          <div class="om-hand-footer" id="om-hand-footer">
+            <div class="om-shuffle-toggle" id="om-shuffle-toggle" style="display:none"></div>
+            <div class="om-reorder-hint" id="om-reorder-hint" style="display:none">Tap a card to select, tap another to swap</div>
+          </div>
+          <div class="last-action" id="om-last"></div>
         </div>
       </div>
     </div>

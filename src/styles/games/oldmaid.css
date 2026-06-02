@@ -1,0 +1,322 @@
+/* ── Old Maid board ──────────────────────────────────────── */
+#oldmaid-board {
+  flex-direction: column;
+  align-items: stretch;
+  overflow-y: auto;
+}
+
+.om-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  padding: 12px 8px 0;
+}
+
+/* ── Table area (opponents + center) ─────────────────────── */
+.om-table-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.om-opponents {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+/* ── Seats ───────────────────────────────────────────────── */
+.om-seat {
+  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 10px 12px;
+  min-width: 90px;
+  max-width: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.om-seat.om-seat-active {
+  border-color: var(--accent-pink);
+  box-shadow: 0 0 14px rgba(255,100,170,0.25);
+}
+
+.om-seat.om-seat-pick-target {
+  border-color: #ffd700;
+  box-shadow: 0 0 18px rgba(255,215,0,0.35);
+  transform: scale(1.04);
+}
+
+.om-seat.om-eliminated {
+  opacity: 0.5;
+}
+
+.om-seat.om-loser {
+  border-color: #ff4444;
+  box-shadow: 0 0 18px rgba(255,68,68,0.4);
+}
+
+.om-seat-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 130px;
+}
+
+.om-seat-shuffle {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.om-seat-info {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.om-seat-pairs {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.om-pick-arrow {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffd700;
+  text-align: center;
+  animation: omPickPulse 1s ease-in-out infinite;
+}
+
+/* ── Card backs ──────────────────────────────────────────── */
+.om-card-backs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 150px;
+}
+
+.om-card-back {
+  width: 28px;
+  height: 40px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #1a2060, #2d3590);
+  border: 1.5px solid rgba(255,255,255,0.18);
+  transition: transform 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+
+.om-card-back.om-pickable {
+  cursor: pointer;
+  border-color: #ffd700;
+  animation: omCardPulse 1.2s ease-in-out infinite;
+}
+
+.om-card-back.om-pickable:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 20px rgba(255,215,0,0.45);
+}
+
+@keyframes omCardPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); }
+  50%       { box-shadow: 0 0 8px 3px rgba(255,215,0,0.4); }
+}
+
+@keyframes omPickPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* ── Center info ─────────────────────────────────────────── */
+.om-center-info {
+  text-align: center;
+  padding: 8px 16px;
+}
+
+.om-turn-msg, .om-wait-msg, .om-finished-msg {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.om-turn-msg strong, .om-wait-msg strong {
+  color: var(--accent-pink);
+}
+
+.om-finished-msg {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffd700;
+}
+
+/* ── Player zone ─────────────────────────────────────────── */
+.om-player-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding-bottom: 12px;
+}
+
+/* ── My hand ─────────────────────────────────────────────── */
+.om-my-hand {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 4px 8px;
+  max-width: 100%;
+}
+
+.om-hand-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: default;
+  border-radius: 8px;
+  padding: 4px;
+  transition: transform 0.15s;
+  position: relative;
+}
+
+.om-hand-card.om-hand-joker {
+  border: 2px solid #ffd700;
+  background: rgba(255,215,0,0.08);
+  border-radius: 8px;
+}
+
+.om-hand-card.om-hand-selected {
+  transform: translateY(-10px);
+  border: 2px solid var(--accent-pink);
+  background: rgba(255,100,170,0.12);
+}
+
+.om-hand-card[data-hand-idx] {
+  cursor: pointer;
+}
+
+.om-card, .om-hand-card-img {
+  width: 52px;
+  height: 76px;
+  border-radius: 6px;
+  object-fit: contain;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.om-joker {
+  border: 2px solid #ffd700 !important;
+}
+
+.om-card-face.om-joker {
+  width: 52px;
+  height: 76px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #2a1a00, #5a3a00);
+  border: 2px solid #ffd700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+}
+
+.om-card-label {
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+  max-width: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.om-safe-badge {
+  font-size: 20px;
+  font-weight: 800;
+  color: #4caf50;
+  padding: 8px;
+}
+
+/* ── Hand footer ─────────────────────────────────────────── */
+.om-hand-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Shuffle toggle ──────────────────────────────────────── */
+.om-shuffle-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.om-shuffle-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.om-shuffle-btn {
+  font-size: 12px;
+  padding: 5px 12px;
+  width: auto;
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  color: var(--muted);
+  border-radius: 20px;
+}
+
+.om-shuffle-btn.om-shuffle-active {
+  background: rgba(255,100,170,0.18);
+  border-color: var(--accent-pink);
+  color: #fff;
+  font-weight: 700;
+}
+
+/* ── Reorder hint ────────────────────────────────────────── */
+.om-reorder-hint {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  padding: 2px 8px;
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .om-card-back {
+    width: 22px;
+    height: 32px;
+  }
+
+  .om-card, .om-hand-card-img {
+    width: 44px;
+    height: 64px;
+  }
+
+  .om-card-face.om-joker {
+    width: 44px;
+    height: 64px;
+    font-size: 22px;
+  }
+
+  .om-seat {
+    min-width: 75px;
+    padding: 8px;
+  }
+}

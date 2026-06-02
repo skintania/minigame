@@ -123,6 +123,8 @@ export function initGame() {
       try { await api.pokdengEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
     } else if (state.gameId === 'doraemon' && state.matchId) {
       try { await api.doraemonEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
+    } else if (state.gameId === 'oldmaid' && state.matchId) {
+      try { await api.oldmaidEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
     } else {
       leaveRoom()
     }
@@ -212,7 +214,8 @@ export function enterGame() {
   stopPoll()
 
   const gameId = state.gameId
-  document.getElementById('g-name').textContent            = gameId === 'poker' ? 'Poker' : gameId === 'uno' ? 'UNO' : gameId === 'slave' ? 'Slave' : gameId === 'blackjack' ? 'Blackjack' : gameId === 'pokdeng' ? 'Pok Deng' : gameId === 'doraemon' ? 'Doraemon' : 'Dummy'
+  const GAME_NAMES = { poker:'Poker', uno:'UNO', slave:'Slave', dummy:'Dummy', blackjack:'Blackjack', pokdeng:'Pok Deng', doraemon:'Doraemon', oldmaid:'Old Maid' }
+  document.getElementById('g-name').textContent            = GAME_NAMES[gameId] || gameId
   document.getElementById('poker-board').style.display      = gameId === 'poker'      ? 'flex' : 'none'
   document.getElementById('uno-board').style.display        = gameId === 'uno'        ? 'flex' : 'none'
   document.getElementById('slave-board').style.display      = gameId === 'slave'      ? 'flex' : 'none'
@@ -220,6 +223,7 @@ export function enterGame() {
   document.getElementById('blackjack-board').style.display  = gameId === 'blackjack'  ? 'flex' : 'none'
   document.getElementById('pokdeng-board').style.display    = gameId === 'pokdeng'    ? 'flex' : 'none'
   document.getElementById('doraemon-board').style.display   = gameId === 'doraemon'   ? 'flex' : 'none'
+  document.getElementById('oldmaid-board').style.display    = gameId === 'oldmaid'    ? 'flex' : 'none'
 
   // Move join-wrap into whichever board is active (it lives in poker board by default)
   if (gameId === 'uno') {
@@ -240,6 +244,9 @@ export function enterGame() {
   } else if (gameId === 'doraemon') {
     const wrap = document.getElementById('wr-join-wrap')
     document.querySelector('.dm-player-zone')?.appendChild(wrap)
+  } else if (gameId === 'oldmaid') {
+    const wrap = document.getElementById('wr-join-wrap')
+    document.querySelector('.om-player-zone')?.appendChild(wrap)
   }
   document.getElementById('btn-end-game').style.display =
     (state.roomCode && amHost()) ? 'inline-flex' : 'none'
@@ -281,6 +288,8 @@ export function enterGame() {
         stopPoll(); startGameOverCountdown()
       } else if (state.gameId === 'doraemon' && gs.matchStatus === 'finished') {
         stopPoll(); showToast('Game over! Check the drink totals.')
+      } else if (state.gameId === 'oldmaid' && gs.matchStatus === 'finished') {
+        stopPoll(); showToast('Game over!')
       } else if (state.gameId === 'poker' && gs.metadata?.winner && gs.revealRemainingSec == null) {
         stopPoll()
         prevCommunityCount = commBefore
@@ -629,6 +638,7 @@ async function wrStartRound() {
                : state.gameId === 'uno'      ? api.unoStart
                : state.gameId === 'dummy'    ? api.dummyStart
                : state.gameId === 'doraemon' ? api.doraemonStart
+               : state.gameId === 'oldmaid'  ? api.oldmaidStart
                : api.slaveStart
       await fn(state.matchId, state.sessionId)
     }

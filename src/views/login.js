@@ -34,6 +34,7 @@ export async function initLogin() {
   document.getElementById('btn-create-blackjack').addEventListener('click', () => doCreateRoom('blackjack'))
   document.getElementById('btn-create-pokdeng').addEventListener('click',   () => doCreateRoom('pokdeng'))
   document.getElementById('btn-create-doraemon').addEventListener('click',  () => doCreateRoom('doraemon'))
+  document.getElementById('btn-create-oldmaid').addEventListener('click',   () => doCreateRoom('oldmaid'))
 
   // Auto-reconnect
   if (state.sessionId) {
