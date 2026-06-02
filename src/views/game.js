@@ -287,9 +287,11 @@ export function enterGame() {
       if (['uno', 'slave', 'dummy', 'blackjack', 'pokdeng'].includes(state.gameId) && gs.matchStatus === 'finished') {
         stopPoll(); startGameOverCountdown()
       } else if (state.gameId === 'doraemon' && gs.matchStatus === 'finished') {
-        stopPoll(); showToast('Game over! Check the drink totals.')
+        stopPoll(); showToast('Game over! Returning to lobby…')
+        gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
       } else if (state.gameId === 'oldmaid' && gs.matchStatus === 'finished') {
-        stopPoll(); showToast('Game over!')
+        stopPoll(); showToast('Game over! Returning to lobby…')
+        gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
       } else if (state.gameId === 'poker' && gs.metadata?.winner && gs.revealRemainingSec == null) {
         stopPoll()
         prevCommunityCount = commBefore
