@@ -7,10 +7,45 @@ import {
 const SUIT_NAMES = { '♠': 'spades', '♥': 'hearts', '♦': 'diamonds', '♣': 'clubs' }
 const CARD_BASE  = () => `${cfg.url}/assets/cards/standard-deck`
 
-// Module-level state for drink tracking
-let prevDrinks       = {}
-let prevMatchId      = null
+// Module-level state
+let prevDrinks        = {}
+let prevMatchId       = null
+let prevDrawnCard     = null
 let drinkOverlayTimer = null
+let cardRevealTimer   = null
+
+const CARD_EFFECTS = {
+  'A': '🍺 1 sip',  '2': '🍺 2 sips',  '3': '🍺 3 sips', '4': '🍺 4 sips',
+  '5': '🤝 Pick a buddy!', '6': '📂 Category game!', '7': '7️⃣ Number 7!',
+  '8': '🚽 Bathroom pass', '9': '⬅️ Left drinks',   '10': '➡️ Right drinks',
+  'J': '⚡ Gesture power!', 'Q': '🤐 Silenced!',     'K': '👑 Rule!',
+}
+
+function showCardReveal(card, isPersistent) {
+  const overlay = document.getElementById('dm-card-reveal')
+  const wrap    = document.getElementById('dm-reveal-wrap')
+  if (!overlay || !wrap) return
+  clearTimeout(cardRevealTimer)
+
+  const imgEl    = document.getElementById('dm-reveal-card-img')
+  const labelEl  = document.getElementById('dm-reveal-effect-label')
+  if (imgEl)   imgEl.innerHTML   = cardHtml(card, 'dm-reveal-card-img-el')
+  if (labelEl) labelEl.textContent = CARD_EFFECTS[card.slice(0, -1)] || card
+
+  overlay.style.display = 'flex'
+  wrap.classList.remove('dm-reveal-in', 'dm-reveal-fly-right', 'dm-reveal-fly-up')
+  void wrap.offsetWidth
+  wrap.classList.add('dm-reveal-in')
+
+  cardRevealTimer = setTimeout(() => {
+    wrap.classList.remove('dm-reveal-in')
+    wrap.classList.add(isPersistent ? 'dm-reveal-fly-up' : 'dm-reveal-fly-right')
+    setTimeout(() => {
+      overlay.style.display = 'none'
+      wrap.classList.remove('dm-reveal-fly-right', 'dm-reveal-fly-up')
+    }, 700)
+  }, 2800)
+}
 
 function showDrinkOverlay(drinkers) {
   const overlay  = document.getElementById('dm-drink-overlay')
@@ -98,7 +133,7 @@ export function renderBoard(meta, mine) {
 
   // ── Match-reset guard ────────────────────────────────────
   const isNewMatch = state.matchId !== prevMatchId
-  if (isNewMatch) { prevDrinks = {}; prevMatchId = state.matchId }
+  if (isNewMatch) { prevDrinks = {}; prevMatchId = state.matchId; prevDrawnCard = null }
 
   // ── Deck ─────────────────────────────────────────────────
   const deckCountEl = document.getElementById('dm-deck-count')
@@ -175,16 +210,27 @@ export function renderBoard(meta, mine) {
     }).join('')
   }
 
-  // ── Drink overlay ────────────────────────────────────────
+  // ── Card reveal + drink overlay ──────────────────────────
   if (!isNewMatch) {
     const drinkers = turnOrder
       .filter(id => (drinks[id] || 0) > (prevDrinks[id] ?? 0))
       .map(id => ({ name: pName(id), delta: (drinks[id] || 0) - (prevDrinks[id] ?? 0) }))
-    if (drinkers.length > 0) showDrinkOverlay(drinkers)
+
+    const drawnCardChanged = drawnCard && drawnCard !== prevDrawnCard
+    if (drawnCardChanged) {
+      const rank         = drawnCard.slice(0, -1)
+      const isPersistent = rank === 'J' || rank === 'Q'
+      showCardReveal(drawnCard, isPersistent)
+      // Delay drink overlay until card flies away
+      if (drinkers.length > 0) setTimeout(() => showDrinkOverlay(drinkers), 3600)
+    } else if (drinkers.length > 0) {
+      showDrinkOverlay(drinkers)
+    }
   }
 
-  // Update prevDrinks
+  // Update prevDrinks and prevDrawnCard
   turnOrder.forEach(id => { prevDrinks[id] = drinks[id] || 0 })
+  if (drawnCard) prevDrawnCard = drawnCard
 
   // ── Last action ──────────────────────────────────────────
   const lastEl = document.getElementById('dm-last')
@@ -197,6 +243,13 @@ export function renderBoard(meta, mine) {
   const myPasses = bathroomPasses[myId] || 0
   _setDisplay('btn-dm-draw',      mine && phase === 'playing')
   _setDisplay('btn-dm-bathroom',  myPasses > 0 && isActive)
+  const bathBtn = document.getElementById('btn-dm-bathroom')
+  if (bathBtn) {
+    const src = cardImgSrc('8♠')
+    bathBtn.innerHTML = src
+      ? `<img src="${src}" style="width:20px;height:29px;vertical-align:middle;margin-right:5px;border-radius:2px"> Use Pass`
+      : 'Use Pass'
+  }
   _setDisplay('btn-dm-pointing',  isActive)
   _setDisplay('btn-dm-talking',   !!(silenced && isActive))
   _setDisplay('btn-dm-gesture',   jHolder === myId && phase === 'playing' && !gesturePending)
@@ -295,6 +348,8 @@ function _renderPhaseArea(meta, mine, players, turnOrder, names, myId) {
       </div>
     </div>`
   }
+
+  if (phaseEl.contains(document.activeElement)) return
 
   phaseEl.innerHTML = html
 
