@@ -25,6 +25,24 @@ export async function initLogin() {
     if (e.key === 'Enter') doJoinRoom()
   })
 
+  // Rename
+  document.getElementById('btn-rename-user').addEventListener('click', () => {
+    const row   = document.getElementById('rename-row')
+    const input = document.getElementById('rename-input')
+    row.style.display = ''
+    input.value = state.username || ''
+    input.focus()
+    input.select()
+  })
+  document.getElementById('btn-rename-cancel').addEventListener('click', () => {
+    document.getElementById('rename-row').style.display = 'none'
+  })
+  document.getElementById('rename-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter')  doRename()
+    if (e.key === 'Escape') document.getElementById('rename-row').style.display = 'none'
+  })
+  document.getElementById('btn-rename-save').addEventListener('click', doRename)
+
   // Game picker screen
   document.getElementById('create-back-btn').addEventListener('click', () => showView('view-home'))
   document.getElementById('btn-create-poker').addEventListener('click', () => doCreateRoom('poker'))
@@ -134,6 +152,32 @@ async function doJoinRoom() {
     showToast(e.message)
     btn.disabled    = false
     btn.textContent = 'Join'
+  }
+}
+
+async function doRename() {
+  const input    = document.getElementById('rename-input')
+  const saveBtn  = document.getElementById('btn-rename-save')
+  const username = input.value.trim()
+  if (!username) { showToast('Username cannot be empty.'); return }
+  if (username === state.username) {
+    document.getElementById('rename-row').style.display = 'none'
+    return
+  }
+  saveBtn.disabled    = true
+  saveBtn.textContent = 'Saving…'
+  try {
+    const { session } = await api.renameUser(state.sessionId, username)
+    state.username = session.username
+    saveSession()
+    document.getElementById('home-username').textContent = session.username
+    document.getElementById('rename-row').style.display = 'none'
+    showToast('Username updated!')
+  } catch (e) {
+    showToast(e.message)
+  } finally {
+    saveBtn.disabled    = false
+    saveBtn.textContent = 'Save'
   }
 }
 

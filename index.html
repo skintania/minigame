@@ -42,6 +42,15 @@
     <img src="/sk-cu.png" class="lobby-logo" alt="Skintania">
     <div class="lobby-title">Welcome, <span id="home-username">Player</span>!</div>
     <div class="lobby-sub">Create a private room or join with a code</div>
+    <div id="rename-row" style="display:none;width:100%;max-width:320px;margin-bottom:4px">
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="rename-input" class="input-field" placeholder="New username"
+          maxlength="24" autocomplete="off" spellcheck="false" style="flex:1;margin:0">
+        <button class="btn btn-pink" id="btn-rename-save" style="width:auto;padding:0 18px">Save</button>
+        <button class="btn" id="btn-rename-cancel" style="width:auto;padding:0 12px">✕</button>
+      </div>
+    </div>
+    <span class="config-link" id="btn-rename-user">✏️ Change name</span>
     <div class="home-options">
       <div class="mode-card glass" id="btn-go-create">
         <div class="mode-card-icon">🏠</div>
