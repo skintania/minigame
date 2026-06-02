@@ -84,7 +84,7 @@ export function renderBoard(meta, mine) {
   if (isNewMatch) { prevMatchId = state.matchId; selectedIdx = null; prevMeta = null }
 
   const isActive      = phase === 'playing'
-  const pickTarget    = mine ? (turnOrder.slice(1).find(id => !eliminated.includes(id)) ?? null) : null
+  const pickTarget    = mine ? (meta.pickFrom ?? null) : null
   const myHand        = hands[myId] || []
   const myShuffleMode = shuffleMode[myId] || 'auto'
 
@@ -193,7 +193,7 @@ export function renderBoard(meta, mine) {
   // ── Center info ──────────────────────────────────────────
   const centerEl = document.getElementById('om-center-info')
   if (centerEl) {
-    if (phase === 'finished') {
+    if (phase === 'between-rounds') {
       centerEl.innerHTML = loser
         ? `<div class="om-finished-msg">😿 ${names[loser] || loser.slice(0,8)} holds the Joker!</div>`
         : `<div class="om-finished-msg">Game ended — a player disconnected.</div>`
@@ -275,7 +275,7 @@ export function renderBoard(meta, mine) {
   if (lastEl) lastEl.textContent = lastAction || ''
 
   // ── Finished state ───────────────────────────────────────
-  if (phase === 'finished') {
+  if (phase === 'between-rounds') {
     document.getElementById('om-hand-footer')?.style.setProperty('display', 'none')
   }
 }

@@ -289,7 +289,7 @@ export function enterGame() {
       } else if (state.gameId === 'doraemon' && gs.matchStatus === 'finished') {
         stopPoll(); showToast('Game over! Returning to lobby…')
         gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
-      } else if (state.gameId === 'oldmaid' && gs.metadata?.phase === 'finished') {
+      } else if (state.gameId === 'oldmaid' && gs.metadata?.phase === 'between-rounds') {
         stopPoll(); showToast('Game over! Returning to lobby…')
         gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
       } else if (state.gameId === 'poker' && gs.metadata?.winner && gs.revealRemainingSec == null) {
@@ -426,6 +426,12 @@ export function render() {
       const isGameOver = state.gameState?.matchStatus === 'finished'
       showPokdengScorePanel(meta, isGameOver)
       showBetweenRounds(meta)
+    } else if (state.gameId === 'oldmaid') {
+      document.getElementById('g-phase').textContent = 'Game Over'
+      registry['oldmaid']?.render(meta, false)
+      showBetweenRounds(meta)
+      document.getElementById('btn-next-round').style.display = 'none'
+      document.getElementById('btn-switch-role').style.display = 'none'
     } else {
       // Poker: between-rounds countdown panel
       document.getElementById('g-phase').textContent = 'Between Rounds'
@@ -683,7 +689,7 @@ async function handleMoveResult(res) {
   applyServerState(res)
   saveSession()
   render()
-  if (state.gameId === 'oldmaid' && res.metadata?.phase === 'finished') {
+  if (state.gameId === 'oldmaid' && res.metadata?.phase === 'between-rounds') {
     stopPoll(); showToast('Game over! Returning to lobby…')
     gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
   } else if (res.metadata?.winner && res.revealRemainingSec == null) {
@@ -1136,6 +1142,12 @@ function showBetweenRounds(meta) {
     } else {
       roundInfo.textContent = 'Round complete'
     }
+  } else if (state.gameId === 'oldmaid') {
+    const loser = meta.loser
+    const isMe  = loser === state.sessionId
+    roundInfo.textContent = loser
+      ? (isMe ? '😿 You hold the Joker!' : `😿 ${names[loser] || loser.slice(0, 8)} holds the Joker!`)
+      : 'Game ended — a player disconnected.'
   } else {
     const won        = meta.handWinner === state.sessionId
     const winnerName = names[meta.handWinner] || (won ? 'You' : 'Opponent')
