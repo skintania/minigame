@@ -173,6 +173,15 @@ export function initGame() {
     if (btn) wrKickPlayer(btn.dataset.kick)
   })
 
+  // Banker-mode radio — refresh start button immediately on change
+  document.querySelectorAll('input[name="wr-banker-mode"]').forEach(r => {
+    r.addEventListener('change', () => {
+      if (state.gameState?.matchStatus === 'waiting' || state.gameState?.metadata?.phase === 'waiting') {
+        updateWaitingPanel(state.gameState?.metadata || null)
+      }
+    })
+  })
+
   // Theme picker — init active state + bind clicks
   const savedTheme = localStorage.getItem('sk_theme') || ''
   document.querySelectorAll('.rd-theme-btn').forEach(btn => {
@@ -525,7 +534,13 @@ function updateWaitingPanel(meta) {
   if (host) {
     startBtn.style.display = ''
     const cnt = room?.playerCount ?? players.length
-    const minPlayers = state.gameId === 'slave' ? 3 : 2
+    const isBankerGame = state.gameId === 'blackjack' || state.gameId === 'pokdeng'
+    const bankerMode   = isBankerGame
+      ? (document.querySelector('input[name="wr-banker-mode"]:checked')?.value || 'bot')
+      : null
+    const minPlayers = state.gameId === 'slave'            ? 3
+                     : (isBankerGame && bankerMode === 'bot') ? 1
+                     : 2
     startBtn.disabled    = cnt < minPlayers
     startBtn.textContent = cnt >= minPlayers ? `Start (${cnt})` : `Need ${minPlayers}+ players…`
   } else {
