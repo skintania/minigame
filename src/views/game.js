@@ -289,7 +289,7 @@ export function enterGame() {
       } else if (state.gameId === 'doraemon' && gs.matchStatus === 'finished') {
         stopPoll(); showToast('Game over! Returning to lobby…')
         gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
-      } else if (state.gameId === 'oldmaid' && gs.matchStatus === 'finished') {
+      } else if (state.gameId === 'oldmaid' && gs.metadata?.phase === 'finished') {
         stopPoll(); showToast('Game over! Returning to lobby…')
         gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
       } else if (state.gameId === 'poker' && gs.metadata?.winner && gs.revealRemainingSec == null) {
@@ -683,7 +683,10 @@ async function handleMoveResult(res) {
   applyServerState(res)
   saveSession()
   render()
-  if (res.metadata?.winner && res.revealRemainingSec == null) {
+  if (state.gameId === 'oldmaid' && res.metadata?.phase === 'finished') {
+    stopPoll(); showToast('Game over! Returning to lobby…')
+    gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
+  } else if (res.metadata?.winner && res.revealRemainingSec == null) {
     stopPoll()
     prevCommunityCount = commBefore
     onHandEnd(res.metadata)

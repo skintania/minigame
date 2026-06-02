@@ -4,10 +4,15 @@ import { showToast } from '../../ui/toast.js'
 
 async function act(fn) {
   try {
-    await fn()
-    const res = await api.getState(state.gameId, state.matchId, state.sessionId)
+    const res = await fn()  // action endpoints now return full game state
     document.dispatchEvent(new CustomEvent('game:move', { detail: res }))
-  } catch (e) { showToast(e.message) }
+  } catch (e) {
+    showToast(e.message)
+    try {
+      const res = await api.getState(state.gameId, state.matchId, state.sessionId)
+      document.dispatchEvent(new CustomEvent('game:move', { detail: res }))
+    } catch {}
+  }
 }
 
 export function omPick(index)           { return act(() => api.oldmaidPick(state.matchId, state.sessionId, index)) }
