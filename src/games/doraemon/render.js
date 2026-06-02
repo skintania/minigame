@@ -90,6 +90,13 @@ function cardHtml(card, cls = '') {
   return `<img class="dm-card ${cls}" src="${src}" alt="${card}" onerror="this.style.opacity='0'">`
 }
 
+function cardPassBadge() {
+  const src = cardImgSrc('8♠')
+  return src
+    ? `<img src="${src}" style="width:14px;height:20px;vertical-align:middle;border-radius:2px;margin-right:1px">`
+    : '8'
+}
+
 function pName(id) {
   return state.gameState?.playerNames?.[id] || id.slice(0, 8)
 }
@@ -204,7 +211,7 @@ export function renderBoard(meta, mine) {
         <div class="dm-drink-count ${flashing ? 'dm-drink-flash' : ''}">
           🍺×${drinkCount}
         </div>
-        ${passes > 0 ? `<div class="dm-passes">🚽×${passes}</div>` : ''}
+        ${passes > 0 ? `<div class="dm-passes">${cardPassBadge()}×${passes}</div>` : ''}
         ${buddyName ? `<div class="dm-buddy" ${chainColor ? `style="color:${chainColor}"` : ''}>🔗 ${buddyName}</div>` : ''}
       </div>`
     }).join('')
