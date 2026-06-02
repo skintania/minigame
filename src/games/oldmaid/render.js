@@ -28,6 +28,13 @@ function pName(id) {
   return state.gameState?.playerNames?.[id] || id.slice(0, 8)
 }
 
+function messyTransform(idx) {
+  const angle = ((idx * 73 + 11) % 62) - 31
+  const tx    = ((idx * 47 + 7)  % 60) - 30
+  const ty    = ((idx * 31 + 13) % 50) - 25
+  return `rotate(${angle}deg) translate(${tx}px, ${ty}px)`
+}
+
 export function renderBoard(meta, mine) {
   if (!meta) return
 
@@ -82,7 +89,7 @@ export function renderBoard(meta, mine) {
         : hand.map(() => `<div class="om-card-back"></div>`).join('')
 
       const pairsHtml = pairs.length > 0
-        ? `<div class="om-seat-pairs">${pairs.length}🃏 pair${pairs.length > 1 ? 's' : ''}</div>`
+        ? `<div class="om-seat-pairs">${pairs.length} pair${pairs.length > 1 ? 's' : ''} discarded</div>`
         : ''
 
       return `<div class="${classes}" data-id="${id}">
@@ -102,6 +109,23 @@ export function renderBoard(meta, mine) {
         omPick(parseInt(btn.dataset.pick, 10))
       }, { once: true })
     }
+  }
+
+  // ── Discard pile on table ───────────────────────────────
+  const pileEl  = document.getElementById('om-discard-pile')
+  const emptyEl = document.getElementById('om-discard-empty')
+  if (pileEl) {
+    const allCards = []
+    for (const pairs of Object.values(discarded)) {
+      for (const pair of pairs) allCards.push(...pair)
+    }
+    if (emptyEl) emptyEl.style.display = allCards.length > 0 ? 'none' : ''
+    pileEl.innerHTML = allCards.map((card, idx) => {
+      const src   = cardImgSrc(card)
+      const style = `style="transform:${messyTransform(idx)};z-index:${idx}"`
+      if (!src) return `<div class="om-table-card-face" ${style}>🃏</div>`
+      return `<img class="om-table-card" src="${src}" alt="${card}" ${style} onerror="this.style.opacity='0'">`
+    }).join('')
   }
 
   // ── Center info ──────────────────────────────────────────

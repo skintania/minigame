@@ -366,10 +366,16 @@
     <!-- Old Maid Board -->
     <div id="oldmaid-board" class="game-board" style="display:none">
       <div class="om-layout">
-        <div class="om-table-area">
-          <div class="om-opponents" id="om-opponents"></div>
-          <div class="om-center-info" id="om-center-info"></div>
+        <!-- Opponent seats -->
+        <div class="om-opponents" id="om-opponents"></div>
+        <!-- Felt table with messy discard pile -->
+        <div class="om-table">
+          <div class="om-discard-pile" id="om-discard-pile"></div>
+          <div class="om-discard-empty" id="om-discard-empty">No discards yet</div>
         </div>
+        <!-- Status line (pick prompt / waiting) -->
+        <div class="om-center-info" id="om-center-info"></div>
+        <!-- Player zone -->
         <div class="om-player-zone">
           <div class="om-my-hand" id="om-my-hand"></div>
           <div class="om-hand-footer" id="om-hand-footer">

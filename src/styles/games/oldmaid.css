@@ -9,27 +9,108 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex: 1;
   min-height: 0;
-  padding: 12px 8px 0;
+  padding: 10px 8px 0;
 }
 
-/* ── Table area (opponents + center) ─────────────────────── */
-.om-table-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-}
-
+/* ── Opponent seats ───────────────────────────────────────── */
 .om-opponents {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   justify-content: center;
   width: 100%;
+}
+
+/* ── Felt table ───────────────────────────────────────────── */
+.om-table {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  min-height: 130px;
+  background: radial-gradient(ellipse at center, #1a3a2a 0%, #112a1e 70%, #0a1f16 100%);
+  border-radius: 80px;
+  border: 4px solid #0e2218;
+  box-shadow:
+    inset 0 2px 12px rgba(0,0,0,0.5),
+    0 4px 24px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 16px;
+}
+
+/* ── Discard pile (scattered cards) ──────────────────────── */
+.om-discard-pile {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.om-discard-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: rgba(255,255,255,0.2);
+  font-style: italic;
+  pointer-events: none;
+}
+
+.om-table-card {
+  position: absolute;
+  width: 42px;
+  height: 61px;
+  border-radius: 5px;
+  object-fit: contain;
+  box-shadow: 2px 2px 8px rgba(0,0,0,0.55);
+  transform-origin: center center;
+}
+
+.om-table-card-face {
+  position: absolute;
+  width: 42px;
+  height: 61px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #1a2060, #2d3590);
+  border: 1.5px solid rgba(255,255,255,0.15);
+  box-shadow: 2px 2px 8px rgba(0,0,0,0.55);
+  transform-origin: center center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+/* ── Center info (pick prompt) ────────────────────────────── */
+.om-center-info {
+  text-align: center;
+  min-height: 24px;
+}
+
+.om-turn-msg, .om-wait-msg, .om-finished-msg {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.om-turn-msg strong, .om-wait-msg strong {
+  color: var(--accent-pink);
+}
+
+.om-finished-msg {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffd700;
 }
 
 /* ── Seats ───────────────────────────────────────────────── */
@@ -58,9 +139,7 @@
   transform: scale(1.04);
 }
 
-.om-seat.om-eliminated {
-  opacity: 0.5;
-}
+.om-seat.om-eliminated { opacity: 0.5; }
 
 .om-seat.om-loser {
   border-color: #ff4444;
@@ -78,20 +157,9 @@
   max-width: 130px;
 }
 
-.om-seat-shuffle {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.om-seat-info {
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.om-seat-pairs {
-  font-size: 11px;
-  color: var(--muted);
-}
+.om-seat-shuffle { font-size: 12px; color: var(--muted); }
+.om-seat-info    { font-size: 11px; color: var(--muted); }
+.om-seat-pairs   { font-size: 11px; color: rgba(255,255,255,0.4); }
 
 .om-pick-arrow {
   font-size: 11px;
@@ -101,7 +169,7 @@
   animation: omPickPulse 1s ease-in-out infinite;
 }
 
-/* ── Card backs ──────────────────────────────────────────── */
+/* ── Card backs (opponent hands) ─────────────────────────── */
 .om-card-backs {
   display: flex;
   gap: 4px;
@@ -131,38 +199,6 @@
   box-shadow: 0 8px 20px rgba(255,215,0,0.45);
 }
 
-@keyframes omCardPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); }
-  50%       { box-shadow: 0 0 8px 3px rgba(255,215,0,0.4); }
-}
-
-@keyframes omPickPulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
-}
-
-/* ── Center info ─────────────────────────────────────────── */
-.om-center-info {
-  text-align: center;
-  padding: 8px 16px;
-}
-
-.om-turn-msg, .om-wait-msg, .om-finished-msg {
-  font-size: 15px;
-  font-weight: 600;
-  color: #fff;
-}
-
-.om-turn-msg strong, .om-wait-msg strong {
-  color: var(--accent-pink);
-}
-
-.om-finished-msg {
-  font-size: 18px;
-  font-weight: 800;
-  color: #ffd700;
-}
-
 /* ── Player zone ─────────────────────────────────────────── */
 .om-player-zone {
   display: flex;
@@ -188,17 +224,15 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  cursor: default;
   border-radius: 8px;
   padding: 4px;
   transition: transform 0.15s;
-  position: relative;
+  cursor: default;
 }
 
 .om-hand-card.om-hand-joker {
   border: 2px solid #ffd700;
   background: rgba(255,215,0,0.08);
-  border-radius: 8px;
 }
 
 .om-hand-card.om-hand-selected {
@@ -207,9 +241,7 @@
   background: rgba(255,100,170,0.12);
 }
 
-.om-hand-card[data-hand-idx] {
-  cursor: pointer;
-}
+.om-hand-card[data-hand-idx] { cursor: pointer; }
 
 .om-card, .om-hand-card-img {
   width: 52px;
@@ -219,9 +251,7 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
 
-.om-joker {
-  border: 2px solid #ffd700 !important;
-}
+.om-joker { border: 2px solid #ffd700 !important; }
 
 .om-card-face.om-joker {
   width: 52px;
@@ -267,10 +297,7 @@
   gap: 6px;
 }
 
-.om-shuffle-label {
-  font-size: 12px;
-  color: var(--muted);
-}
+.om-shuffle-label { font-size: 12px; color: var(--muted); }
 
 .om-shuffle-btn {
   font-size: 12px;
@@ -297,26 +324,23 @@
   padding: 2px 8px;
 }
 
+/* ── Animations ──────────────────────────────────────────── */
+@keyframes omCardPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); }
+  50%       { box-shadow: 0 0 8px 3px rgba(255,215,0,0.4); }
+}
+
+@keyframes omPickPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
 /* ── Mobile ───────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .om-card-back {
-    width: 22px;
-    height: 32px;
-  }
-
-  .om-card, .om-hand-card-img {
-    width: 44px;
-    height: 64px;
-  }
-
-  .om-card-face.om-joker {
-    width: 44px;
-    height: 64px;
-    font-size: 22px;
-  }
-
-  .om-seat {
-    min-width: 75px;
-    padding: 8px;
-  }
+  .om-table { min-height: 100px; border-radius: 50px; }
+  .om-table-card, .om-table-card-face { width: 34px; height: 49px; }
+  .om-card-back { width: 22px; height: 32px; }
+  .om-card, .om-hand-card-img { width: 44px; height: 64px; }
+  .om-card-face.om-joker { width: 44px; height: 64px; font-size: 22px; }
+  .om-seat { min-width: 75px; padding: 8px; }
 }
