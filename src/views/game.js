@@ -121,6 +121,8 @@ export function initGame() {
       try { await api.blackjackEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
     } else if (state.gameId === 'pokdeng' && state.matchId) {
       try { await api.pokdengEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
+    } else if (state.gameId === 'doraemon' && state.matchId) {
+      try { await api.doraemonEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
     } else {
       leaveRoom()
     }
@@ -210,13 +212,14 @@ export function enterGame() {
   stopPoll()
 
   const gameId = state.gameId
-  document.getElementById('g-name').textContent            = gameId === 'poker' ? 'Poker' : gameId === 'uno' ? 'UNO' : gameId === 'slave' ? 'Slave' : gameId === 'blackjack' ? 'Blackjack' : gameId === 'pokdeng' ? 'Pok Deng' : 'Dummy'
+  document.getElementById('g-name').textContent            = gameId === 'poker' ? 'Poker' : gameId === 'uno' ? 'UNO' : gameId === 'slave' ? 'Slave' : gameId === 'blackjack' ? 'Blackjack' : gameId === 'pokdeng' ? 'Pok Deng' : gameId === 'doraemon' ? 'Doraemon' : 'Dummy'
   document.getElementById('poker-board').style.display      = gameId === 'poker'      ? 'flex' : 'none'
   document.getElementById('uno-board').style.display        = gameId === 'uno'        ? 'flex' : 'none'
   document.getElementById('slave-board').style.display      = gameId === 'slave'      ? 'flex' : 'none'
   document.getElementById('dummy-board').style.display      = gameId === 'dummy'      ? 'flex' : 'none'
   document.getElementById('blackjack-board').style.display  = gameId === 'blackjack'  ? 'flex' : 'none'
   document.getElementById('pokdeng-board').style.display    = gameId === 'pokdeng'    ? 'flex' : 'none'
+  document.getElementById('doraemon-board').style.display   = gameId === 'doraemon'   ? 'flex' : 'none'
 
   // Move join-wrap into whichever board is active (it lives in poker board by default)
   if (gameId === 'uno') {
@@ -234,6 +237,9 @@ export function enterGame() {
   } else if (gameId === 'pokdeng') {
     const wrap = document.getElementById('wr-join-wrap')
     document.querySelector('.pd-player-zone')?.appendChild(wrap)
+  } else if (gameId === 'doraemon') {
+    const wrap = document.getElementById('wr-join-wrap')
+    document.querySelector('.dm-player-zone')?.appendChild(wrap)
   }
   document.getElementById('btn-end-game').style.display =
     (state.roomCode && amHost()) ? 'inline-flex' : 'none'
@@ -273,6 +279,8 @@ export function enterGame() {
       render()
       if (['uno', 'slave', 'dummy', 'blackjack', 'pokdeng'].includes(state.gameId) && gs.matchStatus === 'finished') {
         stopPoll(); startGameOverCountdown()
+      } else if (state.gameId === 'doraemon' && gs.matchStatus === 'finished') {
+        stopPoll(); showToast('Game over! Check the drink totals.')
       } else if (state.gameId === 'poker' && gs.metadata?.winner && gs.revealRemainingSec == null) {
         stopPoll()
         prevCommunityCount = commBefore
@@ -353,6 +361,7 @@ export function render() {
     document.querySelector('.dmy-hand-footer')?.style.setProperty('display', 'none')
     document.querySelector('.bj-hand-footer')?.style.setProperty('display', 'none')
     document.querySelector('.pd-hand-footer')?.style.setProperty('display', 'none')
+    document.querySelector('.dm-hand-footer')?.style.setProperty('display', 'none')
     updateWaitingPanel(meta)
     registry[state.gameId]?.render(meta, false)
     return
@@ -615,9 +624,10 @@ async function wrStartRound() {
       if (state.gameId === 'blackjack') await api.blackjackStart(state.matchId, state.sessionId, bankerMode)
       else                              await api.pokdengStart(state.matchId, state.sessionId, bankerMode)
     } else {
-      const fn = state.gameId === 'poker'  ? api.pokerStart
-               : state.gameId === 'uno'    ? api.unoStart
-               : state.gameId === 'dummy'  ? api.dummyStart
+      const fn = state.gameId === 'poker'    ? api.pokerStart
+               : state.gameId === 'uno'      ? api.unoStart
+               : state.gameId === 'dummy'    ? api.dummyStart
+               : state.gameId === 'doraemon' ? api.doraemonStart
                : api.slaveStart
       await fn(state.matchId, state.sessionId)
     }

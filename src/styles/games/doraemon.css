@@ -1,0 +1,510 @@
+/* ── Doraemon Board ───────────────────────────────────────── */
+#doraemon-board {
+  flex-direction: column;
+  align-items: center;
+  padding: 0 12px 12px;
+}
+
+.dm-table-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 860px;
+}
+
+/* ── Player seats ring ────────────────────────────────────── */
+.dm-players {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 4px 6px;
+  width: 100%;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
+}
+
+.dm-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 10px 8px;
+  background: rgba(0,0,0,0.22);
+  border-radius: 14px;
+  border: 2px solid transparent;
+  min-width: 80px;
+  flex-shrink: 0;
+  transition: border-color 0.2s, background 0.2s;
+  position: relative;
+}
+
+.dm-seat.dm-seat-active {
+  border-color: var(--pink, #E8529A);
+  background: rgba(232,82,154,0.12);
+  box-shadow: 0 0 12px rgba(232,82,154,0.25);
+}
+
+.dm-seat.dm-seat-me {
+  border-color: rgba(255,255,255,0.18);
+}
+
+.dm-seat.dm-seat-active.dm-seat-me {
+  border-color: var(--pink, #E8529A);
+}
+
+.dm-seat-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.8);
+  text-align: center;
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dm-you-tag {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--pink, #E8529A);
+  background: rgba(232,82,154,0.15);
+  border: 1px solid rgba(232,82,154,0.3);
+  border-radius: 3px;
+  padding: 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dm-silenced-banner {
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffe57a;
+  background: rgba(255,200,40,0.13);
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+/* ── Power card on seat ───────────────────────────────────── */
+.dm-power-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-start;
+}
+
+.dm-power-card {
+  width: 30px;
+  height: 44px;
+  border-radius: 4px;
+  object-fit: contain;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.dm-power-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  font-size: 14px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.8));
+}
+
+/* ── Drink counter ────────────────────────────────────────── */
+.dm-drink-count {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffe07a;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255,200,40,0.1);
+  letter-spacing: 0.02em;
+}
+
+@keyframes drinkFlash {
+  0%   { background: rgba(255,180,30,0.55); transform: scale(1.25); }
+  60%  { background: rgba(255,180,30,0.25); transform: scale(1.1); }
+  100% { background: rgba(255,200,40,0.10); transform: scale(1); }
+}
+
+.dm-drink-count.dm-drink-flash {
+  animation: drinkFlash 1.4s ease-out forwards;
+}
+
+.dm-passes {
+  font-size: 11px;
+  color: rgba(255,255,255,0.55);
+  font-weight: 600;
+}
+
+.dm-buddy {
+  font-size: 10px;
+  font-weight: 700;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dm-gesture-pulse {
+  font-size: 16px;
+  animation: gestPulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes gestPulse {
+  from { transform: scale(0.9); opacity: 0.7; }
+  to   { transform: scale(1.2); opacity: 1; }
+}
+
+/* ── Table area ───────────────────────────────────────────── */
+.dm-table-area { width: 100%; }
+
+.dm-table {
+  background: radial-gradient(ellipse at 50% 30%, #1a4a7a 0%, #0a2244 60%, #060e22 100%);
+  border-radius: 20px 20px 0 0;
+  border: 3px solid rgba(255,255,255,0.08);
+  border-bottom: none;
+  padding: 16px 20px 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 160px;
+}
+
+/* ── Deck & discard piles ─────────────────────────────────── */
+.dm-deck-zone,
+.dm-discard-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.dm-deck-stack {
+  position: relative;
+  width: 56px;
+  height: 80px;
+}
+
+.dm-card-back {
+  position: absolute;
+  width: 52px;
+  height: 76px;
+  border-radius: 6px;
+  background: repeating-linear-gradient(
+    45deg,
+    #0a2265,
+    #0a2265 4px,
+    #102e8a 4px,
+    #102e8a 8px
+  );
+  border: 2px solid rgba(100,160,255,0.28);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.55);
+}
+
+.dm-card-back.dm-c1 { left: 2px; top: 4px; }
+.dm-card-back.dm-c2 { left: 1px; top: 2px; }
+.dm-card-back.dm-c3 { left: 0;   top: 0; }
+
+.dm-pile-label {
+  font-size: 11px;
+  color: rgba(255,255,255,0.45);
+  font-weight: 600;
+  text-align: center;
+}
+
+.dm-card {
+  width: 52px;
+  height: 76px;
+  border-radius: 6px;
+  object-fit: contain;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+}
+
+.dm-discard-card {
+  width: 52px;
+  height: 76px;
+}
+
+.dm-discard-top {
+  min-width: 52px;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dm-discard-empty {
+  width: 52px;
+  height: 76px;
+  border: 2px dashed rgba(255,255,255,0.18);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: rgba(255,255,255,0.22);
+}
+
+/* ── Table center (K-rules) ───────────────────────────────── */
+.dm-table-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dm-k-rules {
+  text-align: center;
+  width: 100%;
+}
+
+.dm-k-rule-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+}
+
+.dm-k-part {
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffd77a;
+  background: rgba(255,210,60,0.13);
+  border: 1px solid rgba(255,210,60,0.28);
+  border-radius: 5px;
+  padding: 2px 8px;
+}
+
+.dm-k-sep {
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+}
+
+/* ── Player zone ──────────────────────────────────────────── */
+.dm-player-zone {
+  width: 100%;
+  background: rgba(0,0,0,0.28);
+  border-radius: 0 0 20px 20px;
+  border: 3px solid rgba(255,255,255,0.07);
+  border-top: none;
+  padding: 12px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Last action ──────────────────────────────────────────── */
+#dm-last {
+  font-size: 12px;
+  color: rgba(255,255,255,0.5);
+  text-align: center;
+  font-style: italic;
+  min-height: 16px;
+  max-width: 480px;
+}
+
+/* ── Phase area ───────────────────────────────────────────── */
+.dm-phase-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.dm-phase-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 12px 16px;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  text-align: center;
+}
+
+.dm-gesture-card {
+  border-color: rgba(255,200,60,0.3);
+  background: rgba(255,200,60,0.06);
+}
+
+.dm-phase-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.dm-phase-desc {
+  font-size: 12px;
+  color: rgba(255,255,255,0.65);
+}
+
+.dm-phase-subtitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dm-picker-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.dm-pick-btn {
+  width: auto !important;
+  padding: 6px 14px !important;
+  font-size: 12px !important;
+}
+
+.dm-k-input-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: 360px;
+}
+
+/* ── Finished screen ──────────────────────────────────────── */
+.dm-finished-card {
+  border-color: rgba(255,220,80,0.3);
+  background: rgba(255,220,80,0.06);
+}
+
+.dm-finish-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dm-finish-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+}
+
+.dm-finish-row.dm-finish-me {
+  background: rgba(232,82,154,0.12);
+  border: 1px solid rgba(232,82,154,0.2);
+}
+
+.dm-finish-rank {
+  font-size: 14px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.4);
+  min-width: 20px;
+  text-align: center;
+}
+
+.dm-finish-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dm-finish-drinks {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffe07a;
+}
+
+/* ── Report area (inline pointing/talking picker) ─────────── */
+.dm-report-area {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.dm-report-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.8);
+  text-align: center;
+}
+
+/* ── Persistent action buttons ────────────────────────────── */
+.dm-persistent-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.dm-hand-footer {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ── Theme variants ───────────────────────────────────────── */
+html[data-theme="hangout"] .dm-table {
+  background:
+    repeating-linear-gradient(88deg, rgba(80,40,0,0.06) 0px, rgba(80,40,0,0.06) 1px, transparent 1px, transparent 10px),
+    radial-gradient(ellipse at 50% 30%, #e0b060 0%, #c08838 50%, #8a5820 100%);
+  border-color: rgba(90,56,16,0.45);
+}
+html[data-theme="ocean"] .dm-table {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(0,220,230,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #0a8090 0%, #055060 50%, #022838 100%);
+  border-color: rgba(8,56,72,0.55);
+}
+html[data-theme="sakura"] .dm-table {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(224,88,136,0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #3a1030 0%, #280820 50%, #160412 100%);
+  border-color: rgba(88,24,64,0.5);
+}
+html[data-theme="neon"] .dm-table {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(184,32,232,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #180830 0%, #0e0520 50%, #060310 100%);
+  border-color: rgba(74,16,160,0.5);
+}
+html[data-theme="classic"] .dm-table {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(61,139,255,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #1a3a80 0%, #0e2258 50%, #060e30 100%);
+  border-color: rgba(26,48,128,0.5);
+}
+
+/* ── Mobile ───────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .dm-table     { padding: 12px 12px 10px; gap: 8px; }
+  .dm-card      { width: 42px; height: 62px; }
+  .dm-discard-card { width: 42px; height: 62px; }
+  .dm-card-back { width: 42px; height: 62px; }
+  .dm-deck-stack { width: 46px; height: 66px; }
+  .dm-discard-top { min-width: 42px; min-height: 62px; }
+  .dm-discard-empty { width: 42px; height: 62px; }
+}

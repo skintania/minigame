@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="/src/styles/games/dummy.css">
   <link rel="stylesheet" href="/src/styles/games/blackjack.css">
   <link rel="stylesheet" href="/src/styles/games/pokdeng.css">
+  <link rel="stylesheet" href="/src/styles/games/doraemon.css">
 </head>
 <body>
   <div id="toast"></div>
@@ -306,6 +307,56 @@
           <div class="pd-hand-footer" id="pd-hand-footer" style="display:none">
             <button class="btn btn-pink"  id="btn-pd-draw"  style="display:none">Draw</button>
             <button class="btn btn-ghost" id="btn-pd-stand" style="display:none">Stand</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Doraemon Board -->
+    <div id="doraemon-board" class="game-board" style="display:none">
+      <div class="dm-table-unit">
+        <div class="dm-table-area">
+          <!-- Player seats (horizontal scroll) -->
+          <div id="dm-players" class="dm-players"></div>
+          <!-- Felt table: deck + K-rules + discard -->
+          <div class="dm-table">
+            <div class="dm-deck-zone">
+              <div class="dm-deck-stack">
+                <div class="dm-card-back dm-c3"></div>
+                <div class="dm-card-back dm-c2"></div>
+                <div class="dm-card-back dm-c1"></div>
+              </div>
+              <div class="dm-pile-label"><span id="dm-deck-count">52</span> cards</div>
+            </div>
+            <div class="dm-table-center">
+              <div id="dm-k-rules" class="dm-k-rules"></div>
+            </div>
+            <div class="dm-discard-zone">
+              <div id="dm-discard-top" class="dm-discard-top">
+                <div class="dm-discard-empty">—</div>
+              </div>
+              <div class="dm-pile-label">Last drawn</div>
+            </div>
+          </div>
+        </div>
+        <!-- Player zone -->
+        <div class="dm-player-zone">
+          <div class="last-action" id="dm-last"></div>
+          <!-- Phase-specific content (buddy picker / minigame / K-rule input) -->
+          <div id="dm-phase-area" class="dm-phase-area"></div>
+          <!-- Inline report picker (pointing / silenced talking) -->
+          <div id="dm-report-area" class="dm-report-area" style="display:none">
+            <div class="dm-report-title" id="dm-report-title"></div>
+            <div class="dm-picker-grid" id="dm-report-picks"></div>
+            <button class="btn btn-ghost" id="btn-dm-cancel-report" style="width:auto;padding:6px 14px;font-size:12px">Cancel</button>
+          </div>
+          <!-- Persistent actions -->
+          <div class="dm-persistent-actions dm-hand-footer">
+            <button class="btn btn-primary" id="btn-dm-draw"       style="display:none;width:auto;padding:12px 32px">Draw Card</button>
+            <button class="btn btn-ghost"   id="btn-dm-bathroom"   style="display:none;width:auto">🚽 Use Pass</button>
+            <button class="btn btn-blue"    id="btn-dm-gesture"    style="display:none;width:auto">⚡ Pose challenge</button>
+            <button class="btn btn-ghost"   id="btn-dm-pointing"   style="display:none;width:auto">👉 Caught pointing?</button>
+            <button class="btn btn-ghost"   id="btn-dm-talking"    style="display:none;width:auto">⚠️ Talked to silenced?</button>
           </div>
         </div>
       </div>

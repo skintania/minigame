@@ -78,6 +78,19 @@ export const api = {
   pokdengDraw:      (mid, sid)             => request('POST', `/games/pokdeng/${mid}/draw`,        { sessionId: sid }),
   pokdengStand:     (mid, sid)             => request('POST', `/games/pokdeng/${mid}/stand`,       { sessionId: sid }),
 
+  // Doraemon actions
+  doraemonStart:            (mid, sid)         => request('POST', `/games/doraemon/${mid}/start`,               { sessionId: sid }),
+  doraemonEndGame:          (mid, sid)         => request('POST', `/games/doraemon/${mid}/end-game`,            { sessionId: sid }),
+  doraemonDraw:             (mid, sid)         => request('POST', `/games/doraemon/${mid}/draw`,                { sessionId: sid }),
+  doraemonChooseBuddy:      (mid, sid, target) => request('POST', `/games/doraemon/${mid}/choose-buddy`,        { sessionId: sid, target }),
+  doraemonReportLoser:      (mid, sid, target) => request('POST', `/games/doraemon/${mid}/report-loser`,        { sessionId: sid, target }),
+  doraemonSetKRule:         (mid, sid, text)   => request('POST', `/games/doraemon/${mid}/set-k-rule`,          { sessionId: sid, text }),
+  doraemonBathroom:         (mid, sid)         => request('POST', `/games/doraemon/${mid}/use-bathroom-pass`,   { sessionId: sid }),
+  doraemonTriggerGesture:   (mid, sid)         => request('POST', `/games/doraemon/${mid}/trigger-gesture`,     { sessionId: sid }),
+  doraemonReportGestureLoser:(mid, sid, target)=> request('POST', `/games/doraemon/${mid}/report-gesture-loser`,{ sessionId: sid, target }),
+  doraemonReportTalking:    (mid, sid, talker) => request('POST', `/games/doraemon/${mid}/report-talking`,      { sessionId: sid, talker }),
+  doraemonReportPointing:   (mid, sid, offender)=>request('POST', `/games/doraemon/${mid}/report-pointing`,     { sessionId: sid, offender }),
+
   // UNO actions
   unoStart:     (mid, sid)               => request('POST', `/games/uno/${mid}/start`,      { sessionId: sid }),
   unoNextRound: (mid, sid)               => request('POST', `/games/uno/${mid}/next-round`, { sessionId: sid }),
