@@ -168,6 +168,11 @@ export function renderBoard(meta, mine) {
   }
 
   // ── Player seats ─────────────────────────────────────────
+  const reverseBuddies = {}
+  for (const [pickerId, pickedId] of Object.entries(buddies)) {
+    reverseBuddies[pickedId] = pickerId
+  }
+
   const playersEl = document.getElementById('dm-players')
   if (playersEl) {
     playersEl.innerHTML = turnOrder.map(id => {
@@ -178,7 +183,7 @@ export function renderBoard(meta, mine) {
       const drinkCount = drinks[id] || 0
       const passes     = bathroomPasses[id] || 0
       const buddyId    = buddies[id]
-      const buddyName  = buddyId ? pName(buddyId) : null
+      const buddiedBy  = reverseBuddies[id] !== buddyId ? reverseBuddies[id] : null
       const chainIdx   = chains.findIndex(c => c.includes(id))
       const chainColor = chainIdx >= 0 ? CHAIN_COLORS[chainIdx % CHAIN_COLORS.length] : null
       const flashing   = !isNewMatch && (prevDrinks[id] ?? 0) < drinkCount
@@ -212,7 +217,8 @@ export function renderBoard(meta, mine) {
           🍺×${drinkCount}
         </div>
         ${passes > 0 ? `<div class="dm-passes">${cardPassBadge()}×${passes}</div>` : ''}
-        ${buddyName ? `<div class="dm-buddy" ${chainColor ? `style="color:${chainColor}"` : ''}>🔗 ${buddyName}</div>` : ''}
+        ${buddyId    ? `<div class="dm-buddy" ${chainColor ? `style="color:${chainColor}"` : ''}>🔗 ${pName(buddyId)}</div>`    : ''}
+        ${buddiedBy  ? `<div class="dm-buddy" ${chainColor ? `style="color:${chainColor}"` : ''}>🔗 ${pName(buddiedBy)}</div>` : ''}
       </div>`
     }).join('')
   }
