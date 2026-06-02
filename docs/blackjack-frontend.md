@@ -2,7 +2,9 @@
 
 ## Overview
 
-Players vs. dealer (bot). Each round, everyone places a bet, receives 2 cards, then acts one at a time. After all players finish, the dealer reveals its hole card and plays automatically. Results are shown; the host starts the next round.
+Players vs. a dealer. Two dealer modes (host chooses at game start):
+- **`bot`** — the house/backend is always the dealer (infinite chips)
+- **`rotate`** — players take turns being dealer; chip transfers are zero-sum between dealer and players
 
 Chip system is identical to poker — players with 0 chips after a round become spectators.
 
@@ -12,14 +14,14 @@ Chip system is identical to poker — players with 0 chips after a round become 
 
 ```
 waiting
-  → host calls /start
-betting      (everyone places a bet)
+  → host calls /start (with bankerMode)
+betting      (everyone places a bet — dealer is excluded in rotate mode)
   → last bet placed → cards dealt automatically → phase = "playing"
 playing      (players act one at a time)
   → all players done → dealer auto-plays → results set → phase = "between-rounds"
 between-rounds
   → host calls /next-round  (or betweenRoundsSec timer fires)
-betting      (next round)
+betting      (next round — dealer rotates if rotate mode)
   ...repeat...
 finished     (roundLimit reached or host ends game)
 ```
@@ -31,6 +33,8 @@ finished     (roundLimit reached or host ends game)
 | Field | What to show |
 |-------|-------------|
 | `metadata.phase` | Current phase |
+| `metadata.bankerMode` | `"bot"` or `"rotate"` |
+| `metadata.dealerId` | Session ID of current dealer in rotate mode (`null` in bot mode) |
 | `metadata.chips[myId]` | My current chips (bet already deducted this round) |
 | `metadata.betsPlaced[myId]` | `true` once I've placed my bet |
 | `metadata.hands[myId]` | My hands — `string[][]`. Normally 1 hand; 2–4 after splits |
@@ -51,14 +55,25 @@ finished     (roundLimit reached or host ends game)
 
 ## Actions
 
+### Start Game (host only)
+```
+POST /games/blackjack/:matchId/start
+Body: { sessionId, bankerMode?: "bot" | "rotate" }
+```
+- `bankerMode` defaults to `"bot"` if omitted.
+- Rotate mode requires ≥ 2 players.
+
+---
+
 ### Place Bet
 ```
 POST /games/blackjack/:matchId/bet
 Body: { sessionId, amount }
 ```
 - Only valid during `phase = "betting"` and `betsPlaced[myId] = false`.
+- In rotate mode: the current dealer (`dealerId`) **cannot** place a bet.
 - `amount` must be ≥ 1 and ≤ `chips[myId]`.
-- When **every** seated player has placed a bet, the server deals cards and transitions to `playing` automatically — poll state.
+- When **every** non-dealer player has placed a bet, cards are dealt and `phase` → `playing` automatically — poll state.
 
 ---
 
@@ -111,7 +126,7 @@ Body: { sessionId }
 POST /games/blackjack/:matchId/next-round
 Body: { sessionId }
 ```
-Only valid during `phase = "between-rounds"`. Resets for a new betting round and increments `currentRound`.
+Only valid during `phase = "between-rounds"`. Resets for a new betting round and increments `currentRound`. In rotate mode, `dealerId` automatically advances to the next seated player.
 
 ---
 
@@ -128,13 +143,14 @@ Immediately ends the game. The player with the most chips is set as `winner`.
 
 | Condition | UI |
 |-----------|-----|
-| `phase = "betting"` AND `betsPlaced[myId] = false` | Show bet input + confirm button |
-| `phase = "betting"` AND `betsPlaced[myId] = true` | Show "Waiting for others to bet…" |
+| `phase = "betting"` AND `betsPlaced[myId] = false` AND (bot mode OR `myId ≠ dealerId`) | Show bet input + confirm button |
+| `phase = "betting"` AND (`betsPlaced[myId] = true` OR `myId === dealerId`) | Show "Waiting for others to bet…" |
 | `phase = "playing"` AND `isMyTurn = false` | All action buttons disabled |
 | `phase = "playing"` AND `isMyTurn = true` | Enable hit / stand. Show double-down if hand has 2 cards and chips ≥ bet. Show split if hand has 2 cards of same value and chips ≥ bet. |
 | `activeHandIndex[myId] > 0` | Highlight the active hand; dim other hands |
 | `phase = "between-rounds"` | Show results and net chip change per player; host sees "Next Round" button |
 | `phase = "finished"` | Show final chip counts; highlight `winner` |
+| `bankerMode = "rotate"` | Highlight the current `dealerId` seat; show "Dealer" label |
 
 ---
 
@@ -150,6 +166,17 @@ After the round resolves (`between-rounds` and `finished`), the full hand is rev
 ```
 ["A♠", "7♣"]
 ```
+
+---
+
+## Rotate Mode — Dealer Behavior
+
+- Dealer is identified by `metadata.dealerId`.
+- The dealer does **not** place a bet. Block the bet UI if `myId === dealerId`.
+- The dealer has **no** `hands` / `handStatus` entry — they never play as a player. The bot always runs the dealer hand (`dealerHand`), regardless of mode.
+- At bet time: each player's bet is immediately transferred to the dealer's chip stack. This means `chips[dealerId]` grows as players bet.
+- At resolution: chip payouts are applied in the normal direction (players gain or lose), and the dealer's net is the mirror (zero-sum per player). `netChips[dealerId]` reflects this in the results.
+- After each round, `dealerId` automatically rotates to the next seated player. The new dealer is shown in `metadata.dealerId` after `next-round`.
 
 ---
 

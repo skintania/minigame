@@ -1295,7 +1295,7 @@ Common `400` messages:
 
 ## Blackjack
 
-Players vs. dealer (bot). Chip-based betting. Multi-round. Players who reach 0 chips become spectators.
+Players vs. a dealer. Two dealer modes: `bot` (house dealer) or `rotate` (players take turns). Chip-based betting. Multi-round. Players who reach 0 chips become spectators.
 
 ### Endpoints
 
@@ -1303,7 +1303,7 @@ Players vs. dealer (bot). Chip-based betting. Multi-round. Players who reach 0 c
 |--------|------|------|
 | POST | `/games/blackjack/join` | `{ sessionId }` |
 | GET | `/games/blackjack/:matchId/state` | query: `sessionId` |
-| POST | `/games/blackjack/:matchId/start` | `{ sessionId }` |
+| POST | `/games/blackjack/:matchId/start` | `{ sessionId, bankerMode?: "bot"\|"rotate" }` |
 | POST | `/games/blackjack/:matchId/bet` | `{ sessionId, amount }` |
 | POST | `/games/blackjack/:matchId/hit` | `{ sessionId }` |
 | POST | `/games/blackjack/:matchId/stand` | `{ sessionId }` |
@@ -1316,14 +1316,14 @@ Players vs. dealer (bot). Chip-based betting. Multi-round. Players who reach 0 c
 
 ```
 waiting
-  → host calls /start
-betting  (all players place bets)
+  → host calls /start (with bankerMode)
+betting  (non-dealer players place bets)
   → last bet placed → cards dealt automatically
 playing  (players take turns vs dealer)
   → all players done → dealer auto-plays → results calculated
 between-rounds  (show results)
   → host calls /next-round (or betweenRoundsSec timer)
-betting  (next round)
+betting  (next round — dealer rotates if rotate mode)
   ...repeat...
 finished  (roundLimit reached or host ends game)
 ```
@@ -1333,6 +1333,8 @@ finished  (roundLimit reached or host ends game)
 | Field | Description |
 |-------|-------------|
 | `phase` | `waiting` \| `betting` \| `playing` \| `between-rounds` \| `finished` |
+| `bankerMode` | `"bot"` or `"rotate"` |
+| `dealerId` | Session ID of current dealer in rotate mode (`null` in bot mode) |
 | `dealerHand` | Dealer cards. During `betting`/`playing`: `["A♠", "hidden"]` (hole card hidden) |
 | `hands[playerId]` | Array of hands — `string[][]`. Normally 1 hand; 2–4 after splits |
 | `bets[playerId]` | Bet per hand — `number[]` |
@@ -1342,30 +1344,178 @@ finished  (roundLimit reached or host ends game)
 | `chips[playerId]` | Current chip count (bet already deducted for the current round) |
 | `currentPlayer` | Session ID of the player whose turn it is (`null` during betting/between-rounds) |
 | `results[playerId]` | Per-hand outcome — `("win"\|"lose"\|"push"\|"blackjack")[]`. Set after dealer plays |
-| `netChips[playerId]` | Net chip change for this round per player |
+| `netChips[playerId]` | Net chip change for this round per player (includes dealer in rotate mode) |
 | `deckSize` | Cards remaining in the shoe |
 | `currentRound` | Current round number |
 | `winner` | Session ID of winner when `phase = "finished"` |
 
 ### Rules
 
-- **Bet phase:** each player must call `/bet` before cards are dealt. When the last player bets, cards are dealt automatically and `phase` → `playing`.
-- **Turn order:** `isMyTurn = true` when it's your turn during `playing` phase. During `betting`, everyone can act (check `betsPlaced[myId]` to know if you've bet).
+- **`bankerMode`:** defaults to `"bot"`. Rotate mode requires ≥ 2 players.
+- **Bet phase:** each non-dealer player must call `/bet`. When the last player bets, cards are dealt and `phase` → `playing`. In rotate mode, the dealer (`dealerId`) cannot bet.
+- **Rotate mode chip flow:** bets transfer to the dealer's stack at bet time. At resolution, payouts mirror back — chips are zero-sum between the dealer and each player. `netChips[dealerId]` = negative sum of all player net changes.
+- **Turn order:** `isMyTurn = true` when it's your turn during `playing` phase. The dealer never takes a player turn — the bot always runs the dealer hand automatically.
 - **Hit/Stand/Double-Down/Split:** only available when `isMyTurn = true` and `phase = "playing"`.
 - **Double-down:** only on the initial 2-card hand; requires chips ≥ current bet.
 - **Split:** two cards of the same value (10/J/Q/K all count as equal). Requires chips ≥ current bet. Max 4 hands (3 splits). Split 21 pays 1:1, not 3:2.
-- **Dealer:** hits on 16 or below and soft 17; stands on hard 17+. Plays after all players finish.
+- **Dealer:** hits on soft 17 or below; stands on hard 17+. Plays after all players finish.
 - **Payouts:** natural blackjack = 3:2 · win = 1:1 · push = refund · bust/lose = 0.
+- **Dealer rotation:** after each round, `dealerId` advances to the next seated player.
 - **Bust to spectator:** players with 0 chips after a round are moved to spectator (same as poker).
 
 ### Example round flow
 
 ```
-1. All players call POST /bet { amount }
+1. All non-dealer players call POST /bet { amount }
    → when last bet is placed, cards are dealt and phase → "playing"
 2. isMyTurn player calls: /hit, /stand, /double-down, or /split
 3. Repeat until all player hands are resolved
    → dealer auto-plays, results set, phase → "between-rounds"
 4. Poll GET /state — read results[myId] and netChips[myId]
-5. Host calls POST /next-round
+5. Host calls POST /next-round (dealer rotates automatically in rotate mode)
 ```
+
+---
+
+## Pok Deng (ป๊อกเด้ง)
+
+Players vs. banker. Two modes: `bot` (house banker) or `rotate` (players take turns). 1 deck reshuffled each round.
+
+### Endpoints
+
+| Method | Path | Body |
+|--------|------|------|
+| POST | `/games/pokdeng/join` | `{ sessionId }` |
+| GET | `/games/pokdeng/:matchId/state` | query: `sessionId` |
+| POST | `/games/pokdeng/:matchId/start` | `{ sessionId, bankerMode: "bot"\|"rotate" }` |
+| POST | `/games/pokdeng/:matchId/bet` | `{ sessionId, amount }` |
+| POST | `/games/pokdeng/:matchId/draw` | `{ sessionId }` |
+| POST | `/games/pokdeng/:matchId/stand` | `{ sessionId }` |
+| POST | `/games/pokdeng/:matchId/next-round` | `{ sessionId }` |
+| POST | `/games/pokdeng/:matchId/end-game` | `{ sessionId }` |
+
+### State Fields (`metadata`)
+
+| Field | Description |
+|-------|-------------|
+| `phase` | `waiting` \| `betting` \| `drawing` \| `between-rounds` \| `finished` |
+| `bankerMode` | `"bot"` or `"rotate"` |
+| `bankerId` | Session ID of current banker (`null` in bot mode) |
+| `hands[playerId]` | Player's cards (own: actual; others: `["hidden",...]` during betting/drawing) |
+| `botHand` | Bot's cards (bot mode; `["hidden",...]` during betting/drawing) |
+| `bets[playerId]` | Bet this round (non-bankers only) |
+| `betsPlaced[playerId]` | Whether player has bet |
+| `chips[playerId]` | Current chip count |
+| `currentPlayer` | Session ID whose draw/stand turn it is |
+| `results[playerId]` | `{ outcome, payout, playerValue, bankerValue, playerDeng, bankerDeng }` |
+| `currentRound` | Current round number |
+| `winner` | Session ID of winner when `phase = "finished"` |
+
+### Rules summary
+
+- **Bet phase:** all non-banker players bet. When last bet lands, cards dealt automatically.
+- **Drawing:** total 0–5 → choose draw/stand · total 6–9 → auto-stand (no turn given).
+- **Banker Pok:** if banker/bot has 8–9, no one draws — round resolves immediately.
+- **Bot draw:** auto-draws if total ≤ 4.
+- **Deng:** ตอง / สเตรทฟลัช = ×5 · เรียง / สี (3-card) = ×3 · คู่ / same-suit = ×2 · normal = ×1.
+- **Payout:** winner's deng × bet. Tiebreaker = higher deng. Full tie = push.
+
+---
+
+## Doraemon (drinking card game)
+
+A Thai party drinking game using a standard 52-card deck. Players sit in a circle, each drawing one card per turn. Cards trigger drinks, mini-games, or ongoing effects. No winners — game ends when the deck is empty.
+
+**Rule:** No pointing allowed (Doraemon has no hands). Violations are reportable.
+
+### Endpoints
+
+| Method | Path | Body |
+|--------|------|------|
+| POST | `/games/doraemon/join` | `{ sessionId }` |
+| GET | `/games/doraemon/:matchId/state` | query: `sessionId` |
+| POST | `/games/doraemon/:matchId/start` | `{ sessionId }` |
+| POST | `/games/doraemon/:matchId/draw` | `{ sessionId }` |
+| POST | `/games/doraemon/:matchId/choose-buddy` | `{ sessionId, target }` |
+| POST | `/games/doraemon/:matchId/report-loser` | `{ sessionId, target }` |
+| POST | `/games/doraemon/:matchId/set-k-rule` | `{ sessionId, text }` |
+| POST | `/games/doraemon/:matchId/use-bathroom-pass` | `{ sessionId }` |
+| POST | `/games/doraemon/:matchId/trigger-gesture` | `{ sessionId }` |
+| POST | `/games/doraemon/:matchId/report-gesture-loser` | `{ sessionId, target }` |
+| POST | `/games/doraemon/:matchId/report-talking` | `{ sessionId, talker }` |
+| POST | `/games/doraemon/:matchId/report-pointing` | `{ sessionId, offender }` |
+| POST | `/games/doraemon/:matchId/end-game` | `{ sessionId }` |
+
+### Card effects
+
+| Card | Effect |
+|------|--------|
+| A | Drawer drinks 1 sip |
+| 2 | Drawer drinks 2 sips |
+| 3 | Drawer drinks 3 sips |
+| 4 | Drawer drinks 4 sips |
+| 5 | Buddy selection — drawer picks a buddy (`POST /choose-buddy { target }`); from now on, whenever either drinks the other drinks too |
+| 6 | Category game — app shows a random topic; players say items verbally; loser reported via `POST /report-loser { target }` |
+| 7 | Number 7 game — players count aloud, skipping numbers ending in 7 or divisible by 7; loser reported via `POST /report-loser { target }` |
+| 8 | Bathroom pass — drawer gains 1 pass (`bathroomPasses[id]`); use anytime via `POST /use-bathroom-pass` |
+| 9 | Left player drinks 1 sip (counter-clockwise neighbour) |
+| 10 | Right player drinks 1 sip (clockwise neighbour) |
+| J | Gesture power — drawer becomes the gesture holder and can trigger pose challenges anytime via `POST /trigger-gesture`; anyone reports the loser via `POST /report-gesture-loser { target }`. Power stays with the drawer until another J is drawn. |
+| Q | Drawer is silenced — anyone who talks to them drinks 1 sip, reported via `POST /report-talking { talker }`. Stays silenced until another Q is drawn. |
+| K | Rule builder — K1 sets WHAT (typed text), K2 sets WHERE, K3 sets HOW LONG; K4 announces and executes the rule, then resets |
+
+All drink events propagate through the full buddy chain. If A→B are buddies and B→C are buddies, A drinking also makes B and C drink.
+
+### Phases
+
+```
+waiting → playing → (pending-buddy | pending-minigame | pending-k-rule) → playing → … → finished
+```
+
+| Phase | What's happening |
+|-------|-----------------|
+| `waiting` | Lobby, waiting for players and host to start |
+| `playing` | Normal turn — current player calls `POST /draw` |
+| `pending-buddy` | Drawer chose 5 — must call `POST /choose-buddy { target }` |
+| `pending-minigame` | Drew 6/7/J — anyone can call `POST /report-loser { target }` |
+| `pending-k-rule` | Drew K (1st–3rd) — drawer must call `POST /set-k-rule { text }` |
+| `finished` | Deck exhausted or host ended game |
+
+### State fields (`metadata`)
+
+| Field | Description |
+|-------|-------------|
+| `phase` | Current game phase (see above) |
+| `deckSize` | Cards remaining (deck contents hidden) |
+| `discardPile` | All drawn cards in order |
+| `drawnCard` | The card drawn this turn (visible to all) |
+| `currentPlayer` | Session ID whose turn it is to draw |
+| `currentPlayerIndex` | Index of `currentPlayer` in `players` array |
+| `drinks` | `Record<playerId, number>` — accumulated sip count per player |
+| `bathroomPasses` | `Record<playerId, number>` — unused bathroom pass count |
+| `buddies` | `Record<playerId, playerId>` — symmetric buddy pairs |
+| `silenced` | Session ID of the currently silenced player (`null` if none). Clears when another Q is drawn. |
+| `jHolder` | Session ID of the player who currently holds the J gesture power (`null` if not yet drawn). Clears when another J is drawn. |
+| `gesturePending` | `true` when a gesture challenge is active and awaiting `POST /report-gesture-loser` |
+| `kRules` | `{ what, where, howLong, count }` — partial K rule being built |
+| `pendingMinigame` | `{ type: 'category'\|'number7', topic? }` or `null` (only from cards 6 and 7) |
+| `lastAction` | Human-readable description of the last action |
+
+### Reporting actions (any player, any time during game)
+
+**`POST /trigger-gesture`** — J holder only. Starts a gesture (pose) challenge. Sets `gesturePending = true`. Only valid during `playing` phase.
+
+**`POST /report-gesture-loser { target }`** — Any player. Reports who was last to mimic the pose; `target` drinks 1 sip. Only valid while `gesturePending = true`.
+
+**`POST /report-talking { talker }`** — Any player. Reports someone who talked to the silenced player. `talker` drinks 1 sip. Requires an active silenced player.
+
+**`POST /report-pointing { offender }`** — Any player. Reports someone for pointing (house rule). `offender` drinks 1 sip.
+
+**`POST /use-bathroom-pass`** — Use one of your bathroom passes. Requires `bathroomPasses[you] > 0`.
+
+### Notes
+
+- Buddy from card 5 is replaced if either buddy draws another 5 later.
+- The 4th K executes the rule immediately on draw (no text input). K rule resets to start.
+- Drawing K4 before K1–K3 are set will still execute with whatever partial text was stored (`"?"` for missing parts).
+- If a player disconnects mid-turn during `pending-buddy` or `pending-k-rule`, the pending phase auto-resolves and the next player's turn begins.
