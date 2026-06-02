@@ -37,20 +37,21 @@ export default {
     })
 
     document.getElementById('btn-dm-pointing')?.addEventListener('click', () => {
+      const area = document.getElementById('dm-report-area')
+      if (area?.style.display === '') { area.style.display = 'none'; return }
       const gs    = state.gameState
       if (!gs) return
-      const all   = gs.players || []
-      const names = gs.playerNames || {}
-      showDmPicker('👉 Who was caught pointing?', all, names, dmReportPointing)
+      showDmPicker('👉 Who was caught pointing?', gs.players || [], gs.playerNames || {}, dmReportPointing)
     })
 
     document.getElementById('btn-dm-talking')?.addEventListener('click', () => {
+      const area = document.getElementById('dm-report-area')
+      if (area?.style.display === '') { area.style.display = 'none'; return }
       const gs       = state.gameState
       if (!gs) return
-      const names    = gs.playerNames || {}
       const silenced = gs.metadata?.silenced
       const others   = (gs.players || []).filter(id => id !== silenced)
-      showDmPicker('⚠️ Who talked to the silenced player?', others, names, dmReportTalking)
+      showDmPicker('⚠️ Who talked to the silenced player?', others, gs.playerNames || {}, dmReportTalking)
     })
   },
 
