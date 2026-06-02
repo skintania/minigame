@@ -89,6 +89,13 @@
 }
 
 /* ── Power card on seat ───────────────────────────────────── */
+.dm-power-cards-row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .dm-power-wrap {
   position: relative;
   display: inline-flex;

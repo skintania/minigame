@@ -188,20 +188,14 @@ export function renderBoard(meta, mine) {
       const chainColor = chainIdx >= 0 ? CHAIN_COLORS[chainIdx % CHAIN_COLORS.length] : null
       const flashing   = !isNewMatch && (prevDrinks[id] ?? 0) < drinkCount
 
-      let powerCard = ''
-      if (isSilenced) {
-        // Show Q card with silenced badge
-        powerCard = `<div class="dm-power-wrap">
-          ${cardHtml('Q♠', 'dm-power-card')}
-          <span class="dm-power-badge dm-silenced-icon">🤐</span>
-        </div>`
-      } else if (isJHolder) {
-        // Show J card with gesture badge
-        powerCard = `<div class="dm-power-wrap">
-          ${cardHtml('J♠', 'dm-power-card')}
-          <span class="dm-power-badge dm-gesture-icon">⚡</span>
-        </div>`
-      }
+      const powerCards = []
+      if (isJHolder) powerCards.push(
+        `<div class="dm-power-wrap">${cardHtml('J♠', 'dm-power-card')}<span class="dm-power-badge">⚡</span></div>`
+      )
+      if (isSilenced) powerCards.push(
+        `<div class="dm-power-wrap">${cardHtml('Q♠', 'dm-power-card')}<span class="dm-power-badge">🤐</span></div>`
+      )
+      if (passes > 0) powerCards.push(cardPassPower(passes))
 
       const gestureFlash = gesturePending ? `<div class="dm-gesture-pulse">🕺</div>` : ''
 
@@ -211,12 +205,11 @@ export function renderBoard(meta, mine) {
           ${isMe ? '<span class="dm-you-tag">You</span>' : ''}
         </div>
         ${isSilenced ? `<div class="dm-silenced-banner">🤐 Silenced</div>` : ''}
-        ${powerCard}
+        ${powerCards.length > 0 ? `<div class="dm-power-cards-row">${powerCards.join('')}</div>` : ''}
         ${gestureFlash}
         <div class="dm-drink-count ${flashing ? 'dm-drink-flash' : ''}">
           🍺×${drinkCount}
         </div>
-        ${passes > 0 ? cardPassPower(passes) : ''}
         ${buddyId    ? `<div class="dm-buddy" ${chainColor ? `style="color:${chainColor}"` : ''}>🔗 ${pName(buddyId)}</div>`    : ''}
         ${buddiedBy  ? `<div class="dm-buddy" ${chainColor ? `style="color:${chainColor}"` : ''}>🔗 ${pName(buddiedBy)}</div>` : ''}
       </div>`
