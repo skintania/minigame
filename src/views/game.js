@@ -431,6 +431,7 @@ export function render() {
     curRole() === 'spectator' ? 'none' : '')
   document.querySelector('.dmy-hand-footer')?.style.setProperty('display',
     curRole() === 'spectator' ? 'none' : '')
+  document.querySelector('.dm-hand-footer')?.style.setProperty('display', '')
 
   const isSpectator = curRole() === 'spectator'
   const mine = state.gameState.isMyTurn === true
