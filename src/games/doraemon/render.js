@@ -90,11 +90,11 @@ function cardHtml(card, cls = '') {
   return `<img class="dm-card ${cls}" src="${src}" alt="${card}" onerror="this.style.opacity='0'">`
 }
 
-function cardPassBadge() {
+function cardPassPower(passes) {
   const src = cardImgSrc('8♠')
   return src
-    ? `<img src="${src}" style="width:14px;height:20px;vertical-align:middle;border-radius:2px;margin-right:1px">`
-    : '8'
+    ? `<div class="dm-power-wrap">${cardHtml('8♠', 'dm-power-card')}<span class="dm-power-badge">×${passes}</span></div>`
+    : `<div class="dm-passes">×${passes}</div>`
 }
 
 function pName(id) {
@@ -216,7 +216,7 @@ export function renderBoard(meta, mine) {
         <div class="dm-drink-count ${flashing ? 'dm-drink-flash' : ''}">
           🍺×${drinkCount}
         </div>
-        ${passes > 0 ? `<div class="dm-passes">${cardPassBadge()}×${passes}</div>` : ''}
+        ${passes > 0 ? cardPassPower(passes) : ''}
         ${buddyId    ? `<div class="dm-buddy" ${chainColor ? `style="color:${chainColor}"` : ''}>🔗 ${pName(buddyId)}</div>`    : ''}
         ${buddiedBy  ? `<div class="dm-buddy" ${chainColor ? `style="color:${chainColor}"` : ''}>🔗 ${pName(buddiedBy)}</div>` : ''}
       </div>`
@@ -260,7 +260,7 @@ export function renderBoard(meta, mine) {
   if (bathBtn) {
     const src = cardImgSrc('8♠')
     bathBtn.innerHTML = src
-      ? `<img src="${src}" style="width:20px;height:29px;vertical-align:middle;margin-right:5px;border-radius:2px"> Use Pass`
+      ? `<img src="${src}" style="width:24px;height:34px;vertical-align:middle;margin-right:6px;border-radius:3px"> Use Pass`
       : 'Use Pass'
   }
   _setDisplay('btn-dm-pointing',  isActive)
