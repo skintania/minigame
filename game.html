@@ -558,6 +558,18 @@
           <label class="bj-banker-opt"><input type="radio" name="wr-banker-mode" value="rotate"> Rotate</label>
         </div>
       </div>
+      <div class="host-setting-row">
+        <span class="host-setting-lbl">Visibility</span>
+        <div class="wr-vis-toggle">
+          <button class="btn btn-ghost wr-vis-btn active" id="wr-vis-public">🌐 Public</button>
+          <button class="btn btn-ghost wr-vis-btn"        id="wr-vis-private">🔒 Private</button>
+        </div>
+      </div>
+      <div class="host-setting-row" id="wr-password-row" style="display:none">
+        <span class="host-setting-lbl">Password</span>
+        <input type="text" id="wr-password" class="bet-field" placeholder="Set password…"
+          maxlength="32" autocomplete="off" spellcheck="false" style="width:130px">
+      </div>
     </div>
   </div>
 

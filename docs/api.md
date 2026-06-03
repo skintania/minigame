@@ -72,30 +72,113 @@ Returns all active matches for a session. Useful if you need to refresh the list
 
 ---
 
+### `PATCH /sessions/:sessionId/username`
+
+Rename the session's display username. Blocked while the session has any `active` matches — the player must not be in a running game.
+
+**Request**
+```json
+{ "username": "NewName" }
+```
+
+**Response**
+```json
+{ "sessionId": "uuid", "username": "NewName", "createdAt": "..." }
+```
+
+Errors: `"Session not found"`, `"Cannot rename while in an active game"`.
+
+---
+
+## Matches
+
+### `GET /matches/:matchId/summary`
+
+Fetch the final results of a completed match. The record persists in the `summaries` table permanently — call this after `end-game` closes the room or after `getGameState` returns 404 (match cleaned up).
+
+**Response**
+```json
+{
+  "matchId": "uuid",
+  "gameId": "oldmaid",
+  "winnerId": "uuid",
+  "winnerUsername": "Alice",
+  "durationSec": 142,
+  "finishedAt": "2026-06-03T10:00:00.000Z",
+  "playerNames": { "uuid1": "Alice", "uuid2": "Bob" },
+  "result": { }
+}
+```
+
+`result` is game-specific:
+
+| Game | `result` fields |
+|------|----------------|
+| `oldmaid` | `{ losses: { "uuid": count }, round: N, loser: "uuid" }` |
+| `poker` / `blackjack` / `pokdeng` | `{ finalChips: { "uuid": N } }` |
+| `uno` / `slave` | `{ finishOrder: ["uuid1", "uuid2"] }` |
+
+Errors: `"Summary not found"` (404) — match has not finished yet or matchId is wrong.
+
+---
+
 ## Rooms
 
 Private matches joined by a 6-digit code. Only players with the code can join.
 
 Idle rooms are automatically cleaned up: `waiting` rooms are deleted after **2 hours**, and `active` matches with no moves for **24 hours** are also removed.
 
+### `GET /rooms`
+
+List all public rooms available to join. Returns up to 50 rooms ordered newest first.
+
+**Query params**
+
+| Param | Type | Description |
+|---|---|---|
+| `gameId` | string (optional) | Filter by game — e.g. `?gameId=oldmaid` |
+
+**Response**
+```json
+[
+  {
+    "roomCode": "843921",
+    "matchId": "uuid",
+    "gameId": "oldmaid",
+    "status": "waiting",
+    "hostUsername": "Alice",
+    "playerCount": 2,
+    "maxPlayers": 8
+  }
+]
+```
+
+Only `visibility = "public"` rooms in `waiting` or `active` status are returned. Private rooms never appear here.
+
+---
+
 ### `POST /rooms/create`
 
-Create a private room and get the code to share.
+Create a room and get the code to share.
 
 **Request**
 ```json
 {
   "sessionId": "uuid",
-  "gameId": "poker" | "uno" | "slave" | "dummy",
+  "gameId": "poker" | "uno" | "slave" | "dummy" | "oldmaid" | "...",
   "maxPlayers": 8,
   "startingChips": 1000,
   "turnTimeLimit": 30,
   "roundLimit": 10,
-  "betweenRoundsSec": 30
+  "betweenRoundsSec": 30,
+  "visibility": "public",
+  "password": "secret"
 }
 ```
 
-All fields are optional. Defaults: `maxPlayers = 8` (min `2`, max `16`), `startingChips = 1000` (min `100`, max `1,000,000`), `turnTimeLimit = 0` (disabled; min `10`, max `300` seconds), `roundLimit = 0` (infinite; min `1`, max `1000`), `betweenRoundsSec = 0` (disabled; min `5`, max `120` seconds). `startingChips`, `turnTimeLimit`, `roundLimit`, and `betweenRoundsSec` are poker-only.
+All fields except `sessionId` and `gameId` are optional. Defaults: `maxPlayers = 8` (min `2`, max `16`), `startingChips = 1000` (min `100`, max `1,000,000`), `turnTimeLimit = 0` (disabled; min `10`, max `300` sec), `roundLimit = 0` (infinite; min `1`, max `1000`), `betweenRoundsSec = 0` (disabled; min `5`, max `120` sec), `visibility = "public"`.
+
+`password` is required when `visibility = "private"`. Public rooms ignore `password`.
 
 **Player inactivity timeout:** Any player who has not called a game endpoint (`GET /games/:matchId/state` or any action) for **5 minutes** is automatically kicked. What happens depends on the game and phase:
 - `waiting`: removed from the room entirely. Room is deleted if it becomes empty.
@@ -107,7 +190,7 @@ The scheduled cleanup job also removes players inactive for **30 minutes** acros
 
 **Response**
 ```json
-{ "matchId": "uuid", "roomCode": "843921" }
+{ "matchId": "uuid", "roomCode": "843921", "visibility": "public" }
 ```
 
 ---
@@ -120,15 +203,17 @@ Joining works whether the room is `waiting` or `active` — you can drop into an
 
 **Request**
 ```json
-{ "sessionId": "uuid", "roomCode": "843921" }
+{ "sessionId": "uuid", "roomCode": "843921", "password": "secret" }
 ```
+
+`password` is required for private rooms. Omit or leave `null` for public rooms.
 
 **Response**
 ```json
 { "matchId": "uuid", "gameId": "poker" }
 ```
 
-Errors: `"Room not found"`, `"Room is no longer open"` (room is `finished`).
+Errors: `"Room not found"`, `"Room is no longer open"` (room is `finished`), `"This room requires a password"`, `"Incorrect password"`.
 
 ---
 
@@ -149,6 +234,7 @@ Poll this to get room state and keep your session alive. **Frontend must call th
   "turnTimeLimit": 30,
   "roundLimit": 10,
   "betweenRoundsSec": 30,
+  "visibility": "public",
   "playerCount": 2,
   "spectatorCount": 1,
   "members": [
@@ -172,15 +258,26 @@ Send only the fields you want to change — at least one is required.
 
 **Request**
 ```json
-{ "sessionId": "uuid", "maxPlayers": 4, "startingChips": 500, "turnTimeLimit": 60, "roundLimit": 5, "betweenRoundsSec": 30 }
+{
+  "sessionId": "uuid",
+  "maxPlayers": 4,
+  "startingChips": 500,
+  "turnTimeLimit": 60,
+  "roundLimit": 5,
+  "betweenRoundsSec": 30,
+  "visibility": "private",
+  "password": "secret"
+}
 ```
+
+`password` is required when changing `visibility` to `"private"`. Set `visibility = "public"` to remove the password (password field is ignored).
 
 **Response** — echoes back the fields that were updated
 ```json
-{ "roomCode": "843921", "maxPlayers": 4, "startingChips": 500, "turnTimeLimit": 60, "roundLimit": 5, "betweenRoundsSec": 30 }
+{ "roomCode": "843921", "maxPlayers": 4, "visibility": "private" }
 ```
 
-Errors: `"Only the room host can change settings"`, `"Can only change settings before the game starts or between rounds"`, `"Cannot set max_players below current player count (n)"`, `"At least one setting (maxPlayers, startingChips, turnTimeLimit, roundLimit, or betweenRoundsSec) is required"`.
+Errors: `"Only the room host can change settings"`, `"Can only change settings before the game starts or between rounds"`, `"Cannot set max_players below current player count (n)"`, `"At least one setting is required"`, `"password is required when setting visibility to private"`.
 
 ---
 
@@ -1439,17 +1536,21 @@ Thai card game with a 53-card deck (52 standard + 1 Joker). Players sit in a cir
 | POST | `/games/oldmaid/:matchId/next-round` | `{ sessionId }` |
 | POST | `/games/oldmaid/:matchId/end-game` | `{ sessionId }` |
 
+**Important:** `start`, `pick`, `set-shuffle-mode`, `reorder-hand`, and `next-round` all return the **full game state** directly (same shape as `GET /state`) — no need to poll after these actions.
+
+`end-game` returns `{ "ok": true }`. After calling it, the match is deleted from the server. Navigate to `GET /matches/:matchId/summary` for the final results.
+
 ### Flow
 
 ```
-1. POST /start → cards dealt, pairs auto-discarded, round 1 begins
-2. Poll GET /state — check isMyTurn
-3. isMyTurn → POST /pick { index }  (pick card at index from left player's face-down hand)
-4. Server auto-discards any new pairs
-5. Turn advances; repeat until one player holds the Joker alone
-6. phase = "between-rounds", metadata.loser = Joker holder, metadata.losses updated
-7. Host calls POST /next-round → phase = "playing", round increments, starting player rotates
-8. Repeat steps 2–7; host calls POST /end-game when done → matchStatus = "finished"
+1. POST /start → returns full game state; cards dealt, pairs auto-discarded
+2. Poll GET /state (or use response from last action)
+3. isMyTurn → POST /pick { index }  (index into the left player's face-down hand)
+                  └→ returns full state immediately (no poll needed)
+4. Server auto-discards new pairs; phase stays "playing" until one player is left with the Joker
+5. Round ends: metadata.phase = "between-rounds", metadata.loser set
+6. Host calls POST /next-round → new round starts, losses tallied, round counter increments
+7. Repeat steps 2–6 indefinitely; host calls POST /end-game to close the room
 ```
 
 ### Shuffle modes
@@ -1469,19 +1570,25 @@ Each player independently controls whether their hand is randomised before other
 
 | Field | Description |
 |-------|-------------|
-| `phase` | `"waiting"` \| `"playing"` \| `"between-rounds"` \| `"finished"` |
-| `round` | Current round number (starts at 1; increments on each `next-round` call) |
+| `phase` | `"waiting"` \| `"playing"` \| `"between-rounds"` |
 | `hands[playerId]` | Own hand: actual card strings. Others: `["hidden", ...]` (length = card count) |
+| `handSize[playerId]` | Card count per player — always present, even for opponent hands. Use this instead of `hands[id].length` for opponents. |
 | `discarded[playerId]` | All pairs this player has discarded so far — `string[][]` (each entry is a pair) |
 | `initialDiscards[playerId]` | Pairs auto-discarded at game start — use for opening animation |
 | `shuffleMode[playerId]` | `"auto"` or `"manual"` per player |
 | `currentPlayer` | Session ID whose turn it is to pick |
 | `currentPlayerIndex` | Index of `currentPlayer` in `players` array |
+| `pickFrom` | Session ID of the player whose cards are tappable right now (the pick target). Use this instead of `turnOrder[1]` — it correctly skips eliminated players. `null` when not in `playing` phase. |
 | `eliminated` | Players who emptied their hand (safe). Still in `players[]`, skipped in turn order. |
-| `loser` | Session ID of the player left with the Joker this round. `null` while in progress. |
-| `losses` | `{ sessionId: count }` — running total of how many rounds each player has held the Joker |
+| `loser` | Session ID of the player left with the Joker when the round ends. `null` while in progress. |
+| `round` | Current round number (starts at 1). |
+| `losses[playerId]` | How many rounds each player has lost (held the Joker at round end). |
 | `lastPick` | `{ picker, from, card, newPairs }` — result of the most recent pick. `card` visible to all. |
 | `lastAction` | Human-readable description of the last event |
+
+**`phase = "between-rounds"`** means the round just ended. `loser` is set. The host calls `POST /next-round` to start the next round. This is also the terminal state while the host has not yet ended the match — the game loops through rounds indefinitely until `POST /end-game` is called.
+
+**Why use `pickFrom` not `turnOrder[1]`?** `turnOrder[1]` is the second player in the full sequence, which may include eliminated players. `pickFrom` mirrors the server's `getLeftPlayer` logic exactly — it skips eliminated players and empty hands to always point to the correct tappable seat.
 
 ### Pair rules
 

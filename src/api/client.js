@@ -23,8 +23,9 @@ export const api = {
   join: (sid, gid) => request('POST', '/lobby/join', { sessionId: sid, gameId: gid }),
 
   // Private rooms
+  listRooms:     (gameId)              => request('GET',  `/rooms${gameId ? `?gameId=${encodeURIComponent(gameId)}` : ''}`),
   createRoom:    (sid, gid, opts = {}) => request('POST', '/rooms/create', { sessionId: sid, gameId: gid, ...opts }),
-  joinRoom:      (sid, roomCode)       => request('POST', '/rooms/join',   { sessionId: sid, roomCode }),
+  joinRoom:      (sid, roomCode, password) => request('POST', '/rooms/join', password ? { sessionId: sid, roomCode, password } : { sessionId: sid, roomCode }),
   getRoomStatus: (roomCode, sid)       => request('GET',  `/rooms/${roomCode}${sid ? `?sessionId=${encodeURIComponent(sid)}` : ''}`),
   switchRole:    (code, sid, role)     => request('PATCH', `/rooms/${code}/role`,     { sessionId: sid, role }),
   patchSettings: (code, sid, settings) => request('PATCH', `/rooms/${code}/settings`, { sessionId: sid, ...settings }),

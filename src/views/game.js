@@ -17,7 +17,7 @@ let roomData                    = null
 let prevCommunityCount          = 0
 let prevMyRole                  = null
 let prevMatchStatus             = null
-let wrSettings                  = { maxPlayers: 8, startingChips: 1000, turnTimeLimit: 0, roundLimit: 0 }
+let wrSettings                  = { maxPlayers: 8, startingChips: 1000, turnTimeLimit: 0, roundLimit: 0, visibility: 'public' }
 let wrDebounce                  = {}
 let lastBankerActiveMeta        = null
 let bustScreenActive            = false
@@ -178,6 +178,22 @@ export function initGame() {
     if (btn) wrKickPlayer(btn.dataset.kick)
   })
 
+  // Visibility toggle
+  document.getElementById('wr-vis-public').addEventListener('click', () => {
+    wrPatchSetting('visibility', 'public')
+  })
+  document.getElementById('wr-vis-private').addEventListener('click', () => {
+    const pw = document.getElementById('wr-password').value.trim()
+    if (!pw) { document.getElementById('wr-password-row').style.display = ''; document.getElementById('wr-password').focus(); return }
+    wrPatchSetting('visibility', 'private', pw)
+  })
+  document.getElementById('wr-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const pw = document.getElementById('wr-password').value.trim()
+      if (pw) wrPatchSetting('visibility', 'private', pw)
+    }
+  })
+
   // Banker-mode radio — refresh start button immediately on change
   document.querySelectorAll('input[name="wr-banker-mode"]').forEach(r => {
     r.addEventListener('change', () => {
@@ -277,7 +293,7 @@ export function enterGame() {
       applyServerState(gs)
       saveSession()
       render()
-      if (['uno', 'slave', 'dummy', 'blackjack', 'pokdeng', 'oldmaid'].includes(state.gameId) && gs.matchStatus === 'finished') {
+      if (['uno', 'slave', 'dummy', 'blackjack', 'pokdeng'].includes(state.gameId) && gs.matchStatus === 'finished') {
         stopPoll(); startGameOverCountdown()
       } else if (state.gameId === 'doraemon' && gs.matchStatus === 'finished') {
         stopPoll(); showToast('Game over! Returning to lobby…')
@@ -512,7 +528,9 @@ function updateWaitingPanel(meta) {
       startingChips: room.startingChips ?? 1000,
       turnTimeLimit: room.turnTimeLimit ?? 0,
       roundLimit:    room.roundLimit    ?? 0,
+      visibility:    room.visibility    ?? 'public',
     }
+    if (amHost()) _syncVisibilityUI(wrSettings.visibility)
   }
 
   const memberNameMap = {}
@@ -652,14 +670,26 @@ async function wrStartRound() {
   }
 }
 
-async function wrPatchSetting(key, value) {
+async function wrPatchSetting(key, value, password) {
   try {
-    const up = await api.patchSettings(state.roomCode, state.sessionId, { [key]: value })
+    const body = password ? { [key]: value, password } : { [key]: value }
+    const up = await api.patchSettings(state.roomCode, state.sessionId, body)
     if (up.maxPlayers    != null) { wrSettings.maxPlayers    = up.maxPlayers;    document.getElementById('wr-max-val').textContent = up.maxPlayers }
     if (up.startingChips != null) { wrSettings.startingChips = up.startingChips; document.getElementById('wr-chips').value = up.startingChips }
     if (up.turnTimeLimit != null) { wrSettings.turnTimeLimit = up.turnTimeLimit; document.getElementById('wr-timer').value = up.turnTimeLimit }
     if (up.roundLimit    != null) { wrSettings.roundLimit    = up.roundLimit;    document.getElementById('wr-rounds').value = up.roundLimit }
+    if (up.visibility    != null) { _syncVisibilityUI(up.visibility) }
   } catch (e) { showToast(e.message) }
+}
+
+function _syncVisibilityUI(visibility) {
+  wrSettings.visibility = visibility
+  const isPrivate = visibility === 'private'
+  document.getElementById('wr-vis-public') .classList.toggle('active', !isPrivate)
+  document.getElementById('wr-vis-private').classList.toggle('active',  isPrivate)
+  const pwRow = document.getElementById('wr-password-row')
+  if (pwRow) pwRow.style.display = isPrivate ? '' : 'none'
+  if (!isPrivate) { const el = document.getElementById('wr-password'); if (el) el.value = '' }
 }
 
 async function wrKickPlayer(targetId) {

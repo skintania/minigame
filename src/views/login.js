@@ -20,8 +20,12 @@ export async function initLogin() {
   // Home screen buttons
   document.getElementById('btn-go-create').addEventListener('click', () => showView('view-create'))
   document.getElementById('btn-go-join').addEventListener('click', toggleJoinInput)
+  document.getElementById('btn-go-find').addEventListener('click', () => { showView('view-find-room'); loadRooms() })
   document.getElementById('btn-join-submit').addEventListener('click', doJoinRoom)
   document.getElementById('home-code-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doJoinRoom()
+  })
+  document.getElementById('home-password-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') doJoinRoom()
   })
 
@@ -53,6 +57,11 @@ export async function initLogin() {
   document.getElementById('btn-create-pokdeng').addEventListener('click',   () => doCreateRoom('pokdeng'))
   document.getElementById('btn-create-doraemon').addEventListener('click',  () => doCreateRoom('doraemon'))
   document.getElementById('btn-create-oldmaid').addEventListener('click',   () => doCreateRoom('oldmaid'))
+
+  // Find Room screen
+  document.getElementById('find-back-btn').addEventListener('click', () => showView('view-home'))
+  document.getElementById('find-room-refresh').addEventListener('click', loadRooms)
+  initFindRoomFilters()
 
   // Auto-reconnect
   if (state.sessionId) {
@@ -131,7 +140,8 @@ function toggleJoinInput() {
 }
 
 async function doJoinRoom() {
-  const code = document.getElementById('home-code-input').value.trim()
+  const code     = document.getElementById('home-code-input').value.trim()
+  const password = document.getElementById('home-password-input').value.trim() || null
   if (!code) { showToast('Please enter a room code.'); return }
   if (code.length !== 6 || !/^\d+$/.test(code)) { showToast('Room code must be 6 digits.'); return }
 
@@ -140,7 +150,7 @@ async function doJoinRoom() {
   btn.textContent = 'Joining…'
 
   try {
-    const { matchId, gameId } = await api.joinRoom(state.sessionId, code)
+    const { matchId, gameId } = await api.joinRoom(state.sessionId, code, password)
     state.matchId  = matchId
     state.gameId   = gameId
     state.roomCode = code
@@ -149,7 +159,13 @@ async function doJoinRoom() {
     window.location.href = 'game.html'
   } catch (e) {
     console.error('[login] join room failed:', e)
-    showToast(e.message)
+    if (e.message.includes('password')) {
+      document.getElementById('join-password-row').style.display = ''
+      document.getElementById('home-password-input').focus()
+      showToast('This room requires a password.')
+    } else {
+      showToast(e.message)
+    }
     btn.disabled    = false
     btn.textContent = 'Join'
   }
@@ -202,5 +218,93 @@ async function doCreateRoom(gameId) {
     showToast(e.message)
     btn.style.opacity = ''
     btn.style.pointerEvents = ''
+  }
+}
+
+const GAME_FILTERS = [
+  { id: 'all',       label: 'All' },
+  { id: 'poker',     label: 'Poker' },
+  { id: 'uno',       label: 'UNO' },
+  { id: 'slave',     label: 'Slave' },
+  { id: 'dummy',     label: 'Dummy' },
+  { id: 'blackjack', label: 'Blackjack' },
+  { id: 'pokdeng',   label: 'Pok Deng' },
+  { id: 'doraemon',  label: 'Doraemon' },
+  { id: 'oldmaid',   label: 'Old Maid' },
+]
+
+const GAME_ICONS = {
+  poker: '🃏', uno: '🎴', slave: '👑', dummy: '🀄',
+  blackjack: '🃏', pokdeng: '🀄', doraemon: '🍺', oldmaid: '🃏',
+}
+
+let _activeFilter = 'all'
+
+function initFindRoomFilters() {
+  const container = document.getElementById('find-room-filters')
+  GAME_FILTERS.forEach(({ id, label }) => {
+    const btn = document.createElement('button')
+    btn.className = 'filter-btn' + (id === 'all' ? ' active' : '')
+    btn.textContent = label
+    btn.addEventListener('click', () => {
+      _activeFilter = id
+      container.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      loadRooms()
+    })
+    container.appendChild(btn)
+  })
+}
+
+async function loadRooms() {
+  const list = document.getElementById('find-room-list')
+  list.innerHTML = '<div class="room-list-loading">Loading…</div>'
+  try {
+    const gameId = _activeFilter === 'all' ? null : _activeFilter
+    const rooms = await api.listRooms(gameId)
+    if (!rooms.length) {
+      list.innerHTML = '<div class="room-list-empty">No public rooms found.</div>'
+      return
+    }
+    list.innerHTML = ''
+    rooms.forEach(room => {
+      const card = document.createElement('div')
+      card.className = 'room-card glass'
+      const icon = GAME_ICONS[room.gameId] || '🎮'
+      const gameName = GAME_FILTERS.find(f => f.id === room.gameId)?.label || room.gameId
+      const statusLabel = room.status === 'waiting' ? 'Waiting' : 'In Progress'
+      card.innerHTML = `
+        <div class="room-card-icon">${icon}</div>
+        <div class="room-card-info">
+          <div class="room-card-game">${gameName}</div>
+          <div class="room-card-meta">Host: ${room.hostUsername} · ${room.playerCount}/${room.maxPlayers} players</div>
+        </div>
+        <div class="room-card-right">
+          <span class="room-status-badge ${room.status}">${statusLabel}</span>
+          <button class="btn btn-pink room-join-btn" style="width:auto;padding:0 16px;font-size:13px">Join</button>
+        </div>
+      `
+      card.querySelector('.room-join-btn').addEventListener('click', () => joinFromList(room.roomCode))
+      list.appendChild(card)
+    })
+  } catch (e) {
+    list.innerHTML = `<div class="room-list-empty">${e.message}</div>`
+  }
+}
+
+async function joinFromList(roomCode) {
+  const list = document.getElementById('find-room-list')
+  list.querySelectorAll('.room-join-btn').forEach(b => { b.disabled = true })
+  try {
+    const { matchId, gameId } = await api.joinRoom(state.sessionId, roomCode)
+    state.matchId  = matchId
+    state.gameId   = gameId
+    state.roomCode = roomCode
+    state.role     = 'spectator'
+    saveSession()
+    window.location.href = 'game.html'
+  } catch (e) {
+    showToast(e.message)
+    list.querySelectorAll('.room-join-btn').forEach(b => { b.disabled = false })
   }
 }
