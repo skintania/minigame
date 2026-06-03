@@ -21,6 +21,7 @@ export async function initLogin() {
   document.getElementById('btn-go-create').addEventListener('click', () => showView('view-create'))
   document.getElementById('btn-go-join').addEventListener('click', toggleJoinInput)
   document.getElementById('btn-go-find').addEventListener('click', () => { showView('view-find-room'); loadRooms() })
+  document.getElementById('btn-go-howto').addEventListener('click', () => { window.location.href = 'howto.html' })
   document.getElementById('btn-join-submit').addEventListener('click', doJoinRoom)
   document.getElementById('home-code-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') doJoinRoom()

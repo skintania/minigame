@@ -11,6 +11,7 @@ export default defineConfig({
         main:  resolve(__dirname, 'index.html'),
         lobby: resolve(__dirname, 'lobby.html'),
         game:  resolve(__dirname, 'game.html'),
+        howto: resolve(__dirname, 'howto.html'),
       }
     }
   }

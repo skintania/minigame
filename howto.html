@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skintania — How To Play</title>
+  <link rel="icon" href="/sk-cu.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>const _t=localStorage.getItem('sk_theme');if(_t)document.documentElement.dataset.theme=_t;</script>
+  <link rel="stylesheet" href="/src/styles/base.css">
+  <link rel="stylesheet" href="/src/styles/components.css">
+  <link rel="stylesheet" href="/src/styles/howto.css">
+</head>
+<body>
+<div class="ht-page">
+
+  <!-- Sticky header -->
+  <header class="ht-header">
+    <button class="ht-back-btn" onclick="history.back()">
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <path d="M13 4L7 10L13 16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back
+    </button>
+    <div class="ht-header-title">How To Play</div>
+  </header>
+
+  <div class="ht-wrap">
+
+    <!-- Intro -->
+    <div class="ht-intro">
+      <div class="ht-intro-title">📖 Game Rules</div>
+      <div class="ht-intro-sub">Tap any game below to read its full rules</div>
+    </div>
+
+    <!-- Quick-jump pills -->
+    <div class="ht-pills">
+      <button class="ht-pill" data-jump="poker">🃏 Poker</button>
+      <button class="ht-pill" data-jump="uno">🎴 UNO</button>
+      <button class="ht-pill" data-jump="blackjack">🃏 Blackjack</button>
+      <button class="ht-pill" data-jump="pokdeng">🀄 Pok Deng</button>
+      <button class="ht-pill" data-jump="oldmaid">🃏 Old Maid</button>
+      <button class="ht-pill" data-jump="slave">👑 Slave</button>
+      <button class="ht-pill" data-jump="dummy">🀄 Dummy</button>
+      <button class="ht-pill" data-jump="doraemon">🍺 Doraemon</button>
+      <button class="ht-pill" data-jump="bluff">🎭 Bluff</button>
+    </div>
+
+    <!-- Game cards -->
+    <div class="ht-list">
+
+      <!-- ───── POKER ───── -->
+      <div class="ht-card" data-game="poker">
+        <button class="ht-card-header" aria-expanded="false">
+          <div class="ht-card-deco"><div class="ht-deco-card"></div><div class="ht-deco-card"></div><div class="ht-deco-card"></div></div>
+          <div class="ht-card-title">
+            <span class="ht-icon">🃏</span>
+            <div>
+              <div class="ht-name">Poker</div>
+              <div class="ht-badges"><span class="ht-badge">2–8 players</span><span class="ht-badge ht-badge-type">Texas Hold'em · Chips</span></div>
+            </div>
+          </div>
+          <span class="ht-chevron">›</span>
+        </button>
+        <div class="ht-body"><div class="ht-body-inner">
+          <div class="ht-goal">Win the most chips. Last player with chips wins. Each hand, two players post forced <strong>blinds</strong> (SB = 1% starting chips, BB = 2×SB). The dealer button rotates every hand.</div>
+
+          <div class="ht-section">
+            <div class="ht-h3">How a Hand Works</div>
+            <div class="ht-steps">
+              <div class="ht-step"><div class="ht-step-num">1</div><div class="ht-step-body"><span class="ht-step-title">Deal</span> — 2 private hole cards each.</div></div>
+              <div class="ht-step"><div class="ht-step-num">2</div><div class="ht-step-body"><span class="ht-step-title">Pre-Flop Betting</span> — Call, Raise, or Fold. BB can Check if nobody raised.</div></div>
+              <div class="ht-step"><div class="ht-step-num">3</div><div class="ht-step-body"><span class="ht-step-title">Flop</span> — 3 community cards revealed. New betting round.</div></div>
+              <div class="ht-step"><div class="ht-step-num">4</div><div class="ht-step-body"><span class="ht-step-title">Turn</span> — 4th community card. Another round.</div></div>
+              <div class="ht-step"><div class="ht-step-num">5</div><div class="ht-step-body"><span class="ht-step-title">River</span> — 5th community card. Final round.</div></div>
+              <div class="ht-step"><div class="ht-step-num">6</div><div class="ht-step-body"><span class="ht-step-title">Showdown</span> — Best 5-card hand from any of your 2 + the 5 community wins the pot.</div></div>
+            </div>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Hand Rankings (weak → strong)</div>
+            <div class="ht-table-wrap"><table class="ht-table">
+              <tr><th>#</th><th>Hand</th><th>Example</th></tr>
+              <tr><td>1</td><td>High card</td><td>K Q 9 7 3</td></tr>
+              <tr><td>2</td><td>One pair</td><td>J J 9 4 2</td></tr>
+              <tr><td>3</td><td>Two pair</td><td>K K 5 5 A</td></tr>
+              <tr><td>4</td><td>Three of a kind</td><td>8 8 8 Q 3</td></tr>
+              <tr><td>5</td><td>Straight</td><td>5 6 7 8 9</td></tr>
+              <tr><td>6</td><td>Flush</td><td>A K 9 5 2 all ♥</td></tr>
+              <tr><td>7</td><td>Full house</td><td>Q Q Q 4 4</td></tr>
+              <tr><td>8</td><td>Four of a kind</td><td>7 7 7 7 J</td></tr>
+              <tr><td>9</td><td>Straight flush</td><td>7 8 9 10 J ♠</td></tr>
+              <tr><td>10</td><td><strong>Royal flush</strong></td><td>10 J Q K A ♦</td></tr>
+            </table></div>
+          </div>
+
+          <div class="ht-tip"><strong>All-in:</strong> You can only win the portion of the pot you matched. Excess bets form side pots you cannot win. When everyone is all-in, community cards run out automatically.</div>
+        </div></div>
+      </div>
+
+      <!-- ───── UNO ───── -->
+      <div class="ht-card" data-game="uno">
+        <button class="ht-card-header" aria-expanded="false">
+          <div class="ht-card-deco"><div class="ht-deco-card"></div><div class="ht-deco-card"></div><div class="ht-deco-card"></div></div>
+          <div class="ht-card-title">
+            <span class="ht-icon">🎴</span>
+            <div>
+              <div class="ht-name">UNO</div>
+              <div class="ht-badges"><span class="ht-badge">2–10 players</span><span class="ht-badge ht-badge-type">Hand-emptying · 108 cards</span></div>
+            </div>
+          </div>
+          <span class="ht-chevron">›</span>
+        </button>
+        <div class="ht-body"><div class="ht-body-inner">
+          <div class="ht-goal">First to empty your hand wins the round. Win the most rounds to win overall. Each player starts with 7 cards.</div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Your Turn</div>
+            <ul class="ht-ul">
+              <li>Play a card matching the discard's <strong>color or number/type</strong>, or play a Wild.</li>
+              <li>If you can't or won't play, draw 1 card. If it's playable, you may play it immediately.</li>
+            </ul>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Special Cards</div>
+            <div class="ht-table-wrap"><table class="ht-table">
+              <tr><th>Card</th><th>Effect</th></tr>
+              <tr><td>Skip</td><td>Next player loses their turn.</td></tr>
+              <tr><td>Reverse</td><td>Flip turn order. With 2 players, acts like Skip.</td></tr>
+              <tr><td>Draw Two</td><td>Next player draws 2 and loses turn — or <strong>stacks</strong> another Draw 2 / Wild Draw 4 to pass it on.</td></tr>
+              <tr><td>Wild</td><td>Play on anything. You choose the new color.</td></tr>
+              <tr><td>Wild Draw 4</td><td>Play only when you have no card matching the current color. Next player draws 4. Stackable.</td></tr>
+            </table></div>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Multi-Card Stacking</div>
+            <ul class="ht-ul">
+              <li>You may play multiple cards of the <strong>same value</strong> in one turn if the first card is valid.</li>
+              <li>Each extra card adds its effect (e.g. 3 Skips skip 3 players; 2 Draw Twos = +4 penalty).</li>
+              <li>You cannot mix different value types (e.g. Skip + Reverse) in one play.</li>
+            </ul>
+          </div>
+
+          <div class="ht-tip"><strong>Stacking Draw penalties:</strong> Keep passing +2/+4 down the line until someone can't stack — they take the full accumulated amount.</div>
+        </div></div>
+      </div>
+
+      <!-- ───── BLACKJACK ───── -->
+      <div class="ht-card" data-game="blackjack">
+        <button class="ht-card-header" aria-expanded="false">
+          <div class="ht-card-deco"><div class="ht-deco-card"></div><div class="ht-deco-card"></div><div class="ht-deco-card"></div></div>
+          <div class="ht-card-title">
+            <span class="ht-icon">🃏</span>
+            <div>
+              <div class="ht-name">Blackjack</div>
+              <div class="ht-badges"><span class="ht-badge">2–8 players</span><span class="ht-badge ht-badge-type">Chip-based · 6 decks</span></div>
+            </div>
+          </div>
+          <span class="ht-chevron">›</span>
+        </button>
+        <div class="ht-body"><div class="ht-body-inner">
+          <div class="ht-goal">Beat the dealer by getting closer to <strong>21</strong> without busting. Each player competes against the dealer independently.</div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Card Values</div>
+            <ul class="ht-ul">
+              <li>2–9 → face value · 10/J/Q/K → 10 · Ace → 11 (or 1 to avoid bust)</li>
+              <li>A hand with Ace as 11 = <strong>soft</strong> hand (e.g. A+6 = soft 17)</li>
+            </ul>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Round Flow</div>
+            <div class="ht-steps">
+              <div class="ht-step"><div class="ht-step-num">1</div><div class="ht-step-body"><span class="ht-step-title">Bet</span> — All players place bets before cards are dealt.</div></div>
+              <div class="ht-step"><div class="ht-step-num">2</div><div class="ht-step-body"><span class="ht-step-title">Deal</span> — 2 cards face-up to each player. Dealer gets 1 face-up + 1 hole card.</div></div>
+              <div class="ht-step"><div class="ht-step-num">3</div><div class="ht-step-body"><span class="ht-step-title">Players Act</span> — Hit, Stand, Double Down, or Split in clockwise order.</div></div>
+              <div class="ht-step"><div class="ht-step-num">4</div><div class="ht-step-body"><span class="ht-step-title">Dealer Plays</span> — Reveals hole card. Hits on soft 17 or below; stands on hard 17+.</div></div>
+              <div class="ht-step"><div class="ht-step-num">5</div><div class="ht-step-body"><span class="ht-step-title">Resolution</span> — Compare each hand against dealer.</div></div>
+            </div>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Player Actions</div>
+            <div class="ht-table-wrap"><table class="ht-table">
+              <tr><th>Action</th><th>Condition</th><th>Effect</th></tr>
+              <tr><td>Hit</td><td>Any time</td><td>Take 1 more card</td></tr>
+              <tr><td>Stand</td><td>Any time</td><td>End your turn</td></tr>
+              <tr><td>Double Down</td><td>First action only</td><td>Double bet, take exactly 1 card, then stand</td></tr>
+              <tr><td>Split</td><td>First 2 cards same rank</td><td>Split into 2 hands; bet doubled; each gets 1 new card</td></tr>
+            </table></div>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Payouts</div>
+            <div class="ht-table-wrap"><table class="ht-table">
+              <tr><th>Result</th><th>Payout</th></tr>
+              <tr><td>Player wins</td><td>+1× bet</td></tr>
+              <tr><td>Natural Blackjack (A + 10-value)</td><td><strong>+1.5× bet</strong></td></tr>
+              <tr><td>Push (equal total)</td><td>Bet returned</td></tr>
+              <tr><td>Player busts / dealer higher</td><td>Lose bet</td></tr>
+            </table></div>
+          </div>
+
+          <div class="ht-tip"><strong>Banker Modes:</strong> <strong>Bot</strong> — house dealer draws by fixed rules. <strong>Rotate</strong> — one player is dealer each round; their chips mirror total player results (zero-sum).</div>
+        </div></div>
+      </div>
+
+      <!-- ───── POK DENG ───── -->
+      <div class="ht-card" data-game="pokdeng">
+        <button class="ht-card-header" aria-expanded="false">
+          <div class="ht-card-deco"><div class="ht-deco-card"></div><div class="ht-deco-card"></div><div class="ht-deco-card"></div></div>
+          <div class="ht-card-title">
+            <span class="ht-icon">🀄</span>
+            <div>
+              <div class="ht-name">Pok Deng</div>
+              <div class="ht-badges"><span class="ht-badge">2–8 players</span><span class="ht-badge ht-badge-type">Chip-based · Banker</span></div>
+            </div>
+          </div>
+          <span class="ht-chevron">›</span>
+        </button>
+        <div class="ht-body"><div class="ht-body-inner">
+          <div class="ht-goal">Beat the banker's hand. Your payout is multiplied by a <strong>Deng</strong> bonus. Hand value = sum of cards <strong>mod 10</strong>. Highest value is 9.</div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Card Values</div>
+            <ul class="ht-ul">
+              <li>A=1, 2–9=face value, 10/J/Q/K=0</li>
+              <li>Example: 9+8=17 → <strong>7 points</strong> · K+5=5 → <strong>5 points</strong></li>
+            </ul>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Round Flow</div>
+            <div class="ht-steps">
+              <div class="ht-step"><div class="ht-step-num">1</div><div class="ht-step-body"><span class="ht-step-title">Bet</span> — Non-banker players bet.</div></div>
+              <div class="ht-step"><div class="ht-step-num">2</div><div class="ht-step-body"><span class="ht-step-title">Deal</span> — 2 cards to everyone (including banker).</div></div>
+              <div class="ht-step"><div class="ht-step-num">3</div><div class="ht-step-body"><span class="ht-step-title">Draw</span> — If your value is <strong>5 or below</strong>, you may draw a 3rd card. 6+ = auto stand.</div></div>
+              <div class="ht-step"><div class="ht-step-num">4</div><div class="ht-step-body"><span class="ht-step-title">Resolution</span> — Each player vs banker: higher value wins. Tie → compare Deng.</div></div>
+            </div>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Deng Multipliers</div>
+            <div class="ht-table-wrap"><table class="ht-table">
+              <tr><th>Hand type</th><th>Deng</th></tr>
+              <tr><td>No bonus</td><td>×1</td></tr>
+              <tr><td>Pair / Same suit (2-card)</td><td>×2</td></tr>
+              <tr><td>Straight / Flush (3-card)</td><td>×3</td></tr>
+              <tr><td>Three of a kind / Straight flush</td><td><strong>×5</strong></td></tr>
+            </table></div>
+          </div>
+
+          <div class="ht-tip"><strong>Payout:</strong> Win → receive <code>bet × your Deng</code>. Lose → pay <code>bet × banker's Deng</code>. High Deng hands swing chips fast!</div>
+        </div></div>
+      </div>
+
+      <!-- ───── OLD MAID ───── -->
+      <div class="ht-card" data-game="oldmaid">
+        <button class="ht-card-header" aria-expanded="false">
+          <div class="ht-card-deco"><div class="ht-deco-card"></div><div class="ht-deco-card"></div><div class="ht-deco-card"></div></div>
+          <div class="ht-card-title">
+            <span class="ht-icon">🃏</span>
+            <div>
+              <div class="ht-name">Old Maid</div>
+              <div class="ht-badges"><span class="ht-badge">2–8 players</span><span class="ht-badge ht-badge-type">Elimination · 53 cards</span></div>
+            </div>
+          </div>
+          <span class="ht-chevron">›</span>
+        </button>
+        <div class="ht-body"><div class="ht-body-inner">
+          <div class="ht-goal">Get rid of all your cards. The last player holding the <strong>Joker</strong> loses — it can never be paired and is always stuck with someone.</div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Setup</div>
+            <ul class="ht-ul">
+              <li>53 cards (52 + 1 Joker) are dealt to all players.</li>
+              <li>Immediately discard all <strong>pairs</strong> from your hand (same rank, any suits). Four of a kind = two pairs discarded.</li>
+              <li>The Joker can never be paired.</li>
+            </ul>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Your Turn</div>
+            <div class="ht-steps">
+              <div class="ht-step"><div class="ht-step-num">1</div><div class="ht-step-body">The player to your left holds their cards <strong>face-down</strong> toward you.</div></div>
+              <div class="ht-step"><div class="ht-step-num">2</div><div class="ht-step-body"><strong>Pick one card</strong> blindly from their hand.</div></div>
+              <div class="ht-step"><div class="ht-step-num">3</div><div class="ht-step-body">If it pairs with a card you have, discard the pair. Otherwise keep it.</div></div>
+              <div class="ht-step"><div class="ht-step-num">4</div><div class="ht-step-body">Turn passes — the player to your left now picks from their neighbour.</div></div>
+            </div>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Shuffle Modes</div>
+            <div class="ht-table-wrap"><table class="ht-table">
+              <tr><th>Mode</th><th>Effect</th></tr>
+              <tr><td>Auto (default)</td><td>Server picks a random card regardless of position selected. Always fair.</td></tr>
+              <tr><td>Manual</td><td>You reorder your own hand before each pick. The other player's chosen position maps to your real arrangement — try to hide the Joker!</td></tr>
+            </table></div>
+          </div>
+
+          <div class="ht-tip">When your hand empties you are <strong>safely eliminated</strong> (you win for yourself). Play continues among those still holding cards. The last player with cards loses.</div>
+        </div></div>
+      </div>
+
+      <!-- ───── SLAVE ───── -->
+      <div class="ht-card" data-game="slave">
+        <button class="ht-card-header" aria-expanded="false">
+          <div class="ht-card-deco"><div class="ht-deco-card"></div><div class="ht-deco-card"></div><div class="ht-deco-card"></div></div>
+          <div class="ht-card-title">
+            <span class="ht-icon">👑</span>
+            <div>
+              <div class="ht-name">Slave</div>
+              <div class="ht-badges"><span class="ht-badge">3–8 players</span><span class="ht-badge ht-badge-type">Hand-emptying · President</span></div>
+            </div>
+          </div>
+          <span class="ht-chevron">›</span>
+        </button>
+        <div class="ht-body"><div class="ht-body-inner">
+          <div class="ht-goal">Empty your hand first to become <strong>President</strong>. Last to empty becomes <strong>Slave</strong>. Ranks carry privileges into the next round.</div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Rank Order (low → high)</div>
+            <div class="ht-rank-cycle">
+              <span class="ht-rank-chip">3</span><span class="ht-rank-arrow">‹</span>
+              <span class="ht-rank-chip">4</span><span class="ht-rank-arrow">‹</span>
+              <span class="ht-rank-chip">5</span><span class="ht-rank-arrow">‹</span>
+              <span class="ht-rank-chip">6</span><span class="ht-rank-arrow">‹</span>
+              <span class="ht-rank-chip">7</span><span class="ht-rank-arrow">‹</span>
+              <span class="ht-rank-chip">8</span><span class="ht-rank-arrow">‹</span>
+              <span class="ht-rank-chip">9</span><span class="ht-rank-arrow">‹</span>
+              <span class="ht-rank-chip">10</span><span class="ht-rank-arrow">‹</span>
+              <span class="ht-rank-chip">J</span><span class="ht-rank-arrow">‹</span>
+              <span class="ht-rank-chip">Q</span><span class="ht-rank-arrow">‹</span>
+              <span class="ht-rank-chip">K</span><span class="ht-rank-arrow">‹</span>
+              <span class="ht-rank-chip">A</span><span class="ht-rank-arrow">‹</span>
+              <span class="ht-rank-chip" style="color:#ffd700">2 ★</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted)">Suit tiebreak: ♣ ‹ ♦ ‹ ♥ ‹ ♠</div>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Your Turn</div>
+            <ul class="ht-ul">
+              <li>Play cards of the <strong>same rank</strong> that beat the current trick (higher rank, matching card count).</li>
+              <li>If counts match but rank is equal, highest suit among your played cards must win.</li>
+              <li>Cannot play: pass. Cannot pass if you need to start a new trick.</li>
+              <li>First round: the player holding <strong>3♣ must lead with it</strong>.</li>
+            </ul>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Cross-Count Special Rules</div>
+            <div class="ht-table-wrap"><table class="ht-table">
+              <tr><th>Play</th><th>Beats</th></tr>
+              <tr><td>Any <strong>triple</strong> (3 same rank)</td><td>Any single card — even a 2</td></tr>
+              <tr><td>Any <strong>four-of-a-kind</strong></td><td>Any pair — even a pair of 2s</td></tr>
+            </table></div>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Card Exchange (between rounds)</div>
+            <ul class="ht-ul">
+              <li>Slave gives their <strong>2 best cards</strong> to President; President returns 2 of their choice.</li>
+              <li>Vice Slave gives <strong>1 best card</strong> to Vice President; VP returns 1.</li>
+              <li>With 2–3 players: Slave gives 1 best → President returns 1.</li>
+            </ul>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Titles</div>
+            <div class="ht-table-wrap"><table class="ht-table">
+              <tr><th>Finish</th><th>Title</th></tr>
+              <tr><td>1st</td><td><strong>President</strong> 👑</td></tr>
+              <tr><td>2nd</td><td>Vice President</td></tr>
+              <tr><td>Middle</td><td>Citizen</td></tr>
+              <tr><td>2nd-last</td><td>Vice Slave</td></tr>
+              <tr><td>Last</td><td><strong>Slave</strong></td></tr>
+            </table></div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- ───── DUMMY ───── -->
+      <div class="ht-card" data-game="dummy">
+        <button class="ht-card-header" aria-expanded="false">
+          <div class="ht-card-deco"><div class="ht-deco-card"></div><div class="ht-deco-card"></div><div class="ht-deco-card"></div></div>
+          <div class="ht-card-title">
+            <span class="ht-icon">🀄</span>
+            <div>
+              <div class="ht-name">Dummy</div>
+              <div class="ht-badges"><span class="ht-badge">3–5 players</span><span class="ht-badge ht-badge-type">Meld-building · Thai Rummy</span></div>
+            </div>
+          </div>
+          <span class="ht-chevron">›</span>
+        </button>
+        <div class="ht-body"><div class="ht-body-inner">
+          <div class="ht-goal">Lay all your cards in valid melds first. Earn points for cards played; lose points for cards left in hand. Highest score after all rounds wins.</div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Valid Melds</div>
+            <ul class="ht-ul">
+              <li><strong>Set:</strong> 3–4 cards of the same rank, any suits (e.g. 7♠ 7♥ 7♦)</li>
+              <li><strong>Run:</strong> 3+ consecutive ranks of the <strong>same suit</strong>. Ace is high only (e.g. Q♦ K♦ A♦ ✅ · A♥ 2♥ 3♥ ❌)</li>
+            </ul>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Your Turn (in order)</div>
+            <div class="ht-steps">
+              <div class="ht-step"><div class="ht-step-num">1</div><div class="ht-step-body"><span class="ht-step-title">Draw (required)</span> — from the stock pile or a specific discard pile card. Your <strong>first lay-down ever</strong> must use a discard-drawn card.</div></div>
+              <div class="ht-step"><div class="ht-step-num">2</div><div class="ht-step-body"><span class="ht-step-title">Lay melds (optional)</span> — Place valid melds from your hand on the table.</div></div>
+              <div class="ht-step"><div class="ht-step-num">3</div><div class="ht-step-body"><span class="ht-step-title">Fak / ฝาก (optional)</span> — Add cards onto existing melds (yours or others'). Only after you've opened.</div></div>
+              <div class="ht-step"><div class="ht-step-num">4</div><div class="ht-step-body"><span class="ht-step-title">Discard (required)</span> — unless your hand is empty (you win!).</div></div>
+            </div>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Penalties &amp; Bonuses</div>
+            <div class="ht-table-wrap"><table class="ht-table">
+              <tr><th>Rule</th><th>Effect</th></tr>
+              <tr><td>Missed Fak</td><td>−50 pts if you discard a card that could legally fak an existing meld (only after you've opened)</td></tr>
+              <tr><td>Blind Knock</td><td>Never drew from discard? Every other player's hand penalty ×2 (or ×4 if single-suit melds)</td></tr>
+              <tr><td>Dummy (never opened)</td><td>Your hand penalty ×2</td></tr>
+              <tr><td>Opening card in hand</td><td>−50 pts</td></tr>
+              <tr><td>2♣ or Q♠ in hand</td><td>−50 pts each</td></tr>
+              <tr><td>Feeding</td><td>−50 pts if next player uses your just-discarded card in a meld</td></tr>
+            </table></div>
+          </div>
+        </div></div>
+      </div>
+
+      <!-- ───── DORAEMON ───── -->
+      <div class="ht-card" data-game="doraemon">
+        <button class="ht-card-header" aria-expanded="false">
+          <div class="ht-card-deco"><div class="ht-deco-card"></div><div class="ht-deco-card"></div><div class="ht-deco-card"></div></div>
+          <div class="ht-card-title">
+            <span class="ht-icon">🍺</span>
+            <div>
+              <div class="ht-name">Doraemon</div>
+              <div class="ht-badges"><span class="ht-badge">2–10 players</span><span class="ht-badge ht-badge-type">Social · Drinking game</span></div>
+            </div>
+          </div>
+          <span class="ht-chevron">›</span>
+        </button>
+        <div class="ht-body"><div class="ht-body-inner">
+          <div class="ht-goal">No strict winner — a social drinking game. Draw cards clockwise and resolve their effects. <strong>Never point with your finger!</strong> (Doraemon has no hands.) Anyone who points drinks 1.</div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Card Effects</div>
+            <div class="ht-table-wrap"><table class="ht-table">
+              <tr><th>Card</th><th>Effect</th></tr>
+              <tr><td><strong>A</strong></td><td>You drink 1. Your buddy (if any) also drinks 1.</td></tr>
+              <tr><td><strong>2</strong></td><td>You drink 2. Buddy drinks 2.</td></tr>
+              <tr><td><strong>3</strong></td><td>You drink 3. Buddy drinks 3.</td></tr>
+              <tr><td><strong>4</strong></td><td>You drink 4. Buddy drinks 4.</td></tr>
+              <tr><td><strong>5</strong></td><td>Choose a <strong>buddy</strong> — you share each other's drink penalties until a new 5 is drawn.</td></tr>
+              <tr><td><strong>6</strong></td><td><strong>Category game:</strong> Name a category. Players name things in it clockwise. First to fail drinks 1.</td></tr>
+              <tr><td><strong>7</strong></td><td><strong>Number 7 game:</strong> Count up; say "buzz" for any multiple or number containing 7. Miss = drink 1.</td></tr>
+              <tr><td><strong>8</strong></td><td>Gain a <strong>bathroom pass</strong>. Use it at any time to skip one drink penalty.</td></tr>
+              <tr><td><strong>9</strong></td><td>Player to your <strong>left</strong> drinks 1 (+ their buddy).</td></tr>
+              <tr><td><strong>10</strong></td><td>Player to your <strong>right</strong> drinks 1 (+ their buddy).</td></tr>
+              <tr><td><strong>J</strong></td><td>Gain <strong>Gesture Power</strong>. At any moment, trigger a pose challenge — last to copy it drinks 1. Power transfers when a new J is drawn.</td></tr>
+              <tr><td><strong>Q</strong></td><td>You are <strong>silenced</strong>. Anyone who speaks directly to you drinks 1. Silence transfers on next Q.</td></tr>
+              <tr><td><strong>K</strong></td><td>Builds a <strong>group rule</strong> across 4 Kings: K1=WHAT, K2=WHERE, K3=HOW LONG, K4=rule activates for rest of game.</td></tr>
+            </table></div>
+          </div>
+
+          <div class="ht-tip">🍺 Drink responsibly and only with consenting adults. The game ends when the deck runs out — a drink total summary is shown for everyone.</div>
+        </div></div>
+      </div>
+
+      <!-- ───── BLUFF ───── -->
+      <div class="ht-card" data-game="bluff">
+        <button class="ht-card-header" aria-expanded="false">
+          <div class="ht-card-deco"><div class="ht-deco-card"></div><div class="ht-deco-card"></div><div class="ht-deco-card"></div></div>
+          <div class="ht-card-title">
+            <span class="ht-icon">🎭</span>
+            <div>
+              <div class="ht-name">Bluff</div>
+              <div class="ht-badges"><span class="ht-badge">2–8 players</span><span class="ht-badge ht-badge-type">Bluffing · Hand-emptying</span></div>
+            </div>
+          </div>
+          <span class="ht-chevron">›</span>
+        </button>
+        <div class="ht-body"><div class="ht-body-inner">
+          <div class="ht-goal">First to empty your hand wins. Play cards face-down claiming they are the required rank — even if they're not. The next player can either play or call <strong>"Bluff!"</strong></div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Rank Cycle</div>
+            <div class="ht-rank-cycle">
+              <span class="ht-rank-chip">A</span><span class="ht-rank-arrow">→</span>
+              <span class="ht-rank-chip">2</span><span class="ht-rank-arrow">→</span>
+              <span class="ht-rank-chip">3</span><span class="ht-rank-arrow">→</span>
+              <span class="ht-rank-chip">4</span><span class="ht-rank-arrow">→</span>
+              <span class="ht-rank-chip">5</span><span class="ht-rank-arrow">→</span>
+              <span class="ht-rank-chip">6</span><span class="ht-rank-arrow">→</span>
+              <span class="ht-rank-chip">7</span><span class="ht-rank-arrow">→</span>
+              <span class="ht-rank-chip">8</span><span class="ht-rank-arrow">→</span>
+              <span class="ht-rank-chip">9</span><span class="ht-rank-arrow">→</span>
+              <span class="ht-rank-chip">10</span><span class="ht-rank-arrow">→</span>
+              <span class="ht-rank-chip">J</span><span class="ht-rank-arrow">→</span>
+              <span class="ht-rank-chip">Q</span><span class="ht-rank-arrow">→</span>
+              <span class="ht-rank-chip">K</span><span class="ht-rank-arrow">→ A →…</span>
+            </div>
+            <div style="font-size:11px;color:var(--muted)">After any challenge, rank resets to A.</div>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Your Turn — Two Choices</div>
+            <div class="ht-steps">
+              <div class="ht-step">
+                <div class="ht-step-num" style="background:#2e7a4e">▶</div>
+                <div class="ht-step-body">
+                  <span class="ht-step-title">Play Cards</span> — Select 1–4 cards and place them face-down. Claim they are all the current required rank. <strong>Bluffing is allowed</strong> — any cards can be played. Rank advances to next after your play.
+                </div>
+              </div>
+              <div class="ht-step">
+                <div class="ht-step-num" style="background:#7a1a2a">!</div>
+                <div class="ht-step-body">
+                  <span class="ht-step-title">Call "Bluff!"</span> — Challenge the previous player's claim. Cards are revealed:<br>
+                  • All cards match claimed rank → <strong>challenger</strong> takes the pile.<br>
+                  • Any card doesn't match → <strong>bluffer</strong> takes the pile.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ht-section">
+            <div class="ht-h3">Key Rules</div>
+            <ul class="ht-ul">
+              <li>Only the <strong>current player</strong> can act — no challenging on someone else's turn.</li>
+              <li>You <strong>cannot challenge your own play</strong>.</li>
+              <li>Playing your <strong>last card wins immediately</strong> — no challenge window.</li>
+              <li>Pile contents stay hidden until a challenge reveals the most recent play.</li>
+            </ul>
+          </div>
+
+          <div class="ht-tip">
+            <strong>Strategy:</strong> Track how many of each rank have been claimed. If someone claims 4 Aces after 3 Aces already appeared, they're almost certainly bluffing. Challenge early for small piles, or wait and risk a huge one.
+          </div>
+        </div></div>
+      </div>
+
+    </div><!-- end .ht-list -->
+  </div><!-- end .ht-wrap -->
+</div><!-- end .ht-page -->
+
+<script type="module" src="/src/pages/howto.js"></script>
+</body>
+</html>
