@@ -145,7 +145,9 @@ export function initGame() {
     }
   })
   document.addEventListener('click', e => {
-    if (!e.target.closest('#room-menu-wrap')) roomDropdown.style.display = 'none'
+    if (!e.target.closest('#room-menu-wrap') && !e.target.closest('#room-dropdown')) {
+      roomDropdown.style.display = 'none'
+    }
   })
 
   document.getElementById('wr-copy-btn').addEventListener('click', () => {
