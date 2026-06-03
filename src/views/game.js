@@ -21,6 +21,8 @@ let wrSettings                  = { maxPlayers: 8, startingChips: 1000, turnTime
 let wrDebounce                  = {}
 let lastBankerActiveMeta        = null
 let bustScreenActive            = false
+let _revealTimer                = null   // delay before showing between-rounds overlay for banker games
+let _prevRenderPhase            = null
 
 // ── Server-authoritative helpers ──────────────────────────
 // Use these everywhere instead of reading state.isHost / state.role directly.
@@ -357,6 +359,7 @@ export function render() {
   const meta = state.gameState.metadata
   if (!meta) return
 
+  const _curRenderPhase = meta.phase
   updateRoleButtons()
 
   const isWaiting = state.gameState.matchStatus === 'waiting' || meta.phase === 'waiting'
@@ -381,6 +384,7 @@ export function render() {
     document.querySelector('.dm-hand-footer')?.style.setProperty('display', 'none')
     updateWaitingPanel(meta)
     registry[state.gameId]?.render(meta, false)
+    _prevRenderPhase = _curRenderPhase
     return
   }
 
@@ -388,6 +392,7 @@ export function render() {
     document.getElementById('g-phase').textContent = 'Showdown'
     updateShowdownBar(meta)
     registry[state.gameId]?.render(meta, false)
+    _prevRenderPhase = _curRenderPhase
     return
   }
 
@@ -424,14 +429,32 @@ export function render() {
       document.getElementById('g-phase').textContent = 'Round Over'
       registry['blackjack']?.render(meta, false)
       const isGameOver = state.gameState?.matchStatus === 'finished'
-      showBlackjackScorePanel(meta, isGameOver)
-      showBetweenRounds(meta)
+      if (_prevRenderPhase !== 'between-rounds' && !_revealTimer) {
+        _revealTimer = setTimeout(() => {
+          _revealTimer = null
+          const m = state.gameState?.metadata || meta
+          showBlackjackScorePanel(m, state.gameState?.matchStatus === 'finished')
+          showBetweenRounds(m)
+        }, 1800)
+      } else if (!_revealTimer) {
+        showBlackjackScorePanel(meta, isGameOver)
+        showBetweenRounds(meta)
+      }
     } else if (state.gameId === 'pokdeng') {
       document.getElementById('g-phase').textContent = 'Round Over'
       registry['pokdeng']?.render(meta, false)
       const isGameOver = state.gameState?.matchStatus === 'finished'
-      showPokdengScorePanel(meta, isGameOver)
-      showBetweenRounds(meta)
+      if (_prevRenderPhase !== 'between-rounds' && !_revealTimer) {
+        _revealTimer = setTimeout(() => {
+          _revealTimer = null
+          const m = state.gameState?.metadata || meta
+          showPokdengScorePanel(m, state.gameState?.matchStatus === 'finished')
+          showBetweenRounds(m)
+        }, 1800)
+      } else if (!_revealTimer) {
+        showPokdengScorePanel(meta, isGameOver)
+        showBetweenRounds(meta)
+      }
     } else if (state.gameId === 'oldmaid') {
       const isGameOver = state.gameState?.matchStatus === 'finished'
       document.getElementById('g-phase').textContent = isGameOver ? 'Game Over' : 'Round Over'
@@ -445,6 +468,7 @@ export function render() {
       showBetweenRounds(meta)
       registry[state.gameId]?.render(meta, false)
     }
+    _prevRenderPhase = _curRenderPhase
     return
   }
 
@@ -478,6 +502,7 @@ export function render() {
 
   updateTurnTimer(meta, mine)
   registry[state.gameId].render(meta, mine)
+  _prevRenderPhase = _curRenderPhase
 }
 
 // ── Spectator panel ───────────────────────────────────────
@@ -1233,7 +1258,9 @@ function hideBetweenRounds() {
   hideBlackjackScorePanel()
   hidePokdengScorePanel()
   clearInterval(betweenRoundsInterval); betweenRoundsInterval = null
+  clearTimeout(_revealTimer);           _revealTimer = null
   localBetweenRoundsRemaining = null
+  _prevRenderPhase = null
 }
 
 // ── Chip-bust transition (BJ / PD single-player bot) ─────
@@ -1385,9 +1412,11 @@ export function stopPoll() {
   clearInterval(showdownInterval);      showdownInterval              = null
   clearInterval(roomHeartbeatInterval); roomHeartbeatInterval         = null
   clearInterval(gameOverCountdown);     gameOverCountdown             = null
+  clearTimeout(_revealTimer);           _revealTimer                  = null
   localTurnRemaining          = null
   localBetweenRoundsRemaining = null
   prevMatchStatus             = null
+  _prevRenderPhase            = null
 }
 
 async function continueMatch() {
