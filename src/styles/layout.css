@@ -53,6 +53,28 @@
 }
 .config-link:hover { color: var(--text); }
 
+#btn-rename-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s, border-color 0.2s;
+}
+#btn-rename-user:hover {
+  color: var(--pink);
+  background: var(--pink-dim);
+  border-color: var(--pink);
+}
+
 /* ════ HOME / CREATE ROOM ════ */
 #view-home,
 #view-create {
