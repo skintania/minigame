@@ -434,6 +434,36 @@ html:has(.ht-page) body {
   animation: htCardDeal 0.22s cubic-bezier(0.34,1.4,0.64,1) both;
 }
 
+/* Language toggle */
+.ht-lang-toggle {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.ht-lang-btn {
+  background: none;
+  border: 1.5px solid rgba(255,255,255,0.15);
+  border-radius: 16px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 11px;
+  cursor: pointer;
+  transition: all 0.18s;
+  letter-spacing: 0.06em;
+}
+.ht-lang-btn.active {
+  background: rgba(232,82,154,0.2);
+  border-color: rgba(232,82,154,0.55);
+  color: var(--fg);
+}
+.ht-lang-btn:hover:not(.active) {
+  background: rgba(255,255,255,0.08);
+  color: var(--fg);
+}
+
 /* Mobile */
 @media (max-width: 600px) {
   .ht-card-header { padding: 14px 14px; gap: 10px; }
