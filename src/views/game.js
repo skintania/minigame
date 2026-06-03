@@ -715,8 +715,15 @@ function _syncVisibilityUI(visibility) {
   document.getElementById('wr-vis-public') .classList.toggle('active', !isPrivate)
   document.getElementById('wr-vis-private').classList.toggle('active',  isPrivate)
   const pwRow = document.getElementById('wr-password-row')
-  if (pwRow) pwRow.style.display = isPrivate ? '' : 'none'
-  if (!isPrivate) { const el = document.getElementById('wr-password'); if (el) el.value = '' }
+  const pwEl  = document.getElementById('wr-password')
+  if (pwRow) {
+    if (isPrivate) {
+      pwRow.style.display = ''
+    } else if (document.activeElement !== pwEl && !pwEl?.value.trim()) {
+      pwRow.style.display = 'none'
+      if (pwEl) pwEl.value = ''
+    }
+  }
 }
 
 async function wrKickPlayer(targetId) {
