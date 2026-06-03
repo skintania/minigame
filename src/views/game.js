@@ -120,10 +120,9 @@ export function initGame() {
       bluff: api.bluffEndGame,
     }[state.gameId]
     if (endGameFn && state.matchId) {
-      try { await endGameFn(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
-    } else {
-      leaveRoom()
+      try { await endGameFn(state.matchId, state.sessionId) } catch (e) { /* backend may reject mid-game; leave anyway */ }
     }
+    leaveRoom()
   })
   document.getElementById('btn-next-round').addEventListener('click', hostNextRound)
   document.getElementById('btn-skip-showdown').addEventListener('click', hostNextRound)
