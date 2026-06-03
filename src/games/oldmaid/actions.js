@@ -18,3 +18,5 @@ async function act(fn) {
 export function omPick(index)           { return act(() => api.oldmaidPick(state.matchId, state.sessionId, index)) }
 export function omSetShuffleMode(mode)  { return act(() => api.oldmaidSetShuffleMode(state.matchId, state.sessionId, mode)) }
 export function omReorderHand(cards)    { return act(() => api.oldmaidReorderHand(state.matchId, state.sessionId, cards)) }
+export function omNextRound()           { return act(() => api.oldmaidNextRound(state.matchId, state.sessionId)) }
+export function omEndGame()             { return act(() => api.oldmaidEndGame(state.matchId, state.sessionId)) }

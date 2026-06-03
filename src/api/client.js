@@ -94,11 +94,12 @@ export const api = {
   doraemonSetCategory:      (mid, sid, topic)   => request('POST', `/games/doraemon/${mid}/set-category`,        { sessionId: sid, topic }),
 
   // Old Maid actions
-  oldmaidStart:         (mid, sid)        => request('POST', `/games/oldmaid/${mid}/start`,           { sessionId: sid }),
-  oldmaidPick:          (mid, sid, index) => request('POST', `/games/oldmaid/${mid}/pick`,           { sessionId: sid, index }),
-  oldmaidSetShuffleMode:(mid, sid, mode)  => request('POST', `/games/oldmaid/${mid}/set-shuffle-mode`,{ sessionId: sid, mode }),
-  oldmaidReorderHand:   (mid, sid, cards) => request('POST', `/games/oldmaid/${mid}/reorder-hand`,   { sessionId: sid, cards }),
-  oldmaidEndGame:       (mid, sid)        => request('POST', `/games/oldmaid/${mid}/end-game`,        { sessionId: sid }),
+  oldmaidStart:         (mid, sid)        => request('POST', `/games/oldmaid/${mid}/start`,            { sessionId: sid }),
+  oldmaidPick:          (mid, sid, index) => request('POST', `/games/oldmaid/${mid}/pick`,            { sessionId: sid, index }),
+  oldmaidSetShuffleMode:(mid, sid, mode)  => request('POST', `/games/oldmaid/${mid}/set-shuffle-mode`, { sessionId: sid, mode }),
+  oldmaidReorderHand:   (mid, sid, cards) => request('POST', `/games/oldmaid/${mid}/reorder-hand`,    { sessionId: sid, cards }),
+  oldmaidNextRound:     (mid, sid)        => request('POST', `/games/oldmaid/${mid}/next-round`,       { sessionId: sid }),
+  oldmaidEndGame:       (mid, sid)        => request('POST', `/games/oldmaid/${mid}/end-game`,         { sessionId: sid }),
 
   // UNO actions
   unoStart:     (mid, sid)               => request('POST', `/games/uno/${mid}/start`,      { sessionId: sid }),

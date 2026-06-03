@@ -1422,6 +1422,81 @@ Players vs. banker. Two modes: `bot` (house banker) or `rotate` (players take tu
 
 ---
 
+## Old Maid (ไพ่แมวดำ)
+
+Thai card game with a 53-card deck (52 standard + 1 Joker). Players sit in a circle, blindly picking one card from the player on their left. Pairs are discarded. The last player holding the unpaired Joker loses.
+
+### Endpoints
+
+| Method | Path | Body |
+|--------|------|------|
+| POST | `/games/oldmaid/join` | `{ sessionId }` |
+| GET | `/games/oldmaid/:matchId/state` | query: `sessionId` |
+| POST | `/games/oldmaid/:matchId/start` | `{ sessionId }` |
+| POST | `/games/oldmaid/:matchId/pick` | `{ sessionId, index }` |
+| POST | `/games/oldmaid/:matchId/set-shuffle-mode` | `{ sessionId, mode }` |
+| POST | `/games/oldmaid/:matchId/reorder-hand` | `{ sessionId, cards }` |
+| POST | `/games/oldmaid/:matchId/next-round` | `{ sessionId }` |
+| POST | `/games/oldmaid/:matchId/end-game` | `{ sessionId }` |
+
+### Flow
+
+```
+1. POST /start → cards dealt, pairs auto-discarded, round 1 begins
+2. Poll GET /state — check isMyTurn
+3. isMyTurn → POST /pick { index }  (pick card at index from left player's face-down hand)
+4. Server auto-discards any new pairs
+5. Turn advances; repeat until one player holds the Joker alone
+6. phase = "between-rounds", metadata.loser = Joker holder, metadata.losses updated
+7. Host calls POST /next-round → phase = "playing", round increments, starting player rotates
+8. Repeat steps 2–7; host calls POST /end-game when done → matchStatus = "finished"
+```
+
+### Shuffle modes
+
+Each player independently controls whether their hand is randomised before others pick from it. Toggle anytime during `playing` phase.
+
+| Mode | Behaviour |
+|------|-----------|
+| `"auto"` (default) | Server shuffles the player's hand order before each pick. Joker position is always random. |
+| `"manual"` | Hand order stays fixed. Player arranges it themselves via `POST /reorder-hand`. |
+
+**`POST /set-shuffle-mode`** — body: `{ sessionId, mode: "auto" | "manual" }`
+
+**`POST /reorder-hand`** — manual mode only. Body: `{ sessionId, cards: string[] }` — the player's full hand in the desired order. Server validates it is a permutation of their current hand. Errors: `"Switch to manual mode to reorder your hand"`, `"Must include all N card(s) in hand"`, `"Card X is not in your hand"`.
+
+### State fields (`metadata`)
+
+| Field | Description |
+|-------|-------------|
+| `phase` | `"waiting"` \| `"playing"` \| `"between-rounds"` \| `"finished"` |
+| `round` | Current round number (starts at 1; increments on each `next-round` call) |
+| `hands[playerId]` | Own hand: actual card strings. Others: `["hidden", ...]` (length = card count) |
+| `discarded[playerId]` | All pairs this player has discarded so far — `string[][]` (each entry is a pair) |
+| `initialDiscards[playerId]` | Pairs auto-discarded at game start — use for opening animation |
+| `shuffleMode[playerId]` | `"auto"` or `"manual"` per player |
+| `currentPlayer` | Session ID whose turn it is to pick |
+| `currentPlayerIndex` | Index of `currentPlayer` in `players` array |
+| `eliminated` | Players who emptied their hand (safe). Still in `players[]`, skipped in turn order. |
+| `loser` | Session ID of the player left with the Joker this round. `null` while in progress. |
+| `losses` | `{ sessionId: count }` — running total of how many rounds each player has held the Joker |
+| `lastPick` | `{ picker, from, card, newPairs }` — result of the most recent pick. `card` visible to all. |
+| `lastAction` | Human-readable description of the last event |
+
+### Pair rules
+
+- Same rank, any suit = a pair (e.g. `A♠` + `A♥`)
+- 4-of-a-kind = 2 pairs, all four cards discarded
+- The Joker has no pair and is never discarded
+
+### Notes
+
+- Eliminated players stay in the circle (still in `players[]`) — they are skipped when determining whose left neighbour to pick from, and skipped in turn advancement.
+- `lastPick.card` is always revealed in the response — show the picked card to all players for the animation.
+- `turnOrder` is present in the unified response and gives the pick sequence starting from the current player.
+
+---
+
 ## Doraemon (drinking card game)
 
 A Thai party drinking game using a standard 52-card deck. Players sit in a circle, each drawing one card per turn. Cards trigger drinks, mini-games, or ongoing effects. No winners — game ends when the deck is empty.
@@ -1437,6 +1512,7 @@ A Thai party drinking game using a standard 52-card deck. Players sit in a circl
 | POST | `/games/doraemon/:matchId/start` | `{ sessionId }` |
 | POST | `/games/doraemon/:matchId/draw` | `{ sessionId }` |
 | POST | `/games/doraemon/:matchId/choose-buddy` | `{ sessionId, target }` |
+| POST | `/games/doraemon/:matchId/set-category` | `{ sessionId, topic }` |
 | POST | `/games/doraemon/:matchId/report-loser` | `{ sessionId, target }` |
 | POST | `/games/doraemon/:matchId/set-k-rule` | `{ sessionId, text }` |
 | POST | `/games/doraemon/:matchId/use-bathroom-pass` | `{ sessionId }` |
@@ -1455,7 +1531,7 @@ A Thai party drinking game using a standard 52-card deck. Players sit in a circl
 | 3 | Drawer drinks 3 sips |
 | 4 | Drawer drinks 4 sips |
 | 5 | Buddy selection — drawer picks a buddy (`POST /choose-buddy { target }`); from now on, whenever either drinks the other drinks too |
-| 6 | Category game — app shows a random topic; players say items verbally; loser reported via `POST /report-loser { target }` |
+| 6 | Category game — drawer types a topic via `POST /set-category { topic }`; players say items verbally; loser reported via `POST /report-loser { target }` |
 | 7 | Number 7 game — players count aloud, skipping numbers ending in 7 or divisible by 7; loser reported via `POST /report-loser { target }` |
 | 8 | Bathroom pass — drawer gains 1 pass (`bathroomPasses[id]`); use anytime via `POST /use-bathroom-pass` |
 | 9 | Left player drinks 1 sip (counter-clockwise neighbour) |
@@ -1469,7 +1545,7 @@ All drink events propagate through the full buddy chain. If A→B are buddies an
 ### Phases
 
 ```
-waiting → playing → (pending-buddy | pending-minigame | pending-k-rule) → playing → … → finished
+waiting → playing → (pending-buddy | pending-category | pending-minigame | pending-k-rule) → playing → … → finished
 ```
 
 | Phase | What's happening |
@@ -1477,7 +1553,8 @@ waiting → playing → (pending-buddy | pending-minigame | pending-k-rule) → 
 | `waiting` | Lobby, waiting for players and host to start |
 | `playing` | Normal turn — current player calls `POST /draw` |
 | `pending-buddy` | Drawer chose 5 — must call `POST /choose-buddy { target }` |
-| `pending-minigame` | Drew 6/7/J — anyone can call `POST /report-loser { target }` |
+| `pending-category` | Drawer chose 6 — must call `POST /set-category { topic }` to name the category |
+| `pending-minigame` | Category/number7 mini-game active — anyone can call `POST /report-loser { target }` |
 | `pending-k-rule` | Drew K (1st–3rd) — drawer must call `POST /set-k-rule { text }` |
 | `finished` | Deck exhausted or host ended game |
 
@@ -1518,4 +1595,4 @@ waiting → playing → (pending-buddy | pending-minigame | pending-k-rule) → 
 - Buddy from card 5 is replaced if either buddy draws another 5 later.
 - The 4th K executes the rule immediately on draw (no text input). K rule resets to start.
 - Drawing K4 before K1–K3 are set will still execute with whatever partial text was stored (`"?"` for missing parts).
-- If a player disconnects mid-turn during `pending-buddy` or `pending-k-rule`, the pending phase auto-resolves and the next player's turn begins.
+- If a player disconnects mid-turn during `pending-buddy`, `pending-category`, or `pending-k-rule`, the pending phase auto-resolves and the next player's turn begins.

@@ -426,10 +426,11 @@ export function render() {
       showPokdengScorePanel(meta, isGameOver)
       showBetweenRounds(meta)
     } else if (state.gameId === 'oldmaid') {
-      document.getElementById('g-phase').textContent = 'Game Over'
+      const isGameOver = state.gameState?.matchStatus === 'finished'
+      document.getElementById('g-phase').textContent = isGameOver ? 'Game Over' : 'Round Over'
       registry['oldmaid']?.render(meta, false)
       showBetweenRounds(meta)
-      document.getElementById('btn-next-round').style.display = 'none'
+      document.getElementById('btn-next-round').style.display = (amHost() && !isGameOver) ? '' : 'none'
       document.getElementById('btn-switch-role').style.display = 'none'
     } else {
       // Poker: between-rounds countdown panel
@@ -1141,11 +1142,26 @@ function showBetweenRounds(meta) {
       roundInfo.textContent = 'Round complete'
     }
   } else if (state.gameId === 'oldmaid') {
-    const loser = meta.loser
-    const isMe  = loser === state.sessionId
-    roundInfo.textContent = loser
-      ? (isMe ? '😿 You hold the Joker!' : `😿 ${names[loser] || loser.slice(0, 8)} holds the Joker!`)
+    const loser   = meta.loser
+    const losses  = meta.losses  || {}
+    const round   = meta.round   || 1
+    const isMe    = loser === state.sessionId
+    const loserName = loser ? (names[loser] || loser.slice(0, 8)) : null
+    const loserLine = loser
+      ? (isMe ? '😿 You hold the Joker!' : `😿 ${loserName} holds the Joker!`)
       : 'Game ended — a player disconnected.'
+    const lossRows = Object.entries(losses)
+      .sort(([, a], [, b]) => b - a)
+      .map(([id, count]) => {
+        const n = names[id] || id.slice(0, 8)
+        const me = id === state.sessionId
+        return `<tr${me ? ' style="color:var(--accent-pink)"' : ''}><td>${n}</td><td>${count} 🃏</td></tr>`
+      }).join('')
+    roundInfo.innerHTML = `
+      <div style="font-size:12px;opacity:.6;margin-bottom:4px">Round ${round} complete</div>
+      <div style="margin-bottom:${lossRows ? '10px' : '0'}">${loserLine}</div>
+      ${lossRows ? `<table style="width:100%;font-size:13px;border-collapse:collapse">${lossRows}</table>` : ''}
+    `
   } else {
     const won        = meta.handWinner === state.sessionId
     const winnerName = names[meta.handWinner] || (won ? 'You' : 'Opponent')
@@ -1276,6 +1292,8 @@ async function hostNextRound() {
       await api.blackjackNextRound(state.matchId, state.sessionId)
     } else if (state.gameId === 'pokdeng') {
       await api.pokdengNextRound(state.matchId, state.sessionId)
+    } else if (state.gameId === 'oldmaid') {
+      await api.oldmaidNextRound(state.matchId, state.sessionId)
     } else {
       await api.pokerNextRound(state.matchId, state.sessionId)
     }
