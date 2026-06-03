@@ -9,7 +9,6 @@ export const state = {
   hostId:      null,      // not persisted — refreshed from room polls
   gameState:   null,
   poll:        null,
-  waiting:     false,
   pendingWild: null,
 }
 
@@ -39,7 +38,6 @@ export function clearGameState() {
   state.gameId      = null
   state.roomCode    = null
   state.gameState   = null
-  state.waiting     = false
   state.pendingWild = null
   saveSession()
 }

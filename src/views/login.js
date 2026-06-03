@@ -140,7 +140,7 @@ async function doJoinRoom() {
   btn.textContent = 'Joining…'
 
   try {
-    const { matchId, gameId } = await api.joinRoom(state.sessionId, code, 'spectator')
+    const { matchId, gameId } = await api.joinRoom(state.sessionId, code)
     state.matchId  = matchId
     state.gameId   = gameId
     state.roomCode = code
