@@ -284,13 +284,11 @@ export function enterGame() {
       applyServerState(gs)
       saveSession()
       render()
-      if (['uno', 'slave', 'dummy', 'blackjack', 'pokdeng'].includes(state.gameId) && gs.matchStatus === 'finished') {
+      if (['uno', 'slave', 'dummy', 'blackjack', 'pokdeng', 'oldmaid'].includes(state.gameId) && gs.matchStatus === 'finished') {
         stopPoll(); startGameOverCountdown()
       } else if (state.gameId === 'doraemon' && gs.matchStatus === 'finished') {
         stopPoll(); showToast('Game over! Returning to lobby…')
         gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
-      } else if (state.gameId === 'oldmaid' && gs.metadata?.phase === 'between-rounds') {
-        stopPoll()
       } else if (state.gameId === 'poker' && gs.metadata?.winner && gs.revealRemainingSec == null) {
         stopPoll()
         prevCommunityCount = commBefore
@@ -689,9 +687,7 @@ async function handleMoveResult(res) {
   applyServerState(res)
   saveSession()
   render()
-  if (state.gameId === 'oldmaid' && res.metadata?.phase === 'between-rounds') {
-    stopPoll()
-  } else if (res.metadata?.winner && res.revealRemainingSec == null) {
+  if (res.metadata?.winner && res.revealRemainingSec == null) {
     stopPoll()
     prevCommunityCount = commBefore
     onHandEnd(res.metadata)
