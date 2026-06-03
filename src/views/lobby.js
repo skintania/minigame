@@ -64,7 +64,7 @@ async function pollRoom() {
   } catch (e) {
     console.error('[lobby] heartbeat error:', e)
     if (e.message.includes('invalid session') || e.message.includes('not found')) {
-      showToast('Room unavailable — returning to home.')
+      showToast('Room unavailable — returning to home.', 'info')
       goHome()
     }
   }
@@ -197,7 +197,7 @@ async function joinTable() {
     state.role = 'player'
     state.isHost = state.sessionId === hostId
     saveSession()
-    showToast('You joined the table!')
+    showToast('You joined the table!', 'success')
     renderRoleBadge(state.isHost)
     document.getElementById('btn-join-table').style.display  = 'none'
     document.getElementById('btn-leave-table').style.display = ''
@@ -215,7 +215,7 @@ async function leaveTable() {
     await api.switchRole(state.roomCode, state.sessionId, 'spectator')
     state.role = 'spectator'
     saveSession()
-    showToast('You left the table.')
+    showToast('You left the table.', 'success')
     renderRoleBadge(state.sessionId === hostId)
     document.getElementById('btn-join-table').style.display  = ''
     document.getElementById('btn-leave-table').style.display = 'none'
@@ -260,7 +260,7 @@ async function kickPlayer(targetId) {
   if (!confirm('Kick this player from the room?')) return
   try {
     await api.kickPlayer(state.roomCode, state.sessionId, targetId)
-    showToast('Player kicked.')
+    showToast('Player kicked.', 'success')
     pollGameState()
   } catch (e) {
     showToast(e.message)

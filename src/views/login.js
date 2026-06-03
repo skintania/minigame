@@ -162,7 +162,7 @@ async function doJoinRoom() {
     if (e.message.includes('password')) {
       document.getElementById('join-password-row').style.display = ''
       document.getElementById('home-password-input').focus()
-      showToast('This room requires a password.')
+      showToast('This room requires a password.', 'info')
     } else {
       showToast(e.message)
     }
@@ -188,7 +188,7 @@ async function doRename() {
     saveSession()
     document.getElementById('home-username').textContent = session.username
     document.getElementById('rename-row').style.display = 'none'
-    showToast('Username updated!')
+    showToast('Username updated!', 'success')
   } catch (e) {
     showToast(e.message)
   } finally {

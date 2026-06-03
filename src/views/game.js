@@ -49,7 +49,7 @@ function applyServerState(gs) {
         ?? gs.metadata?.chips?.[state.sessionId]
         ?? 0)
       if (myChips > 0) {
-        showToast('You were removed due to inactivity.')
+        showToast('You were removed due to inactivity.', 'info')
         showRejoinPrompt()
       }
       // myChips === 0: natural chip bust — winner overlay / hand result handles messaging
@@ -68,7 +68,7 @@ function applyServerState(gs) {
       _showBankerChipBust(bustMeta)
     } else {
       hideBetweenRounds()
-      showToast('All players busted out. Room reset.')
+      showToast('All players busted out. Room reset.', 'info')
     }
   }
   prevMatchStatus = gs.matchStatus ?? prevMatchStatus
@@ -296,7 +296,7 @@ export function enterGame() {
       if (['uno', 'slave', 'dummy', 'blackjack', 'pokdeng'].includes(state.gameId) && gs.matchStatus === 'finished') {
         stopPoll(); startGameOverCountdown()
       } else if (state.gameId === 'doraemon' && gs.matchStatus === 'finished') {
-        stopPoll(); showToast('Game over! Returning to lobby…')
+        stopPoll(); showToast('Game over! Returning to lobby…', 'info')
         gameOverCountdown = setTimeout(() => leaveRoom(), 8000)
       } else if (state.gameId === 'poker' && gs.metadata?.winner && gs.revealRemainingSec == null) {
         stopPoll()
@@ -306,9 +306,9 @@ export function enterGame() {
     } catch (e) {
       console.error('[game] poll error:', e)
       if (e.message.includes('invalid session')) {
-        stopPoll(); showToast('Session expired.'); window.location.href = 'index.html'
+        stopPoll(); showToast('Session expired.', 'info'); window.location.href = 'index.html'
       } else if (e.message.includes('not found')) {
-        stopPoll(); showToast('Room has closed.'); window.location.href = 'index.html'
+        stopPoll(); showToast('Room has closed.', 'info'); window.location.href = 'index.html'
       }
     } finally {
       fetching = false
@@ -345,7 +345,7 @@ async function pollRoomHeartbeat() {
     updateSpectatorPanel()
   } catch (e) {
     if (e.message.includes('not found') || e.message.includes('invalid session')) {
-      stopPoll(); showToast('You were removed from the room.'); window.location.href = 'index.html'
+      stopPoll(); showToast('You were removed from the room.', 'info'); window.location.href = 'index.html'
     }
   }
 }
@@ -618,7 +618,7 @@ async function wrJoinTable() {
     await api.switchRole(state.roomCode, state.sessionId, 'player')
     const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
     state.gameState = gs; applyServerState(gs); saveSession()
-    showToast('You joined the table!')
+    showToast('You joined the table!', 'success')
     updateRoleButtons()
     updateWaitingPanel(gs.metadata || null)
     updateSpectatorPanel()
@@ -633,7 +633,7 @@ async function wrLeaveTable() {
     await api.switchRole(state.roomCode, state.sessionId, 'spectator')
     const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
     state.gameState = gs; applyServerState(gs); saveSession()
-    showToast('You left the table.')
+    showToast('You left the table.', 'success')
     updateRoleButtons()
     updateWaitingPanel(gs.metadata || null)
     updateSpectatorPanel()
@@ -696,7 +696,7 @@ async function wrKickPlayer(targetId) {
   if (!confirm('Kick this player?')) return
   try {
     await api.kickPlayer(state.roomCode, state.sessionId, targetId)
-    showToast('Player kicked.')
+    showToast('Player kicked.', 'success')
   } catch (e) { showToast(e.message) }
 }
 
@@ -1328,7 +1328,7 @@ async function switchRole() {
     state.gameState = gs; applyServerState(gs); saveSession()
     btn.textContent = curRole() === 'spectator' ? 'Join Table' : 'Leave Table'
     document.querySelector('.pk-action-bar')?.style.setProperty('display', curRole() === 'spectator' ? 'none' : '')
-    showToast(newRole === 'player' ? 'You joined the table!' : 'You left the table.')
+    showToast(newRole === 'player' ? 'You joined the table!' : 'You left the table.', 'success')
   } catch (e) { showToast(e.message) }
   finally { btn.disabled = false }
 }

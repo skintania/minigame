@@ -130,7 +130,7 @@ export function renderBoard(meta, mine, actions) {
   for (const [id, total] of Object.entries(penalties)) {
     if (total > (_lastPenalties[id] ?? 0)) {
       const pName = names[id] || id.slice(0, 8)
-      showToast(`⚠️ ${pName} got a −50 penalty for discarding a playable card!`, 6000)
+      showToast(`⚠️ ${pName} got a −50 penalty for discarding a playable card!`, 'info', 6000)
     }
   }
   _lastPenalties = { ...penalties }

@@ -144,6 +144,8 @@ html[data-theme="hangout"] .glass {
   border: 1px solid rgba(255,255,255,0.2);
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
+#toast[data-type="success"] { background: rgba(34, 160, 90, 0.95); }
+#toast[data-type="info"]    { background: rgba(40, 120, 220, 0.95); }
 #toast.show { transform: translateX(-50%) translateY(0); }
 
 /* ── Overlay / Modal ── */
