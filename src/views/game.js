@@ -111,20 +111,13 @@ export function initGame() {
   document.getElementById('btn-leave-room-br').addEventListener('click',  () => leaveRoom())
   document.getElementById('btn-end-game').addEventListener('click', async () => {
     if (!confirm('End the game for everyone?')) return
-    if (state.gameId === 'uno' && state.matchId) {
-      try { await api.unoEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
-    } else if (state.gameId === 'slave' && state.matchId) {
-      try { await api.slaveEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
-    } else if (state.gameId === 'dummy' && state.matchId) {
-      try { await api.dummyEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
-    } else if (state.gameId === 'blackjack' && state.matchId) {
-      try { await api.blackjackEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
-    } else if (state.gameId === 'pokdeng' && state.matchId) {
-      try { await api.pokdengEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
-    } else if (state.gameId === 'doraemon' && state.matchId) {
-      try { await api.doraemonEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
-    } else if (state.gameId === 'oldmaid' && state.matchId) {
-      try { await api.oldmaidEndGame(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
+    const endGameFn = {
+      uno: api.unoEndGame, slave: api.slaveEndGame, dummy: api.dummyEndGame,
+      blackjack: api.blackjackEndGame, pokdeng: api.pokdengEndGame,
+      doraemon: api.doraemonEndGame, oldmaid: api.oldmaidEndGame,
+    }[state.gameId]
+    if (endGameFn && state.matchId) {
+      try { await endGameFn(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
     } else {
       leaveRoom()
     }
@@ -1278,21 +1271,12 @@ async function hostNextRound() {
   if (btn)     btn.disabled     = true
   if (skipBtn) skipBtn.disabled = true
   try {
-    if (state.gameId === 'slave') {
-      await api.slaveNextRound(state.matchId, state.sessionId)
-    } else if (state.gameId === 'uno') {
-      await api.unoNextRound(state.matchId, state.sessionId)
-    } else if (state.gameId === 'dummy') {
-      await api.dummyNextRound(state.matchId, state.sessionId)
-    } else if (state.gameId === 'blackjack') {
-      await api.blackjackNextRound(state.matchId, state.sessionId)
-    } else if (state.gameId === 'pokdeng') {
-      await api.pokdengNextRound(state.matchId, state.sessionId)
-    } else if (state.gameId === 'oldmaid') {
-      await api.oldmaidNextRound(state.matchId, state.sessionId)
-    } else {
-      await api.pokerNextRound(state.matchId, state.sessionId)
-    }
+    const nextRoundFn = {
+      slave: api.slaveNextRound, uno: api.unoNextRound, dummy: api.dummyNextRound,
+      blackjack: api.blackjackNextRound, pokdeng: api.pokdengNextRound,
+      oldmaid: api.oldmaidNextRound,
+    }[state.gameId] ?? api.pokerNextRound
+    await nextRoundFn(state.matchId, state.sessionId)
     const gs = await api.getState(state.gameId, state.matchId, state.sessionId)
     state.gameState = gs; applyServerState(gs); saveSession()
     hideBetweenRounds()

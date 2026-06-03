@@ -87,6 +87,8 @@ export function renderBoard(meta, mine) {
   const pickTarget    = mine ? (meta.pickFrom ?? null) : null
   const myHand        = hands[myId] || []
   const myShuffleMode = shuffleMode[myId] || 'auto'
+  const isManual      = myShuffleMode === 'manual'
+  const imElim        = eliminated.includes(myId)
 
   // ── Animation detection (must run before any DOM mutations) ──
   const newCardIndices = new Set()
@@ -115,10 +117,6 @@ export function renderBoard(meta, mine) {
   }
 
   prevMeta = meta
-
-  // ── Phase badge ──────────────────────────────────────────
-  const phaseEl = document.getElementById('g-phase')
-  if (phaseEl) phaseEl.textContent = phase === 'playing' ? 'Playing' : phase === 'finished' ? 'Finished' : phase
 
   // ── Opponents ────────────────────────────────────────────
   const oppEl = document.getElementById('om-opponents')
@@ -210,12 +208,11 @@ export function renderBoard(meta, mine) {
   // ── My hand ──────────────────────────────────────────────
   const handEl = document.getElementById('om-my-hand')
   if (handEl) {
-    if (myHand.length === 0 && !eliminated.includes(myId)) {
-      handEl.innerHTML = ''
-    } else if (eliminated.includes(myId)) {
+    if (imElim) {
       handEl.innerHTML = `<div class="om-safe-badge">✅ You're safe!</div>`
+    } else if (myHand.length === 0) {
+      handEl.innerHTML = ''
     } else {
-      const isManual = myShuffleMode === 'manual'
       handEl.innerHTML = myHand.map((card, i) => {
         const isJoker    = card === 'Joker'
         const isSelected = isManual && selectedIdx === i
@@ -250,8 +247,7 @@ export function renderBoard(meta, mine) {
 
   // ── Shuffle toggle ───────────────────────────────────────
   const shuffleEl = document.getElementById('om-shuffle-toggle')
-  if (shuffleEl && !eliminated.includes(myId) && myHand.length > 0) {
-    const isManual = myShuffleMode === 'manual'
+  if (shuffleEl && !imElim && myHand.length > 0) {
     shuffleEl.innerHTML = `
       <span class="om-shuffle-label">Card order:</span>
       <button class="btn om-shuffle-btn ${!isManual ? 'om-shuffle-active' : ''}" id="om-mode-auto">🔀 Auto</button>
@@ -267,15 +263,14 @@ export function renderBoard(meta, mine) {
   // ── Manual reorder hint ──────────────────────────────────
   const hintEl = document.getElementById('om-reorder-hint')
   if (hintEl) {
-    hintEl.style.display = myShuffleMode === 'manual' && !eliminated.includes(myId) && myHand.length > 1 ? '' : 'none'
+    hintEl.style.display = isManual && !imElim && myHand.length > 1 ? '' : 'none'
   }
 
   // ── Last action ──────────────────────────────────────────
   const lastEl = document.getElementById('om-last')
   if (lastEl) lastEl.textContent = lastAction || ''
 
-  // ── Finished state ───────────────────────────────────────
-  if (phase === 'between-rounds') {
-    document.getElementById('om-hand-footer')?.style.setProperty('display', 'none')
-  }
+  // ── Hide hand footer when not in active play ────────────
+  const footerEl = document.getElementById('om-hand-footer')
+  if (footerEl) footerEl.style.display = (phase === 'playing' && !imElim) ? '' : 'none'
 }
