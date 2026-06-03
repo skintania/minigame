@@ -281,6 +281,12 @@ html[data-theme="classic"] .uno-opp-badge {
   .uno-table { width: min(74vw, 320px); }
 }
 
+@media (max-width: 480px) {
+  #uno-board { padding: 0 8px 8px; }
+  .uno-table-area { padding: 48px 44px; }
+  .uno-table { width: min(82vw, 280px); }
+}
+
 /* ── UNO cards ─────────────────────────────────────────── */
 .uno-card {
   width: 72px;

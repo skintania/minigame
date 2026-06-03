@@ -83,6 +83,7 @@
   padding: 20px 24px 48px;
   text-align: center;
   overflow-y: auto;
+  position: relative;
 }
 .find-room-filters {
   display: flex;
@@ -131,11 +132,20 @@
 .room-card-game { font-size: 14px; font-weight: 600; color: var(--text); }
 .room-card-host { font-size: 12px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .room-card-meta { display: flex; gap: 8px; align-items: center; margin-top: 5px; }
-.room-status-badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+.room-card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.room-status-badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
 .room-status-badge.waiting { color: #4fc97e; background: rgba(79,201,126,0.13); }
 .room-status-badge.active  { color: #f0a044; background: rgba(240,160,68,0.13); }
 .room-players-badge { font-size: 11px; color: var(--muted); }
 .room-list-empty, .room-list-loading { color: var(--muted); font-size: 14px; padding: 40px 0; }
+
+@media (max-width: 480px) {
+  #view-find-room { padding: 16px 14px 48px; }
+  .find-room-filters { gap: 6px; }
+  .filter-btn { font-size: 11px; padding: 4px 10px; }
+  .room-card { gap: 10px; padding: 12px; }
+  .room-card-icon { font-size: 22px; }
+}
 
 /* Visibility toggle in waiting room settings */
 .wr-vis-toggle { display: flex; gap: 6px; }
@@ -913,4 +923,14 @@
     border-radius: 20px 20px 0 0;
     padding-bottom: max(28px, env(safe-area-inset-bottom));
   }
+}
+
+/* ════ SMALL PHONES (≤ 480px) ════ */
+@media (max-width: 480px) {
+  /* End Game button: smaller so it doesn't push turn pill off-screen */
+  #btn-end-game { font-size: 11px !important; padding: 5px 10px !important; }
+  /* Phase badge: hide text, keep visual presence */
+  .g-game-name { font-size: 12px; }
+  /* Home screen join row: tighter */
+  .join-code-row { padding: 10px 10px; gap: 8px; }
 }
