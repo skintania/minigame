@@ -4,8 +4,8 @@
   align-items: stretch;
   gap: 0;
   padding: 0;
-  height: 100%;
-  overflow: hidden;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .bluff-layout {
