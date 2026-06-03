@@ -57,6 +57,7 @@ export async function initLogin() {
   document.getElementById('btn-create-pokdeng').addEventListener('click',   () => doCreateRoom('pokdeng'))
   document.getElementById('btn-create-doraemon').addEventListener('click',  () => doCreateRoom('doraemon'))
   document.getElementById('btn-create-oldmaid').addEventListener('click',   () => doCreateRoom('oldmaid'))
+  document.getElementById('btn-create-bluff').addEventListener('click',     () => doCreateRoom('bluff'))
 
   // Find Room screen
   document.getElementById('find-back-btn').addEventListener('click', () => showView('view-home'))

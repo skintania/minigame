@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="/src/styles/games/pokdeng.css">
   <link rel="stylesheet" href="/src/styles/games/doraemon.css">
   <link rel="stylesheet" href="/src/styles/games/oldmaid.css">
+  <link rel="stylesheet" href="/src/styles/games/bluff.css">
 </head>
 <body>
   <div id="toast"></div>
@@ -385,6 +386,36 @@
           <div class="last-action" id="om-last"></div>
         </div>
       </div>
+    </div>
+
+    <!-- Bluff Board -->
+    <div id="bluff-board" class="game-board" style="display:none">
+      <div class="bluff-layout">
+        <!-- Opponents -->
+        <div class="bluff-opponents-area" id="bluff-opponents"></div>
+        <!-- Table center: pile + banners -->
+        <div class="bluff-table-area">
+          <div class="bluff-rank-hint" id="bluff-rank-hint" style="display:none"></div>
+          <div class="bluff-last-play-banner" id="bluff-last-play" style="display:none"></div>
+          <div class="bluff-pile-wrap">
+            <div id="bluff-pile"></div>
+          </div>
+          <div class="bluff-turn-status" id="bluff-turn-status"></div>
+        </div>
+        <!-- Player zone -->
+        <div class="bluff-player-zone">
+          <div class="bluff-my-hand" id="bluff-my-hand"></div>
+          <div class="bluff-hand-footer">
+            <button class="btn btn-danger" id="btn-bluff-challenge" style="display:none;width:auto;padding:10px 24px">Bluff!</button>
+            <button class="btn btn-pink"   id="btn-bluff-play"      style="display:none;width:auto;padding:10px 24px" disabled>Play</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bluff challenge result overlay -->
+    <div id="bluff-challenge-overlay">
+      <div class="bluff-challenge-card"></div>
     </div>
 
     <!-- Dummy between-rounds scoreboard panel (top-right, non-blocking) -->

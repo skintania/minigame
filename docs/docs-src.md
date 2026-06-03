@@ -47,6 +47,10 @@ Thin fetch wrapper around the Cloudflare Worker API.
 | `unoStart(mid, sid)` | POST | `/games/uno/{mid}/start` |
 | `unoPlay(mid, sid, card, color?)` | POST | `/games/uno/{mid}/play` |
 | `unoDraw(mid, sid)` | POST | `/games/uno/{mid}/draw` |
+| `bluffStart(mid, sid)` | POST | `/games/bluff/{mid}/start` |
+| `bluffPlay(mid, sid, cards)` | POST | `/games/bluff/{mid}/play` |
+| `bluffChallenge(mid, sid)` | POST | `/games/bluff/{mid}/challenge` |
+| `bluffEndGame(mid, sid)` | POST | `/games/bluff/{mid}/end-game` |
 | `blackjackStart(mid, sid)` | POST | `/games/blackjack/{mid}/start` |
 | `blackjackNextRound(mid, sid)` | POST | `/games/blackjack/{mid}/next-round` |
 | `blackjackEndGame(mid, sid)` | POST | `/games/blackjack/{mid}/end-game` |
@@ -177,7 +181,7 @@ Main game orchestrator (~700 lines). Manages polling, rendering dispatch, overla
 
 ## `src/games/registry.js`
 
-Plugin registry. Exports `{ poker, uno, slave, dummy, blackjack }` object pointing to each game module.
+Plugin registry. Exports `{ poker, uno, slave, dummy, blackjack, pokdeng, doraemon, oldmaid, bluff }` object pointing to each game module.
 
 ---
 
@@ -321,6 +325,45 @@ Blackjack board rendering.
 - **Playing phase:** shows my hand(s) — `string[][]`; highlights active hand (pink border); dims stood/busted hands; shows Hit/Stand and conditionally Double Down (2-card hand + chips ≥ bet) / Split (matching rank + chips ≥ bet + < 4 hands)
 - **Between-rounds:** shows per-hand result badges + net chip change with color (+/−)
 - Hand value computed locally: Ace=11/1, face=10, shows "Soft X" when Ace counts as 11
+
+---
+
+## `src/games/bluff/index.js`
+
+Bluff plugin entry.
+
+**Exports:** `{ init, render }`
+- `init()` — calls `bindBluffActions()` to wire Play and Bluff! button clicks (once on page load)
+- `render(meta, mine)` — delegate to `renderBoard(meta, mine)`
+
+---
+
+## `src/games/bluff/actions.js`
+
+Bluff action dispatchers.
+
+**Exports:** `bluffStart()`, `bluffPlay(cards)`, `bluffChallenge()`, `bluffEndGame()`
+
+All dispatch via `act(fn)`: call API → falls back to `api.getState()` on error → fire `CustomEvent('game:move')`.
+
+---
+
+## `src/games/bluff/render.js`
+
+Bluff board rendering.
+
+**Exports:** `renderBoard(meta, mine)`, `bindBluffActions()`
+
+- **Opponents** (`#bluff-opponents`): one `.bluff-seat` per opponent; shows face-down card backs, card count, active-turn highlight
+- **Pile** (`#bluff-pile`): stacked card-back graphics (max 5 shown), `pileSize` label
+- **Last play banner** (`#bluff-last-play`): `"[Name] played N Rs"` when `lastPlay` is non-null
+- **Rank hint** (`#bluff-rank-hint`): `"Play your {currentRank}s"` during `playing` phase
+- **Hand** (`#bluff-my-hand`): multi-select up to 4 cards; selected cards tracked via `selectedCards` array with `card:idx` keys; re-renders on each toggle
+- **Play button** (`#btn-bluff-play`): visible when `isMyTurn`; disabled until ≥1 card selected; label: `"Play N as Rs"`
+- **Challenge button** (`#btn-bluff-challenge`): visible when `isMyTurn && lastPlay !== null && lastPlay.playerId !== myId`
+- **Challenge overlay** (`#bluff-challenge-overlay`): shown for 3s when `lastChallenge` changes; key is `challengerId:playerId:pileSize:actualCards` to prevent re-trigger on same data; shows bluff-caught or honest result with actual cards
+
+**Module-level state:** `selectedCards[]`, `challengeTimer`, `prevMatchId`, `prevLastChallenge` — all reset on new match.
 
 ---
 

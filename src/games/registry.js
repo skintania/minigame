@@ -6,6 +6,7 @@ import blackjack from './blackjack/index.js'
 import pokdeng   from './pokdeng/index.js'
 import doraemon  from './doraemon/index.js'
 import oldmaid   from './oldmaid/index.js'
+import bluff     from './bluff/index.js'
 
-const registry = { poker, uno, slave, dummy, blackjack, pokdeng, doraemon, oldmaid }
+const registry = { poker, uno, slave, dummy, blackjack, pokdeng, doraemon, oldmaid, bluff }
 export default registry

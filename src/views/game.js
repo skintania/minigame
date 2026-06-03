@@ -117,6 +117,7 @@ export function initGame() {
       uno: api.unoEndGame, slave: api.slaveEndGame, dummy: api.dummyEndGame,
       blackjack: api.blackjackEndGame, pokdeng: api.pokdengEndGame,
       doraemon: api.doraemonEndGame, oldmaid: api.oldmaidEndGame,
+      bluff: api.bluffEndGame,
     }[state.gameId]
     if (endGameFn && state.matchId) {
       try { await endGameFn(state.matchId, state.sessionId); leaveRoom() } catch (e) { showToast(e.message) }
@@ -227,7 +228,7 @@ export function enterGame() {
   stopPoll()
 
   const gameId = state.gameId
-  const GAME_NAMES = { poker:'Poker', uno:'UNO', slave:'Slave', dummy:'Dummy', blackjack:'Blackjack', pokdeng:'Pok Deng', doraemon:'Doraemon', oldmaid:'Old Maid' }
+  const GAME_NAMES = { poker:'Poker', uno:'UNO', slave:'Slave', dummy:'Dummy', blackjack:'Blackjack', pokdeng:'Pok Deng', doraemon:'Doraemon', oldmaid:'Old Maid', bluff:'Bluff' }
   document.getElementById('g-name').textContent            = GAME_NAMES[gameId] || gameId
   document.getElementById('poker-board').style.display      = gameId === 'poker'      ? 'flex' : 'none'
   document.getElementById('uno-board').style.display        = gameId === 'uno'        ? 'flex' : 'none'
@@ -237,6 +238,7 @@ export function enterGame() {
   document.getElementById('pokdeng-board').style.display    = gameId === 'pokdeng'    ? 'flex' : 'none'
   document.getElementById('doraemon-board').style.display   = gameId === 'doraemon'   ? 'flex' : 'none'
   document.getElementById('oldmaid-board').style.display    = gameId === 'oldmaid'    ? 'flex' : 'none'
+  document.getElementById('bluff-board').style.display      = gameId === 'bluff'      ? 'flex' : 'none'
 
   // Move join-wrap into whichever board is active (it lives in poker board by default)
   if (gameId === 'uno') {
@@ -260,6 +262,9 @@ export function enterGame() {
   } else if (gameId === 'oldmaid') {
     const wrap = document.getElementById('wr-join-wrap')
     document.querySelector('.om-player-zone')?.appendChild(wrap)
+  } else if (gameId === 'bluff') {
+    const wrap = document.getElementById('wr-join-wrap')
+    document.querySelector('.bluff-player-zone')?.appendChild(wrap)
   }
   document.getElementById('btn-end-game').style.display =
     (state.roomCode && amHost()) ? 'inline-flex' : 'none'
@@ -297,7 +302,7 @@ export function enterGame() {
       applyServerState(gs)
       saveSession()
       render()
-      if (['uno', 'slave', 'dummy', 'blackjack', 'pokdeng'].includes(state.gameId) && gs.matchStatus === 'finished') {
+      if (['uno', 'slave', 'dummy', 'blackjack', 'pokdeng', 'bluff'].includes(state.gameId) && gs.matchStatus === 'finished') {
         stopPoll(); startGameOverCountdown()
       } else if (state.gameId === 'doraemon' && gs.matchStatus === 'finished') {
         stopPoll(); showToast('Game over! Returning to lobby…', 'info')
@@ -384,6 +389,7 @@ export function render() {
     document.querySelector('.bj-hand-footer')?.style.setProperty('display', 'none')
     document.querySelector('.pd-hand-footer')?.style.setProperty('display', 'none')
     document.querySelector('.dm-hand-footer')?.style.setProperty('display', 'none')
+    document.querySelector('.bluff-hand-footer')?.style.setProperty('display', 'none')
     updateWaitingPanel(meta)
     registry[state.gameId]?.render(meta, false)
     _prevRenderPhase = _curRenderPhase
@@ -482,6 +488,8 @@ export function render() {
   document.querySelector('.dmy-hand-footer')?.style.setProperty('display',
     curRole() === 'spectator' ? 'none' : '')
   document.querySelector('.dm-hand-footer')?.style.setProperty('display', '')
+  document.querySelector('.bluff-hand-footer')?.style.setProperty('display',
+    curRole() === 'spectator' ? 'none' : '')
 
   const isSpectator = curRole() === 'spectator'
   const mine = state.gameState.isMyTurn === true
@@ -683,6 +691,7 @@ async function wrStartRound() {
                : state.gameId === 'dummy'    ? api.dummyStart
                : state.gameId === 'doraemon' ? api.doraemonStart
                : state.gameId === 'oldmaid'  ? api.oldmaidStart
+               : state.gameId === 'bluff'    ? api.bluffStart
                : api.slaveStart
       await fn(state.matchId, state.sessionId)
     }

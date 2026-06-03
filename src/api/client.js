@@ -94,6 +94,12 @@ export const api = {
   doraemonReportPointing:   (mid, sid, offender)=>request('POST', `/games/doraemon/${mid}/report-pointing`,     { sessionId: sid, offender }),
   doraemonSetCategory:      (mid, sid, topic)   => request('POST', `/games/doraemon/${mid}/set-category`,        { sessionId: sid, topic }),
 
+  // Bluff actions
+  bluffStart:     (mid, sid)         => request('POST', `/games/bluff/${mid}/start`,     { sessionId: sid }),
+  bluffPlay:      (mid, sid, cards)  => request('POST', `/games/bluff/${mid}/play`,      { sessionId: sid, cards }),
+  bluffChallenge: (mid, sid)         => request('POST', `/games/bluff/${mid}/challenge`, { sessionId: sid }),
+  bluffEndGame:   (mid, sid)         => request('POST', `/games/bluff/${mid}/end-game`,  { sessionId: sid }),
+
   // Old Maid actions
   oldmaidStart:         (mid, sid)        => request('POST', `/games/oldmaid/${mid}/start`,            { sessionId: sid }),
   oldmaidPick:          (mid, sid, index) => request('POST', `/games/oldmaid/${mid}/pick`,            { sessionId: sid, index }),
